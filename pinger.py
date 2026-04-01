@@ -10,11 +10,15 @@ from asyncio import (
     new_event_loop,
     run_coroutine_threadsafe,
     sleep as asyncio_sleep,
+    wait_for,
+    CancelledError,
+    TimeoutError
 )
-import asyncio
+
 from threading import Thread
 from socket import inet_aton
 from time import monotonic
+from icmplib import async_multiping
 
 
 class Pinger:
@@ -29,7 +33,7 @@ class Pinger:
         targets (list[str]): List of IP addresses to monitor.
     """
 
-    def __init__(self, targets=[], frequency: float = 2.0, start_running: bool = True):
+    def __init__(self, targets=[], timeout: int = 2, count: int = 5, interval: float = 0.5, frequency: int = 2, start_running: bool = False):
         """Initialize the Pinger instance.
         
         Args:
@@ -43,7 +47,10 @@ class Pinger:
 
         self._targets = []
         self.targets = targets
-        self.frequency = frequency
+        self._frequency = frequency
+        self._timeout = timeout
+        self._count = count
+        self._interval = interval   
 
         self.loop = new_event_loop()
         Thread(
@@ -114,6 +121,37 @@ class Pinger:
         """
         return self._targets
 
+    async def _run_pings(self) -> None:
+        """Background async task that performs periodic ping operations.
+        
+        This coroutine runs continuously, performing ping operations at the
+        specified frequency interval. It can be cancelled by calling run(False).
+        
+        Raises:
+            asyncio.CancelledError: When the task is cancelled.
+        """
+        try:
+            while True:
+                start_time = monotonic()
+                if len(self.targets) > 0:
+                    try:
+                        results = await wait_for(
+                            async_multiping(self._targets, count=self._count, timeout=self._timeout, interval=self._interval, privileged=False, concurrent_tasks=20),
+                            timeout=30.0
+                        )
+                        for result in results:
+                            print(f"Pinged {result.address}: avg {result.avg_rtt} ms, max {result.max_rtt} ms (loss {result.packet_loss*100}%)")
+         
+                    except TimeoutError:
+                        print("Ping operation timed out after 30 seconds")
+                    except Exception as e:
+                        print(f"Error occurred while pinging: {e}")
+                else:
+                    print("No targets to ping")
+                await asyncio_sleep(self._frequency - ((monotonic() - start_time)))
+        except CancelledError:
+            print("ping task was cancelled")
+
     async def _background_task(self) -> None:
         """Background async task that performs periodic ping operations.
         
@@ -129,7 +167,7 @@ class Pinger:
                 print("background task is running")
                 await asyncio_sleep(0.5)  # Simulate work being done
                 await asyncio_sleep(self.frequency - ((monotonic() - start_time)))
-        except asyncio.CancelledError:
+        except CancelledError:
             print("background task was cancelled")
 
     def run(self, running: bool) -> None:
@@ -141,7 +179,7 @@ class Pinger:
         if running:
             if self.pinger_coroutine is None:
                 self.pinger_coroutine = run_coroutine_threadsafe(
-                    self._background_task(), self.loop
+                    self._run_pings(), self.loop
                 )
         else:
             if self.pinger_coroutine is not None:

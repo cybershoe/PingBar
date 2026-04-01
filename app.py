@@ -29,6 +29,7 @@ class PingBarApp(App):
         super(PingBarApp, self).__init__(*args, **kwargs)
         self.pinger = Pinger()
         self.settings = {}
+        self._load_settings()
 
     def _load_settings(self):
         """Load application settings from settings.json file.
@@ -42,12 +43,16 @@ class PingBarApp(App):
         except (IOError, ValueError):
             self.settings = {
                 "paused": False,
-                "airplane_mode": False,
                 "targets": [
                     "8.8.8.8",
-                    "1.1.1.1"
+                    "1.1.1.1",
+                    "8.8.4.4",
+                    "1.0.0.1"
                 ]
             }
+        self.pinger.targets = self.settings.get("targets", [])
+        print(f"Loaded settings: {self.settings}")
+
 
     def _save_settings(self):
         """Save current application settings to settings.json file.
@@ -66,6 +71,8 @@ class PingBarApp(App):
             value: The value to set for the key.
         """
         self.settings[key] = value
+        if key == "targets":
+            self.pinger.targets = value
         self._save_settings()
 
     def get_setting(self, key, default=None):
