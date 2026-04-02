@@ -3,6 +3,8 @@
 This module provides the Pinger class which performs periodic network pings
 to specified IP addresses to monitor connectivity status.
 """
+import logging
+logger = logging.getLogger(__name__)
 
 from asyncio import (
     AbstractEventLoop,
@@ -77,6 +79,8 @@ class Pinger:
         ).start()
         self.pinger_coroutine = None
 
+        logger.info(f"Pinger initialized")
+        logger.debug(f"In __init__(): Configuration - timeout: {timeout}, count: {count}, interval: {interval}, frequency: {frequency}")
         if start_running:
             self.run(True)  # Start in the running state
 
@@ -86,6 +90,7 @@ class Pinger:
 
         Attempts to stop the background event loop gracefully.
         """
+        logger.debug("Pinger instance is being destroyed, attempting to stop background loop")
         try:
             self.loop.call_soon_threadsafe(self.loop.stop)
         except AttributeError:
@@ -100,6 +105,7 @@ class Pinger:
         Args:
             loop (AbstractEventLoop): The asyncio event loop to run.
         """
+        logger.debug("In _start_background_loop(): Starting background event loop for Pinger")
         set_event_loop(loop)
         loop.run_forever()
 
@@ -124,13 +130,15 @@ class Pinger:
         Raises:
             ValueError: If any target IP address is invalid.
         """
-        for target in targets:
-            try:
+        
+        try:
+            for target in targets:
                 inet_aton(target)
-            except OSError:
-                raise ValueError(f"Invalid IP address: {target}")
-            else:
-                self._targets = targets
+        except OSError:
+            raise ValueError(f"Invalid IP address: {target}")
+        else:
+            self._targets = targets
+            logger.info(f"Updated target IP addresses: {self._targets}")
 
     async def _run_pings(self) -> None:
         """Background async task that performs periodic ping operations.
@@ -146,8 +154,8 @@ class Pinger:
             while True:
                 start_time = monotonic()
                 if len(self.targets) > 0:
+                    logger.debug(f"In _run_pings(): Pinging targets: {self._targets}")
                     try:
-                        print(f"Pinging targets: {self._targets}")
                         results = await wait_for(
                             async_multiping(
                                 self._targets,
@@ -159,25 +167,25 @@ class Pinger:
                             ),
                             timeout=30.0,
                         )
+                        logger.debug(f"In _run_pings(): Ping results: {[{"target": r.address, "avg_rtt": r.avg_rtt, "packet_loss": r.packet_loss} for r in results]}")
+
                         if self.cb:
                             try:
-                                print(f"{[host.avg_rtt for host in results if host.avg_rtt is not None]}")
                                 avg_latency = self.remove_outliers_and_avg([host.avg_rtt for host in results if host.avg_rtt is not None])
-                                print(avg_latency)
                                 avg_loss = self.remove_outliers_and_avg([host.packet_loss for host in results if host.packet_loss is not None])
                                 self.cb(avg_latency, avg_loss)
                             except Exception as e:
-                                print(f"Error in callback function: {e}")
+                                logger.error(f"Error in callback function: {e}")
 
                     except TimeoutError:
-                        print("Ping operation timed out after 30 seconds")
+                        logger.warning("Ping operation timed out after 30 seconds")
                     except Exception as e:
-                        print(f"Error occurred while pinging: {e}")
+                        logger.error(f"Error occurred while pinging: {e}")
                 else:
-                    print("No targets to ping")
+                    logger.info("No targets to ping")
                 await asyncio_sleep(self._frequency - ((monotonic() - start_time)))
         except CancelledError:
-            print("ping task was cancelled")
+            logger.debug("In _run_pings(): Ping task was cancelled")
 
     def run(self, running: bool) -> None:
         """Start or stop the ping monitoring.
@@ -190,14 +198,20 @@ class Pinger:
             running (bool): True to start pinging, False to stop pinging.
         """
         if running:
+            logger.info("Starting ping monitoring")
             if self.pinger_coroutine is None:
                 self.pinger_coroutine = run_coroutine_threadsafe(
                     self._run_pings(), self.loop
                 )
+            else:
+                logger.warning("Attempted to start ping monitoring, but it is already running")
         else:
+            logger.info("Stopping ping monitoring")
             if self.pinger_coroutine is not None:
                 self.pinger_coroutine.cancel()
                 self.pinger_coroutine = None
+            else:
+                logger.warning("Attempted to stop ping monitoring, but no ping task was running")
             if self.cb:
                 self.cb(None, None)
 
@@ -216,17 +230,22 @@ class Pinger:
         Returns:
             float | None: Mean of filtered values, or None if no values provided.
         """
-        print(f"Removing outliers from values: {values}")
+        logger.debug(f"In remove_outliers_and_avg(): Removing outliers from values: {values}")
         if len(values) == 0:
-            print("No values provided, returning None")
+            logger.debug("In remove_outliers_and_avg(): No values provided, returning None")
             return None
         elif len(values) == 1:
+            logger.debug(f"In remove_outliers_and_avg(): Only one value provided, returning that value: {values[0]}")
             return values[0]
         else:
             mean_value = sum(values) / len(values)
             max_value = max(values)
             if max_value > mean_value * 1.5:
+                logger.debug(f"In remove_outliers_and_avg(): Removing outlier {max_value}")
                 values.pop(values.index(max_value))  # Remove max value as outlier
-                return sum(values) / len(values)
+                filtered_mean = sum(values) / len(values)
+                logger.debug(f"In remove_outliers_and_avg(): Returning filtered mean value: {filtered_mean}")
+                return filtered_mean
             else:
+                logger.debug(f"In remove_outliers_and_avg(): No outliers detected, returning mean of all values: {mean_value}")
                 return mean_value

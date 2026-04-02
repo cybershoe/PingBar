@@ -3,12 +3,21 @@
 This module contains the main function that starts the PingBar macOS menu bar
 application for monitoring network connectivity status.
 """
+import logging
+from os import environ
 
-# from rumps import debug_mode as rumps_debug_mode
+LOGLEVEL = environ.get('LOGLEVEL', 'WARN').upper()  
+logging.basicConfig(
+    level=LOGLEVEL
+)
+logger = logging.getLogger(__name__)
+
+if logger.getEffectiveLevel() <= logging.DEBUG:
+    from rumps import debug_mode as rumps_debug_mode
+    rumps_debug_mode(True)
 
 from app import PingBarApp
 
-# rumps_debug_mode(True)
 
 def main() -> None:
     """Main entry point for the PingBar application.
