@@ -9,6 +9,8 @@ def getPreferences(targets: List[str]) -> List[str]:
             message="Enter target IP addresses (comma-separated):",
             default_text=",".join(targets),
             dimensions=(300, 24),
+            cancel="Cancel",
+            ok="Save",
         ).run()
 
         if response.clicked == 1:
@@ -18,8 +20,8 @@ def getPreferences(targets: List[str]) -> List[str]:
                     inet_aton(target)
             except OSError:
                 alert(f"Invalid IP address: {target}")
-                break
+                print(targets)
             else:
                 return new_targets
         else:
-            return targets
+            return None

@@ -38,7 +38,7 @@ class PingBarApp(App):
         self.statistics_menu = MenuItem("waiting...")
         self.pause_menu = MenuItem("Pause")
         self.pause_menu.state = self.get_setting("paused", False)
-        self.menu = [self.statistics_menu, self.pause_menu, "Preferences"]
+        self.menu = [self.statistics_menu, self.pause_menu]
         self._changed = False
 
 
@@ -135,7 +135,7 @@ class PingBarApp(App):
                 self._icon_nsimage = status_text_icon(self.latency, self.loss)
             self._nsapp.setStatusBarIcon()
 
-    @clicked("Preferences")
+    @clicked("Ping targets")
     def prefs(self, _):
         """Handle preferences menu item click.
 
@@ -146,7 +146,8 @@ class PingBarApp(App):
             _: Unused menu item parameter.
         """
         new_targets = getPreferences(self.get_setting("targets", []))
-        self.set_setting("targets", new_targets)
+        if new_targets is not None:
+            self.set_setting("targets", new_targets)
 
     @clicked("Pause")
     def onoff(self, sender):
