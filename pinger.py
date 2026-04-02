@@ -46,14 +46,18 @@ class Pinger:
     ):
         """Initialize the Pinger instance.
 
+        Creates a new pinger with the specified configuration and optionally
+        starts monitoring immediately. Validates all target IP addresses and
+        sets up a background thread with its own async event loop.
+
         Args:
-            targets (List[str], optional): List of IP addresses to ping. Defaults to [].
+            targets (List[str], optional): List of IPv4 addresses to ping. Defaults to [].
             timeout (int, optional): Ping timeout in seconds. Defaults to 2.
-            count (int, optional): Number of ping packets to send per target. Defaults to 5.
-            interval (float, optional): Time interval between individual ping packets in seconds. Defaults to 0.5.
-            frequency (int, optional): Time in seconds between ping cycles. Defaults to 2.
+            count (int, optional): Number of ping packets per target per cycle. Defaults to 10.
+            interval (float, optional): Time between individual ping packets in seconds. Defaults to 0.5.
+            frequency (int, optional): Time between ping cycles in seconds. Defaults to 10.
             start_running (bool, optional): Whether to start pinging immediately. Defaults to False.
-            cb (callable, optional): Callback function to be called with ping results. Defaults to None.
+            cb (callable, optional): Callback function for ping results (latency, loss). Defaults to None.
             
         Raises:
             ValueError: If any target IP address is invalid.
@@ -177,6 +181,10 @@ class Pinger:
 
     def run(self, running: bool) -> None:
         """Start or stop the ping monitoring.
+        
+        Controls the ping monitoring state. When starting, creates a new
+        asynchronous ping task. When stopping, cancels any running task
+        and calls the callback with None values to indicate stopped state.
 
         Args:
             running (bool): True to start pinging, False to stop pinging.

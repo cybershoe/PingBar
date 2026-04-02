@@ -1,8 +1,27 @@
+"""Preferences management module for PingBar application.
+
+This module provides functionality to display and manage user preferences,
+particularly for configuring ping target IP addresses through a GUI dialog.
+"""
+
 from rumps import Window, alert
 from typing import List
 from socket import inet_aton
 
 def getPreferences(targets: List[str]) -> List[str]:
+    """Display preferences dialog for configuring ping targets.
+    
+    Shows a modal dialog window allowing the user to enter or modify
+    the list of IP addresses to monitor. Validates all entered IP addresses
+    and displays error messages for invalid entries.
+    
+    Args:
+        targets (List[str]): Current list of target IP addresses.
+    
+    Returns:
+        List[str] | None: Updated list of target IP addresses if user clicked Save,
+                         or None if user clicked Cancel or closed the dialog.
+    """
     while True:
         response = Window(
             title="Ping Targets",

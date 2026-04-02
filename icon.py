@@ -1,3 +1,10 @@
+"""Icon generation module for PingBar application.
+
+This module provides functions to create NSImage icons for displaying
+network status information in the macOS menu bar, including status text
+with color-coded thresholds and SF Symbol icons.
+"""
+
 from AppKit import (
     NSImage,
     NSColor,
@@ -20,6 +27,26 @@ def status_text_icon(
     loss_alert_threshold: float = 0.05,
     loss_critical_threshold: float = 0.25,
 ):
+    """Create a status text icon showing latency and loss with color-coded thresholds.
+    
+    This function generates a two-line NSImage icon displaying network latency
+    and packet loss values. The background color changes based on configurable
+    thresholds: normal (no background), warning (yellow), alert (orange), and
+    critical (red).
+    
+    Args:
+        latency (float | None): Network latency in milliseconds, or None if unavailable.
+        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
+        latency_warn_threshold (float): Warning threshold for latency in ms. Defaults to 80.0.
+        latency_alert_threshold (float): Alert threshold for latency in ms. Defaults to 500.0.
+        latency_critical_threshold (float): Critical threshold for latency in ms. Defaults to 1000.0.
+        loss_warn_threshold (float): Warning threshold for loss as decimal. Defaults to 0.00.
+        loss_alert_threshold (float): Alert threshold for loss as decimal. Defaults to 0.05.
+        loss_critical_threshold (float): Critical threshold for loss as decimal. Defaults to 0.25.
+    
+    Returns:
+        NSImage: A 50x20 pixel icon with right-aligned text showing latency and loss values.
+    """
     
     size = NSSize(50, 20)
 
@@ -91,6 +118,19 @@ def status_text_icon(
 
 
 def symbol_icon(symbol_name: str, accessibility_description: str) -> NSImage:
+    """Create a template icon from an SF Symbol.
+    
+    This function creates a 20x20 pixel NSImage icon from the specified SF Symbol,
+    suitable for use in macOS menu bars. The resulting image is set as a template
+    image for automatic theming.
+    
+    Args:
+        symbol_name (str): The name of the SF Symbol (e.g., 'pause.circle').
+        accessibility_description (str): Accessibility description for the icon.
+    
+    Returns:
+        NSImage: A 20x20 pixel template icon of the specified SF Symbol.
+    """
     # Create SF Symbol image
     symbol_image = NSImage.imageWithSystemSymbolName_accessibilityDescription_(
         symbol_name, accessibility_description

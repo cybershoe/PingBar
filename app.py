@@ -23,6 +23,10 @@ class PingBarApp(App):
 
     def __init__(self, *args, **kwargs):
         """Initialize the PingBar application.
+        
+        Sets up the menu bar application with default settings, creates the
+        status menu items, initializes the pinger, and loads any saved
+        configuration from the settings file.
 
         Args:
             *args: Variable length argument list passed to parent App class.
@@ -104,11 +108,14 @@ class PingBarApp(App):
     
 
     def update_statistics(self, latency: float = None, loss: float = None):
-        """Update the statistics menu item text.
+        """Update the statistics display with new network measurements.
+
+        Called by the pinger when new latency and packet loss measurements
+        are available. Updates internal state and triggers a menu refresh.
 
         Args:
-            latency (float): The average latency in milliseconds.
-            loss (float): The packet loss percentage.
+            latency (float, optional): The average latency in milliseconds. Defaults to None.
+            loss (float, optional): The packet loss as a decimal (0.0-1.0). Defaults to None.
         """
         if latency is not None:
             self.latency = latency

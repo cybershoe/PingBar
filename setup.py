@@ -1,3 +1,10 @@
+"""Setup script for building PingBar macOS application.
+
+This script uses py2app to create a standalone macOS application bundle
+from the PingBar Python source code. Configures app metadata, bundle
+information, and packaging options.
+"""
+
 from setuptools import setup
 
 APP = ['main.py']

@@ -14,7 +14,11 @@ def main() -> None:
     """Main entry point for the PingBar application.
     
     Initializes and starts the PingBar macOS menu bar application.
-    The application will run until the user quits it.
+    The application will run in the system menu bar and monitor network
+    connectivity until the user quits it through the menu interface.
+    
+    Returns:
+        None
     """
     pingbar_app = PingBarApp("PingBar")
     pingbar_app.run()
