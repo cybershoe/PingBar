@@ -21,19 +21,21 @@ class SelectableMenu(MenuItem):
     a callback function is invoked with the selected option.
     """
     
-    def __init__(self, title="Select", options: List[str] = [], selected: str = None, cb: Callable = None, **kwargs):
+    def __init__(self, title="Select", options: List[str] = None, selected: str = None, cb: Callable = None, **kwargs):
         """Initialize the SelectableMenu with options and callback.
         
         Args:
             title (str, optional): The main menu item title. Defaults to "Select".
-            options (List[str], optional): List of option strings to display as sub-items. 
-                                         Defaults to [].
+            options (List[str], optional): List of option strings to display as sub-items.
+                                         Defaults to None, which creates an empty list.
             selected (str, optional): Initially selected option. Must be in options list
                                     or None for no initial selection. Defaults to None.
             cb (Callable, optional): Callback function called with selected option string
                                    when selection changes. Defaults to None.
             **kwargs: Additional keyword arguments passed to parent MenuItem.
         """
+        if options is None:
+            options = []
         super(SelectableMenu, self).__init__(title, **kwargs)
         self._menu_items = []
         cb_name = getattr(cb, "__name__", None)
