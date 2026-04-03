@@ -68,7 +68,7 @@ symlinks = {"Applications": "/Applications"}
 #
 # icon = '/path/to/icon.icns'
 
-icon = 'pingbar.icns'
+icon = "pingbar.icns"
 
 # Where to put the icons
 icon_locations = {appname: (140, 120), "Applications": (500, 120)}
@@ -132,4 +132,4 @@ grid_spacing = 100
 scroll_position = (0, 0)
 label_pos = "bottom"  # or 'right'
 text_size = 16
-icon_size = 128 
+icon_size = 128

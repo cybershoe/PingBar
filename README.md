@@ -1,4 +1,4 @@
-# PingBar
+# <img src="images/pingbar.png" width=128/> PingBar
 
 A macOS menu bar application for monitoring network connectivity through continuous ping monitoring. PingBar provides at-a-glance visibility into your connection quality with color-coded status indicators and customizable ping targets.
 
@@ -6,20 +6,40 @@ A macOS menu bar application for monitoring network connectivity through continu
 
 - **Background Network Monitoring**: Continuously checks multiple ping targets
 - **Menu Bar Integration**: Lives in your macOS menu bar for always-visible network status
+- **Multiple Display Modes**: Choose between different visual representations
+  - **Dot Mode**: Simple colored circle indicator (default)
+  <img src="images/dots.png" style="height: 3rem"/>
+  - **Text Mode**: Detailed latency and packet loss statistics
+  <img src="images/text.png" style="height: 3rem"/>
+
+
 - **Color-coded Status Indicators**: Visual feedback with different colors based on latency and packet loss thresholds
-  - Normal: Ping <80ms, 0% packet loss
-  - Yellow: Ping 80-500 ms, 0.1-5% packet loss
-  - Orange: Ping 500-1000 ms, 5-25% packet loss
-  - Red: Ping > 1000 ms, > 25% packet loss  
+  - Normal (Uncolored): Ping <80ms, 0% packet loss
+  - Yellow: Ping 80-500ms, >0-5% packet loss
+  - Orange: Ping 500-1000ms, 5-25% packet loss
+  - Red: Ping >1000ms, >25% packet loss  
+  - Dotted: No data available
+
 - **Customizable Targets**: By default, PingBar checks 2 Google DNS and 2 Cloudflare DNS targets, but you can add or remove addresses as desired
+
 - **Outlier Filtering**: Discards anomalous results for more accurate measurements; you care about your connection quality, not a brief outage of one of the ping targets.
 
 ## Usage
 
 1. **Starting**: Launch PingBar and it will appear in your menu bar
 2. **Monitoring**: The icon shows current network status with color coding
-3. **Pausing**: Use the "Pause" menu item to temporarily stop monitoring
-4. **Configuration**: Access "Ping targets" to modify which servers to monitor
+3. **Display Modes**: Switch between dot and text display modes via the "Display Mode" menu
+4. **Pausing**: Use the "Pause" menu item to temporarily stop monitoring
+5. **Configuration**: Access "Ping targets" to modify which servers to monitor
+
+### Changing Display Mode
+
+1. Click the PingBar icon in your menu bar
+2. Select "Display Mode"
+3. Choose either "Dot" or "Text" from the submenu
+
+- **Dot Mode**: Shows a simple colored circle that changes color based on network status
+- **Text Mode**: Displays detailed latency and packet loss statistics in the menu bar
 
 ### Customizing Targets
 
@@ -34,7 +54,7 @@ A macOS menu bar application for monitoring network connectivity through continu
 
 ### Requirements
 
-- macOS 10.14 or later
+- macOS 13 or later
 - Python 3.8 or later
 
 ### Dependencies

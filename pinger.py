@@ -3,7 +3,9 @@
 This module provides the Pinger class which performs periodic network pings
 to specified IP addresses to monitor connectivity status.
 """
+
 import logging
+
 logger = logging.getLogger(__name__)
 
 from asyncio import (
@@ -60,7 +62,7 @@ class Pinger:
             frequency (int, optional): Time between ping cycles in seconds. Defaults to 10.
             start_running (bool, optional): Whether to start pinging immediately. Defaults to False.
             cb (callable, optional): Callback function for ping results (latency, loss). Defaults to None.
-            
+
         Raises:
             ValueError: If any target IP address is invalid.
         """
@@ -80,17 +82,20 @@ class Pinger:
         self.pinger_coroutine = None
 
         logger.info(f"Pinger initialized")
-        logger.debug(f"In __init__(): Configuration - timeout: {timeout}, count: {count}, interval: {interval}, frequency: {frequency}")
+        logger.debug(
+            f"In __init__(): Configuration - timeout: {timeout}, count: {count}, interval: {interval}, frequency: {frequency}"
+        )
         if start_running:
             self.run(True)  # Start in the running state
-
 
     def __del__(self):
         """Clean up resources when the Pinger instance is destroyed.
 
         Attempts to stop the background event loop gracefully.
         """
-        logger.debug("Pinger instance is being destroyed, attempting to stop background loop")
+        logger.debug(
+            "Pinger instance is being destroyed, attempting to stop background loop"
+        )
         try:
             self.loop.call_soon_threadsafe(self.loop.stop)
         except AttributeError:
@@ -105,7 +110,9 @@ class Pinger:
         Args:
             loop (AbstractEventLoop): The asyncio event loop to run.
         """
-        logger.debug("In _start_background_loop(): Starting background event loop for Pinger")
+        logger.debug(
+            "In _start_background_loop(): Starting background event loop for Pinger"
+        )
         set_event_loop(loop)
         loop.run_forever()
 
@@ -130,7 +137,7 @@ class Pinger:
         Raises:
             ValueError: If any target IP address is invalid.
         """
-        
+
         try:
             for target in targets:
                 inet_aton(target)
@@ -167,12 +174,35 @@ class Pinger:
                             ),
                             timeout=30.0,
                         )
-                        logger.debug(f"In _run_pings(): Ping results: {[{"target": r.address, "avg_rtt": r.avg_rtt, "packet_loss": r.packet_loss} for r in results]}")
+                        if logger.isEnabledFor(logging.DEBUG):
+                            ping_results = [
+                                {
+                                    "target": r.address,
+                                    "avg_rtt": r.avg_rtt,
+                                    "packet_loss": r.packet_loss,
+                                }
+                                for r in results
+                            ]
+                            logger.debug(
+                                "In _run_pings(): Ping results: %s", ping_results
+                            )
 
                         if self.cb:
                             try:
-                                avg_latency = self.remove_outliers_and_avg([host.avg_rtt for host in results if host.avg_rtt is not None])
-                                avg_loss = self.remove_outliers_and_avg([host.packet_loss for host in results if host.packet_loss is not None])
+                                avg_latency = self.remove_outliers_and_avg(
+                                    [
+                                        host.avg_rtt
+                                        for host in results
+                                        if host.avg_rtt is not None
+                                    ]
+                                )
+                                avg_loss = self.remove_outliers_and_avg(
+                                    [
+                                        host.packet_loss
+                                        for host in results
+                                        if host.packet_loss is not None
+                                    ]
+                                )
                                 self.cb(avg_latency, avg_loss)
                             except Exception as e:
                                 logger.error(f"Error in callback function: {e}")
@@ -189,7 +219,7 @@ class Pinger:
 
     def run(self, running: bool) -> None:
         """Start or stop the ping monitoring.
-        
+
         Controls the ping monitoring state. When starting, creates a new
         asynchronous ping task. When stopping, cancels any running task
         and calls the callback with None values to indicate stopped state.
@@ -204,17 +234,20 @@ class Pinger:
                     self._run_pings(), self.loop
                 )
             else:
-                logger.warning("Attempted to start ping monitoring, but it is already running")
+                logger.warning(
+                    "Attempted to start ping monitoring, but it is already running"
+                )
         else:
             logger.info("Stopping ping monitoring")
             if self.pinger_coroutine is not None:
                 self.pinger_coroutine.cancel()
                 self.pinger_coroutine = None
             else:
-                logger.warning("Attempted to stop ping monitoring, but no ping task was running")
+                logger.warning(
+                    "Attempted to stop ping monitoring, but no ping task was running"
+                )
             if self.cb:
                 self.cb(None, None)
-
 
     def remove_outliers_and_avg(self, values: List[float]) -> float | None:
         """Remove outlier values and return the mean of remaining values.
@@ -230,22 +263,34 @@ class Pinger:
         Returns:
             float | None: Mean of filtered values, or None if no values provided.
         """
-        logger.debug(f"In remove_outliers_and_avg(): Removing outliers from values: {values}")
+        logger.debug(
+            f"In remove_outliers_and_avg(): Removing outliers from values: {values}"
+        )
         if len(values) == 0:
-            logger.debug("In remove_outliers_and_avg(): No values provided, returning None")
+            logger.debug(
+                "In remove_outliers_and_avg(): No values provided, returning None"
+            )
             return None
         elif len(values) == 1:
-            logger.debug(f"In remove_outliers_and_avg(): Only one value provided, returning that value: {values[0]}")
+            logger.debug(
+                f"In remove_outliers_and_avg(): Only one value provided, returning that value: {values[0]}"
+            )
             return values[0]
         else:
             mean_value = sum(values) / len(values)
             max_value = max(values)
             if max_value > mean_value * 1.5:
-                logger.debug(f"In remove_outliers_and_avg(): Removing outlier {max_value}")
+                logger.debug(
+                    f"In remove_outliers_and_avg(): Removing outlier {max_value}"
+                )
                 values.pop(values.index(max_value))  # Remove max value as outlier
                 filtered_mean = sum(values) / len(values)
-                logger.debug(f"In remove_outliers_and_avg(): Returning filtered mean value: {filtered_mean}")
+                logger.debug(
+                    f"In remove_outliers_and_avg(): Returning filtered mean value: {filtered_mean}"
+                )
                 return filtered_mean
             else:
-                logger.debug(f"In remove_outliers_and_avg(): No outliers detected, returning mean of all values: {mean_value}")
+                logger.debug(
+                    f"In remove_outliers_and_avg(): No outliers detected, returning mean of all values: {mean_value}"
+                )
                 return mean_value

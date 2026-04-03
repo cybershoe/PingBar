@@ -7,30 +7,29 @@ information, and packaging options.
 
 from setuptools import setup
 
-APP = ['main.py']
-NAME = 'PingBar'
-VERSION = '0.1.1'
+APP = ["main.py"]
+NAME = "PingBar"
+VERSION = "0.1.2"
 DATA_FILES = []
 OPTIONS = {
-    
-    'argv_emulation': True,
-    'plist': {
-        'LSUIElement': True,
-        'CFBundleName': "PingBar",
-        'CFBundleDisplayName': "PingBar",
-        'CFBundleGetInfoString': "Made by Adam Schumacher",
-        'CFBundleIdentifier': "com.genericor.PingBar",
-        'CFBundleVersion': VERSION,
-        'CFBundleShortVersionString': VERSION,
-        'NSHumanReadableCopyright': u"Copyright \u00A9 2026, Adam Schumacher, All Rights Reserved",
+    "argv_emulation": True,
+    "plist": {
+        "LSUIElement": True,
+        "CFBundleName": "PingBar",
+        "CFBundleDisplayName": "PingBar",
+        "CFBundleGetInfoString": "Made by Adam Schumacher",
+        "CFBundleIdentifier": "com.genericor.PingBar",
+        "CFBundleVersion": VERSION,
+        "CFBundleShortVersionString": VERSION,
+        "NSHumanReadableCopyright": "Copyright \u00a9 2026, Adam Schumacher, Released under the MIT License",
     },
-    'packages': ['rumps'],
-    'iconfile': 'pingbar.icns',
+    "packages": ["rumps"],
+    "iconfile": "pingbar.icns",
 }
 
 setup(
     app=APP,
     data_files=DATA_FILES,
-    options={'py2app': OPTIONS},
-    setup_requires=['py2app'],
+    options={"py2app": OPTIONS},
+    setup_requires=["py2app"],
 )

@@ -3,15 +3,16 @@
 This module contains the main application class for PingBar, a macOS menu bar
 application that monitors network connectivity by pinging specified targets.
 """
+
 import logging
+
 logger = logging.getLogger(__name__)
 
 from rumps import App, clicked, MenuItem, timer
 from json import dump as json_dump, load as json_load
 from pinger import Pinger
-from icon import status_text_icon, symbol_icon
-from preferences import get_preferences
-
+from icon import status_text_icon, status_dot_icon, symbol_icon
+from settings import SelectableMenu, update_ping_targets
 
 
 class PingBarApp(App):
@@ -28,7 +29,7 @@ class PingBarApp(App):
 
     def __init__(self, *args, **kwargs):
         """Initialize the PingBar application.
-        
+
         Sets up the menu bar application with default settings, creates the
         status menu items, initializes the pinger, and loads any saved
         configuration from the settings file.
@@ -43,11 +44,24 @@ class PingBarApp(App):
         self.latency = None
         self.loss = None
         self.title = None
-        self._icon_nsimage = symbol_icon("pause.circle" if self.get_setting("paused", False) else "waveform.path.ecg", "PingBar")
+        self._icon_nsimage = symbol_icon(
+            (
+                "pause.circle"
+                if self.get_setting("paused", False)
+                else "waveform.path.ecg"
+            ),
+            "PingBar",
+        )
         self.statistics_menu = MenuItem("waiting...")
         self.pause_menu = MenuItem("Pause")
+        self.display_menu = SelectableMenu(
+            "Display Mode",
+            options=["Dot", "Text"],
+            selected=self.get_setting("display_mode", "Dot"),
+            cb=self.set_display_mode,
+        )
         self.pause_menu.state = self.get_setting("paused", False)
-        self.menu = [self.statistics_menu, self.pause_menu]
+        self.menu = [self.statistics_menu, self.pause_menu, self.display_menu]
         self._changed = False
 
         self.pinger = Pinger(
@@ -71,9 +85,10 @@ class PingBarApp(App):
             self.settings = {
                 "paused": False,
                 "targets": ["8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1"],
+                "display_mode": "Dot",
             }
             logger.warning(f"Failed to load settings.json, using default settings")
-        
+
         logger.debug(f"In _load_settings(): Loaded settings: {self.settings}")
 
     def _save_settings(self):
@@ -118,7 +133,20 @@ class PingBarApp(App):
         """
         logger.debug(f"In get_setting(): Retrieving setting: {key} (default={default})")
         return self.settings.get(key, default)
-    
+
+    def set_display_mode(self, mode: str) -> None:
+        """Set the display mode for the status icon.
+
+        Updates the display mode setting and triggers a visual refresh
+        of the menu bar icon.
+
+        Args:
+            mode (str): The display mode to set.
+        """
+        logger.debug(f"In set_display_mode(): Setting display_mode to {mode}")
+        self.set_setting("display_mode", mode)
+        self._changed = True
+        self.refresh_status(self)
 
     def update_statistics(self, latency: float = None, loss: float = None):
         """Update the statistics display with new network measurements.
@@ -130,7 +158,9 @@ class PingBarApp(App):
             latency (float, optional): The average latency in milliseconds. Defaults to None.
             loss (float, optional): The packet loss as a decimal (0.0-1.0). Defaults to None.
         """
-        logger.debug(f"In update_statistics(): Updating statistics: loss={self.loss}, latency={self.latency}")
+        logger.debug(
+            f"In update_statistics(): Updating statistics: loss={self.loss}, latency={self.latency}"
+        )
 
         if latency is not None:
             self.latency = latency
@@ -139,42 +169,58 @@ class PingBarApp(App):
 
         self._changed = True
 
-
-    
     @timer(1)
-    def refresh_menu(self, _):
-        """Refresh the statistics menu item text every second."""
+    def refresh_status(self, _):
+        """Refresh the status display and menu item text every second."""
 
         if self._changed:
             self._changed = False
             if self.settings.get("paused"):
-                logger.debug(f"In refresh_menu(): Application is paused, showing paused status")
+                logger.debug(
+                    f"In refresh_status(): Application is paused, showing paused status"
+                )
                 self.statistics_menu.title = "Paused"
                 self._icon_nsimage = symbol_icon("pause.circle", "Paused")
             else:
-                logger.debug(f"In refresh_menu(): Application is running, showing latency and loss")
+                logger.debug(
+                    f"In refresh_status(): Application is running, showing latency and loss"
+                )
                 loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "N/A"
-                latency_str = f"{(self.latency):.2f} ms" if self.latency is not None else "N/A"
+                latency_str = (
+                    f"{(self.latency):.2f} ms" if self.latency is not None else "N/A"
+                )
                 self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
-                self._icon_nsimage = status_text_icon(self.latency, self.loss)
+                display = self.settings.get("display_mode", "Dot")
+                logger.debug(f"In refresh_status(): Current display_mode: {display}")
+
+                match display:
+                    case "Dot":
+                        self._icon_nsimage = status_dot_icon(self.latency, self.loss)
+                    case "Text":
+                        self._icon_nsimage = status_text_icon(self.latency, self.loss)
+                    case _:
+                        raise ValueError(
+                            f"Invalid display_mode setting: {self.settings.get('display_mode')}"
+                        )
+
             self._nsapp.setStatusBarIcon()
 
     @clicked("Ping targets")
-    def prefs(self, _):
-        """Handle preferences menu item click.
+    def ping_targets(self, _):
+        """Handle ping targets menu item click.
 
-        Currently displays a placeholder alert. Future versions could
-        open a preferences window.
+        Displays the preferences dialog for configuring ping target IP addresses
+        and updates settings if the user saves changes.
 
         Args:
             _: Unused menu item parameter.
         """
-        new_targets = get_preferences(self.get_setting("targets", []))
+        new_targets = update_ping_targets(self.get_setting("targets", []))
         if new_targets is not None:
-            logger.debug(f"Updating targets from get_preferences: {new_targets}")
+            logger.debug(f"Updating targets from update_ping_targets(): {new_targets}")
             self.set_setting("targets", new_targets)
         else:
-            logger.debug(f"get_preferences returned None, no changes to targets")
+            logger.debug(f"update_ping_targets() returned None, no changes to targets")
 
     @clicked("Pause")
     def onoff(self, sender):
@@ -185,8 +231,9 @@ class PingBarApp(App):
         Args:
             sender: The menu item that was clicked.
         """
-        logger.debug(f"Toggling pause state from {self.get_setting('paused', None)} to {not self.get_setting('paused', None)}")
+        logger.debug(
+            f"Toggling pause state from {self.get_setting('paused', None)} to {not self.get_setting('paused', None)}"
+        )
         self.set_setting("paused", not self.get_setting("paused", False))
         sender.state = self.get_setting("paused", False)
-        self.refresh_menu(self)
-
+        self.refresh_status(self)
