@@ -12,7 +12,7 @@ A macOS menu bar application for monitoring network connectivity through continu
 
 - **Color-coded Status Indicators**: Visual feedback with different colors based on latency and packet loss thresholds
   - Normal (Uncolored): Ping <80ms, 0% packet loss
-  - Yellow: Ping 80-500ms, 0.1-5% packet loss
+  - Yellow: Ping 80-500ms, >0-5% packet loss
   - Orange: Ping 500-1000ms, 5-25% packet loss
   - Red: Ping >1000ms, >25% packet loss  
   - Dotted: No data available
