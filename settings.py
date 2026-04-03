@@ -36,7 +36,8 @@ class SelectableMenu(MenuItem):
         """
         super(SelectableMenu, self).__init__(title, **kwargs)
         self._menu_items = []
-        logger.debug(f"In SelectableMenu.__init__(): Initializing SelectableMenu with options: {options}, selected: {selected}, callback: {cb.__name__}")
+        cb_name = getattr(cb, "__name__", None)
+        logger.debug(f"In SelectableMenu.__init__(): Initializing SelectableMenu with options: {options}, selected: {selected}, callback: {cb_name}")
         for option in options:
             item = MenuItem(option, callback=self._option_selected)
             if option == selected:
