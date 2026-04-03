@@ -9,7 +9,7 @@ from setuptools import setup
 
 APP = ['main.py']
 NAME = 'PingBar'
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 DATA_FILES = []
 OPTIONS = {
     
