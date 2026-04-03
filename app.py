@@ -11,6 +11,7 @@ from json import dump as json_dump, load as json_load
 from pinger import Pinger
 from icon import status_text_icon, status_dot_icon, symbol_icon
 from preferences import get_preferences
+from settings import SelectableMenu
 
 
 
@@ -46,8 +47,9 @@ class PingBarApp(App):
         self._icon_nsimage = symbol_icon("pause.circle" if self.get_setting("paused", False) else "waveform.path.ecg", "PingBar")
         self.statistics_menu = MenuItem("waiting...")
         self.pause_menu = MenuItem("Pause")
+        self.display_menu = SelectableMenu("Display Mode", options=["Dot", "Text"], selected=self.get_setting("display_mode", "Dot"), cb=self.set_display_mode)
         self.pause_menu.state = self.get_setting("paused", False)
-        self.menu = [self.statistics_menu, self.pause_menu]
+        self.menu = [self.statistics_menu, self.pause_menu, self.display_menu]
         self._changed = False
 
         self.pinger = Pinger(
@@ -71,6 +73,7 @@ class PingBarApp(App):
             self.settings = {
                 "paused": False,
                 "targets": ["8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1"],
+                "display_mode": "Dot",
             }
             logger.warning(f"Failed to load settings.json, using default settings")
         
@@ -119,6 +122,16 @@ class PingBarApp(App):
         logger.debug(f"In get_setting(): Retrieving setting: {key} (default={default})")
         return self.settings.get(key, default)
     
+    def set_display_mode(self, mode):
+        """Set the display mode for the status icon.
+
+        Args:
+            mode (str): The display mode to set.
+        """
+        logger.debug(f"In set_display_mode(): Setting display_mode to {mode}")
+        self.set_setting("display_mode", mode)
+        self._changed = True
+        self.refresh_status(self)
 
     def update_statistics(self, latency: float = None, loss: float = None):
         """Update the statistics display with new network measurements.
@@ -142,21 +155,31 @@ class PingBarApp(App):
 
     
     @timer(1)
-    def refresh_menu(self, _):
-        """Refresh the statistics menu item text every second."""
+    def refresh_status(self, _):
+        """Refresh the status display and menu item text every second."""
 
         if self._changed:
             self._changed = False
             if self.settings.get("paused"):
-                logger.debug(f"In refresh_menu(): Application is paused, showing paused status")
+                logger.debug(f"In refresh_status(): Application is paused, showing paused status")
                 self.statistics_menu.title = "Paused"
                 self._icon_nsimage = symbol_icon("pause.circle", "Paused")
             else:
-                logger.debug(f"In refresh_menu(): Application is running, showing latency and loss")
+                logger.debug(f"In refresh_status(): Application is running, showing latency and loss")
                 loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "N/A"
                 latency_str = f"{(self.latency):.2f} ms" if self.latency is not None else "N/A"
                 self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
-                self._icon_nsimage = status_dot_icon(self.latency, self.loss)
+                display = self.settings.get("display_mode", "Dot")
+                logger.debug(f"In refresh_status(): Current display_mode: {display}")
+
+                match display:
+                    case "Dot":
+                        self._icon_nsimage = status_dot_icon(self.latency, self.loss)
+                    case "Text":
+                        self._icon_nsimage = status_text_icon(self.latency, self.loss)
+                    case _:
+                         raise ValueError(f"Invalid display_mode setting: {self.settings.get('display_mode')}") 
+                
             self._nsapp.setStatusBarIcon()
 
     @clicked("Ping targets")
@@ -188,5 +211,5 @@ class PingBarApp(App):
         logger.debug(f"Toggling pause state from {self.get_setting('paused', None)} to {not self.get_setting('paused', None)}")
         self.set_setting("paused", not self.get_setting("paused", False))
         sender.state = self.get_setting("paused", False)
-        self.refresh_menu(self)
+        self.refresh_status(self)
 
