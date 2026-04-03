@@ -182,6 +182,7 @@ class PingBarApp(App):
                 )
                 self.statistics_menu.title = "Paused"
                 self._icon_nsimage = symbol_icon("pause.circle", "Paused")
+                self._nsapp.setStatusBarIcon()
             else:
                 logger.debug(
                     f"In refresh_status(): Application is running, showing latency and loss"
@@ -207,7 +208,7 @@ class PingBarApp(App):
                     
                 logger.debug(f"In refresh_status(): Last state: {self._last_state}, new state: {new_state}")
                 self._last_state = new_state
-                
+
                 if icon:
                     logger.debug(f"In refresh_status(): Updating icon for new state: {new_state}")
                     self._icon_nsimage = icon
