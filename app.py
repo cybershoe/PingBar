@@ -126,8 +126,7 @@ class PingBarApp(App):
         """Set the display mode for the status icon.
         
         Updates the display mode setting and triggers a visual refresh
-        of the menu bar icon. The display mode determines whether the
-        status is shown as a colored dot or text-based statistics.
+        of the menu bar icon. 
 
         Args:
             mode (str): The display mode to set.
