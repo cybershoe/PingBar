@@ -17,6 +17,65 @@ from AppKit import (
 )
 from Foundation import NSUserDefaults
 
+
+def status_dot_icon(
+    latency: float | None,
+    loss: float | None,
+    latency_warn_threshold: float = 80.0,
+    latency_alert_threshold: float = 500.0,
+    latency_critical_threshold: float = 1000.0,
+    loss_warn_threshold: float = 0.00,
+    loss_alert_threshold: float = 0.05,
+    loss_critical_threshold: float = 0.25,
+) -> NSImage:
+    """Create a status dot icon based on latency and loss thresholds.
+    
+    This function generates a small NSImage icon (20x20 pixels) that displays
+    a colored dot indicating the network status based on latency and packet
+    loss values. The color changes according to configurable thresholds for
+    warning, alert, and critical conditions.
+    
+    Args:
+        latency (float | None): Network latency in milliseconds, or None if unavailable.
+        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
+        latency_warn_threshold (float): Warning threshold for latency in ms. Defaults to 80.0.
+        latency_alert_threshold (float): Alert threshold for latency in ms. Defaults to 500.0.
+        latency_critical_threshold (float): Critical threshold for latency in ms. Defaults to 1000.0.
+        loss_warn_threshold (float): Warning threshold for loss as decimal. Defaults to 0.00.
+        loss_alert_threshold (float): Alert threshold for loss as decimal. Defaults to 0.05.
+        loss_critical_threshold (float): Critical threshold for loss as decimal. Defaults to 0.25.
+    
+    Returns:
+        NSImage: A 20x20 pixel icon with a colored dot representing network status.
+    """
+    size = NSSize(20, 20)
+
+    # Determine text color based on system appearance
+    defaults = NSUserDefaults.standardUserDefaults()
+    dark_mode = defaults.stringForKey_("AppleInterfaceStyle") == "Dark"
+    if dark_mode:
+        theme_color = NSColor.whiteColor()
+    else:
+        theme_color = NSColor.blackColor()
+
+    image = NSImage.alloc().initWithSize_(size)
+
+    image.lockFocus()
+
+    match (latency, loss):
+        case (la, lo) if la > latency_critical_threshold or lo > loss_critical_threshold:
+            pass
+        case (la, lo) if la > latency_alert_threshold or lo > loss_alert_threshold:
+            pass
+        case (la, lo) if la > latency_warn_threshold or lo > loss_warn_threshold:
+            pass
+        case _:
+            pass
+
+
+
+
+
 def status_text_icon(
     latency: float | None,
     loss: float | None,
@@ -117,7 +176,7 @@ def status_text_icon(
     return image
 
 
-def symbol_icon(symbol_name: str, accessibility_description: str) -> NSImage:
+def symbol_icon(symbol_name: str, accessibility_description: str, color: NSColor|None = None) -> NSImage:
     """Create a template icon from an SF Symbol.
     
     This function creates a 20x20 pixel NSImage icon from the specified SF Symbol,
@@ -138,13 +197,19 @@ def symbol_icon(symbol_name: str, accessibility_description: str) -> NSImage:
 
     # Create a new 20x20 image
     size = NSSize(20, 20)
-    resized_image = NSImage.alloc().initWithSize_(size)
+    image = NSImage.alloc().initWithSize_(size)
 
-    resized_image.lockFocus()
+    image.lockFocus()
+
+    if color is not None:
+        # Set the desired color for the symbol
+        color.set()
 
     # Draw the symbol image scaled to fit the 20x20 size
     symbol_image.drawInRect_(NSMakeRect(0, 0, 20, 20))
 
-    resized_image.unlockFocus()
-    resized_image.setTemplate_(True)
-    return resized_image
+    image.unlockFocus()
+    if color is None:
+        image.setTemplate_(True)
+
+    return image
