@@ -1,3 +1,4 @@
+![PingBar Icon](images/pingbar.png)
 # PingBar
 
 A macOS menu bar application for monitoring network connectivity through continuous ping monitoring. PingBar provides at-a-glance visibility into your connection quality with color-coded status indicators and customizable ping targets.
