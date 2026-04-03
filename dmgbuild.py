@@ -68,7 +68,7 @@ symlinks = {"Applications": "/Applications"}
 #
 # icon = '/path/to/icon.icns'
 
-icon = "pingbar.icns"
+icon = "PingrThingr.icns"
 
 # Where to put the icons
 icon_locations = {appname: (140, 120), "Applications": (500, 120)}

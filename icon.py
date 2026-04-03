@@ -1,4 +1,4 @@
-"""Icon generation module for PingBar application.
+"""Icon generation module for PingrThingr application.
 
 This module provides functions to create NSImage icons for displaying
 network status information in the macOS menu bar, including status text

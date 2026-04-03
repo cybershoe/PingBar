@@ -1,6 +1,6 @@
-# <img src="images/pingbar.png" width=128/> PingBar
+# <img src="images/PingrThingr.png" width=128/> PingrThingr
 
-A macOS menu bar application for monitoring network connectivity through continuous ping monitoring. PingBar provides at-a-glance visibility into your connection quality with color-coded status indicators and customizable ping targets.
+A macOS menu bar application for monitoring network connectivity through continuous ping monitoring. PingrThingr provides at-a-glance visibility into your connection quality with color-coded status indicators and customizable ping targets.
 
 ## Features
 
@@ -20,13 +20,13 @@ A macOS menu bar application for monitoring network connectivity through continu
   - Red: Ping >1000ms, >25% packet loss  
   - Dotted: No data available
 
-- **Customizable Targets**: By default, PingBar checks 2 Google DNS and 2 Cloudflare DNS targets, but you can add or remove addresses as desired
+- **Customizable Targets**: By default, PingrThingr checks 2 Google DNS and 2 Cloudflare DNS targets, but you can add or remove addresses as desired
 
 - **Outlier Filtering**: Discards anomalous results for more accurate measurements; you care about your connection quality, not a brief outage of one of the ping targets.
 
 ## Usage
 
-1. **Starting**: Launch PingBar and it will appear in your menu bar
+1. **Starting**: Launch PingrThingr and it will appear in your menu bar
 2. **Monitoring**: The icon shows current network status with color coding
 3. **Display Modes**: Switch between dot and text display modes via the "Display Mode" menu
 4. **Pausing**: Use the "Pause" menu item to temporarily stop monitoring
@@ -34,7 +34,7 @@ A macOS menu bar application for monitoring network connectivity through continu
 
 ### Changing Display Mode
 
-1. Click the PingBar icon in your menu bar
+1. Click the PingrThingr icon in your menu bar
 2. Select "Display Mode"
 3. Choose either "Dot" or "Text" from the submenu
 
@@ -43,7 +43,7 @@ A macOS menu bar application for monitoring network connectivity through continu
 
 ### Customizing Targets
 
-1. Click the PingBar icon in your menu bar
+1. Click the PingrThingr icon in your menu bar
 2. Select "Ping targets"
 3. Enter comma-separated IP addresses in the dialog
 4. Click "Save" to apply changes
@@ -78,7 +78,7 @@ To create a standalone macOS application bundle:
 python setup.py py2app
 ```
 
-This will create a `dist/PingBar.app` bundle that can be moved to your Applications folder.
+This will create a `dist/PingrThingr.app` bundle that can be moved to your Applications folder.
 
 ### Running from Source
 

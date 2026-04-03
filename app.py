@@ -1,6 +1,6 @@
-"""PingBar macOS menu bar application.
+"""PingrThingr macOS menu bar application.
 
-This module contains the main application class for PingBar, a macOS menu bar
+This module contains the main application class for PingrThingr, a macOS menu bar
 application that monitors network connectivity by pinging specified targets.
 """
 
@@ -15,8 +15,8 @@ from icon import status_text_icon, status_dot_icon, symbol_icon
 from settings import SelectableMenu, update_ping_targets
 
 
-class PingBarApp(App):
-    """Main application class for PingBar menu bar app.
+class PingrThingrApp(App):
+    """Main application class for PingrThingr menu bar app.
 
     Extends the rumps.App class to provide a macOS menu bar application
     for network connectivity monitoring. Manages settings persistence
@@ -28,7 +28,7 @@ class PingBarApp(App):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize the PingBar application.
+        """Initialize the PingrThingr application.
 
         Sets up the menu bar application with default settings, creates the
         status menu items, initializes the pinger, and loads any saved
@@ -38,7 +38,7 @@ class PingBarApp(App):
             *args: Variable length argument list passed to parent App class.
             **kwargs: Arbitrary keyword arguments passed to parent App class.
         """
-        super(PingBarApp, self).__init__(*args, **kwargs)
+        super(PingrThingrApp, self).__init__(*args, **kwargs)
         self.settings = {}
         self._load_settings()
         self.latency = None
@@ -50,7 +50,7 @@ class PingBarApp(App):
                 if self.get_setting("paused", False)
                 else "waveform.path.ecg"
             ),
-            "PingBar",
+            "PingrThingr",
         )
         self.statistics_menu = MenuItem("waiting...")
         self.pause_menu = MenuItem("Pause")
@@ -70,7 +70,7 @@ class PingBarApp(App):
             start_running=not self.settings.get("paused", False),
             cb=self.update_statistics,
         )
-        logger.info(f"Initialized PingBar")
+        logger.info(f"Initialized PingrThingr")
 
     def _load_settings(self):
         """Load application settings from settings.json file.

@@ -1,6 +1,6 @@
-"""Main entry point for the PingBar application.
+"""Main entry point for the PingrThingr application.
 
-This module contains the main function that starts the PingBar macOS menu bar
+This module contains the main function that starts the PingrThingr macOS menu bar
 application for monitoring network connectivity status.
 """
 
@@ -16,21 +16,21 @@ if logger.getEffectiveLevel() <= logging.DEBUG:
 
     rumps_debug_mode(True)
 
-from app import PingBarApp
+from app import PingrThingrApp
 
 
 def main() -> None:
-    """Main entry point for the PingBar application.
+    """Main entry point for the PingrThingr application.
 
-    Initializes and starts the PingBar macOS menu bar application.
+    Initializes and starts the PingrThingr macOS menu bar application.
     The application will run in the system menu bar and monitor network
     connectivity until the user quits it through the menu interface.
 
     Returns:
         None
     """
-    pingbar_app = PingBarApp("PingBar")
-    pingbar_app.run()
+    PingrThingr_app = PingrThingrApp("PingrThingr")
+    PingrThingr_app.run()
 
 
 if __name__ == "__main__":

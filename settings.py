@@ -1,7 +1,7 @@
-"""Settings and UI components module for PingBar application.
+"""Settings and UI components module for PingrThingr application.
 
 This module provides custom UI components and settings management
-functionality for the PingBar menu bar application, including
+functionality for the PingrThingr menu bar application, including
 selectable menu items and configuration widgets.
 
 Classes:
