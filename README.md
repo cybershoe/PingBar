@@ -8,7 +8,10 @@ A macOS menu bar application for monitoring network connectivity through continu
 - **Menu Bar Integration**: Lives in your macOS menu bar for always-visible network status
 - **Multiple Display Modes**: Choose between different visual representations
   - **Dot Mode**: Simple colored circle indicator (default)
+  <img src="images/dots.png" style="height: 3rem"/>
   - **Text Mode**: Detailed latency and packet loss statistics
+  <img src="images/text.png" style="height: 3rem"/>
+
 
 - **Color-coded Status Indicators**: Visual feedback with different colors based on latency and packet loss thresholds
   - Normal (Uncolored): Ping <80ms, 0% packet loss
