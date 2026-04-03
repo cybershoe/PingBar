@@ -25,6 +25,7 @@ OPTIONS = {
         'NSHumanReadableCopyright': u"Copyright \u00A9 2026, Adam Schumacher, All Rights Reserved",
     },
     'packages': ['rumps'],
+    'iconfile': 'pingbar.icns',
 }
 
 setup(
