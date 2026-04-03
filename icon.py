@@ -48,29 +48,23 @@ def status_dot_icon(
     Returns:
         NSImage: A 20x20 pixel icon with a colored dot representing network status.
     """
-    size = NSSize(20, 20)
 
-    # Determine text color based on system appearance
-    defaults = NSUserDefaults.standardUserDefaults()
-    dark_mode = defaults.stringForKey_("AppleInterfaceStyle") == "Dark"
-    if dark_mode:
-        theme_color = NSColor.whiteColor()
-    else:
-        theme_color = NSColor.blackColor()
-
-    image = NSImage.alloc().initWithSize_(size)
-
-    image.lockFocus()
+    symbol_name = "circle.fill"
 
     match (latency, loss):
+        case (la, lo) if la is None or lo is None:
+            symbol_name = "circle.dotted"
+            color = None
         case (la, lo) if la > latency_critical_threshold or lo > loss_critical_threshold:
-            pass
+            color = NSColor.redColor()
         case (la, lo) if la > latency_alert_threshold or lo > loss_alert_threshold:
-            pass
+            color = NSColor.orangeColor()
         case (la, lo) if la > latency_warn_threshold or lo > loss_warn_threshold:
-            pass
+            color = NSColor.yellowColor()
         case _:
-            pass
+            color = None
+
+    return symbol_icon(symbol_name, "Network Status", color, True)
 
 
 
@@ -176,7 +170,7 @@ def status_text_icon(
     return image
 
 
-def symbol_icon(symbol_name: str, accessibility_description: str, color: NSColor|None = None) -> NSImage:
+def symbol_icon(symbol_name: str, accessibility_description: str, color: NSColor|None = None, small: bool = False) -> NSImage:
     """Create a template icon from an SF Symbol.
     
     This function creates a 20x20 pixel NSImage icon from the specified SF Symbol,
@@ -206,7 +200,10 @@ def symbol_icon(symbol_name: str, accessibility_description: str, color: NSColor
         color.set()
 
     # Draw the symbol image scaled to fit the 20x20 size
-    symbol_image.drawInRect_(NSMakeRect(0, 0, 20, 20))
+    if small:
+        symbol_image.drawInRect_(NSMakeRect(4, 4, 12, 12))
+    else:
+        symbol_image.drawInRect_(NSMakeRect(0, 0, 20, 20))
 
     image.unlockFocus()
     if color is None:

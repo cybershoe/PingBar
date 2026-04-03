@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 from rumps import App, clicked, MenuItem, timer
 from json import dump as json_dump, load as json_load
 from pinger import Pinger
-from icon import status_text_icon, symbol_icon
+from icon import status_text_icon, status_dot_icon, symbol_icon
 from preferences import get_preferences
 
 
@@ -156,7 +156,7 @@ class PingBarApp(App):
                 loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "N/A"
                 latency_str = f"{(self.latency):.2f} ms" if self.latency is not None else "N/A"
                 self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
-                self._icon_nsimage = status_text_icon(self.latency, self.loss)
+                self._icon_nsimage = status_dot_icon(self.latency, self.loss)
             self._nsapp.setStatusBarIcon()
 
     @clicked("Ping targets")
