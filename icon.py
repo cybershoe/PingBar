@@ -174,15 +174,21 @@ def symbol_icon(symbol_name: str, accessibility_description: str, color: NSColor
     """Create a template icon from an SF Symbol.
     
     This function creates a 20x20 pixel NSImage icon from the specified SF Symbol,
-    suitable for use in macOS menu bars. The resulting image is set as a template
-    image for automatic theming.
+    suitable for use in macOS menu bars. The resulting image can optionally be 
+    colored and sized smaller for different display contexts.
     
     Args:
         symbol_name (str): The name of the SF Symbol (e.g., 'pause.circle').
         accessibility_description (str): Accessibility description for the icon.
+        color (NSColor|None, optional): Color to apply to the symbol. If None, 
+                                       creates a template image for automatic theming. 
+                                       Defaults to None.
+        small (bool, optional): If True, draws symbol in center 12x12 area for smaller 
+                               appearance. If False, fills entire 20x20 area. 
+                               Defaults to False.
     
     Returns:
-        NSImage: A 20x20 pixel template icon of the specified SF Symbol.
+        NSImage: A 20x20 pixel icon of the specified SF Symbol, optionally colored.
     """
     # Create SF Symbol image
     symbol_image = NSImage.imageWithSystemSymbolName_accessibilityDescription_(

@@ -122,8 +122,12 @@ class PingBarApp(App):
         logger.debug(f"In get_setting(): Retrieving setting: {key} (default={default})")
         return self.settings.get(key, default)
     
-    def set_display_mode(self, mode):
+    def set_display_mode(self, mode: str) -> None:
         """Set the display mode for the status icon.
+        
+        Updates the display mode setting and triggers a visual refresh
+        of the menu bar icon. The display mode determines whether the
+        status is shown as a colored dot or text-based statistics.
 
         Args:
             mode (str): The display mode to set.
