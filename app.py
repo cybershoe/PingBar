@@ -12,8 +12,7 @@ from rumps import App, clicked, MenuItem, timer
 from json import dump as json_dump, load as json_load
 from pinger import Pinger
 from icon import status_text_icon, status_dot_icon, symbol_icon
-from preferences import get_preferences
-from settings import SelectableMenu
+from settings import SelectableMenu, update_ping_targets
 
 
 class PingBarApp(App):
@@ -207,21 +206,21 @@ class PingBarApp(App):
             self._nsapp.setStatusBarIcon()
 
     @clicked("Ping targets")
-    def prefs(self, _):
-        """Handle preferences menu item click.
+    def ping_targets(self, _):
+        """Handle ping targets menu item click.
 
-        Currently displays a placeholder alert. Future versions could
-        open a preferences window.
+        Displays the preferences dialog for configuring ping target IP addresses
+        and updates settings if the user saves changes.
 
         Args:
             _: Unused menu item parameter.
         """
-        new_targets = get_preferences(self.get_setting("targets", []))
+        new_targets = update_ping_targets(self.get_setting("targets", []))
         if new_targets is not None:
-            logger.debug(f"Updating targets from get_preferences: {new_targets}")
+            logger.debug(f"Updating targets from update_ping_targets(): {new_targets}")
             self.set_setting("targets", new_targets)
         else:
-            logger.debug(f"get_preferences returned None, no changes to targets")
+            logger.debug(f"update_ping_targets() returned None, no changes to targets")
 
     @clicked("Pause")
     def onoff(self, sender):

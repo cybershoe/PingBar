@@ -9,7 +9,7 @@ from setuptools import setup
 
 APP = ["main.py"]
 NAME = "PingBar"
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": True,
@@ -21,7 +21,7 @@ OPTIONS = {
         "CFBundleIdentifier": "com.genericor.PingBar",
         "CFBundleVersion": VERSION,
         "CFBundleShortVersionString": VERSION,
-        "NSHumanReadableCopyright": "Copyright \u00a9 2026, Adam Schumacher, All Rights Reserved",
+        "NSHumanReadableCopyright": "Copyright \u00a9 2026, Adam Schumacher, Released under the MIT License",
     },
     "packages": ["rumps"],
     "iconfile": "pingbar.icns",
