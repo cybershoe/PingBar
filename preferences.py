@@ -13,7 +13,7 @@ from typing import List
 from socket import inet_aton
 
 
-def get_preferences(targets: List[str]) -> List[str]:
+def update_ping_targets(targets: List[str]) -> List[str]:
     """Display preferences dialog for configuring ping targets.
 
     Shows a modal dialog window allowing the user to enter or modify
@@ -28,7 +28,7 @@ def get_preferences(targets: List[str]) -> List[str]:
                          or None if user clicked Cancel or closed the dialog.
     """
     while True:
-        logger.debug(f"In get_preferences(): Current targets: {targets}")
+        logger.debug(f"In update_ping_targets(): Current targets: {targets}")
         response = Window(
             title="Ping Targets",
             message="Enter target IP addresses (comma-separated):",
@@ -39,7 +39,7 @@ def get_preferences(targets: List[str]) -> List[str]:
         ).run()
 
         if response.clicked == 1:
-            logger.debug(f"In get_preferences(): User entered targets: {response.text}")
+            logger.debug(f"In update_ping_targets(): User entered targets: {response.text}")
             new_targets = [t.strip() for t in response.text.split(",") if t.strip()]
             try:
                 for target in new_targets:
@@ -47,11 +47,11 @@ def get_preferences(targets: List[str]) -> List[str]:
             except OSError:
                 alert(f"Invalid IP address: {target}")
                 logger.error(
-                    f"In get_preferences(): Invalid IP address entered: {target}"
+                    f"In update_ping_targets(): Invalid IP address entered: {target}"
                 )
             else:
                 logger.debug(
-                    f"In get_preferences(): Valid targets entered, returning: {new_targets}"
+                    f"In update_ping_targets(): Valid targets entered, returning: {new_targets}"
                 )
                 return new_targets
         else:
