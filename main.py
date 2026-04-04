@@ -16,7 +16,7 @@ if logger.getEffectiveLevel() <= logging.DEBUG:
 
     rumps_debug_mode(True)
 
-from app import PingrThingrApp
+from pingrthingr import PingrThingrApp
 
 
 def main() -> None:
