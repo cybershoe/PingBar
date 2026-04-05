@@ -45,6 +45,18 @@ async def test_Pinger(mocker, ping_response, test_case):
         targets=["8.8.8.8"], count=1, timeout=1, cb=callback_mock, start_running=True
     )
     await asyncio.sleep(0.1)  # Allow the Pinger to initialize
-    callback_mock.assert_called_with(
-        *callback_response
-    )  # Check if the callback was called at least once
+    assert callback_mock.called, "Callback should be called after pinging"
+    args, kwargs = callback_mock.call_args
+    assert (
+        len(args) == 2
+    ), "Callback should be called with two arguments: latency and loss"
+
+    for i, arg in enumerate(args):
+        assert isinstance(
+            arg, (float, type(None))
+        ), "Callback arguments should be numbers or None"
+        if arg is not None:
+            assert arg >= 0, f"Callback argument {i} should be non-negative, got {arg}"
+        assert arg == pytest.approx(
+            callback_response[i]
+        ), f"Expected callback argument {i} to be approximately {callback_response[i]}, got {arg}"
