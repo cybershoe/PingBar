@@ -6,33 +6,19 @@ information, and packaging options.
 """
 
 from setuptools import setup
-import subprocess
-
-# 1. Dynamically get the current git branch name
-def get_branch_name():
-    try:
-        branch = subprocess.check_output(
-            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'], 
-            text=True
-        ).strip()
-        if branch == "main":
-            return ""
-        return f"-{branch}"
-    except subprocess.CalledProcessError:
-        return "unknown"
 
 APP = ["main.py"]
-NAME = f"PingrThingr{get_branch_name()}"
+NAME = "PingrThingr"
 VERSION = "0.2.0"
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": True,
     "plist": {
         "LSUIElement": True,
-        "CFBundleName": NAME,
-        "CFBundleDisplayName": NAME,
+        "CFBundleName": "PingrThingr",
+        "CFBundleDisplayName": "PingrThingr",
         "CFBundleGetInfoString": "Made by Adam Schumacher",
-        "CFBundleIdentifier": f"com.genericor.{NAME.lower().replace(' ', '')}",
+        "CFBundleIdentifier": "com.genericor.PingrThingr",
         "CFBundleVersion": VERSION,
         "CFBundleShortVersionString": VERSION,
         "NSHumanReadableCopyright": "Copyright \u00a9 2026, Adam Schumacher, Released under the MIT License",

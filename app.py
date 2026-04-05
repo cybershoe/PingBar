@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 from rumps import App, clicked, MenuItem, timer
 from json import dump as json_dump, load as json_load
-from .pinger import Pinger
-from .icons import status_text_icon, status_dot_icon, symbol_icon
-from .settings import SelectableMenu, update_ping_targets
+from pinger import Pinger
+from icon import status_text_icon, status_dot_icon, symbol_icon
+from settings import SelectableMenu, update_ping_targets
 
 
 class PingrThingrApp(App):
@@ -149,7 +149,7 @@ class PingrThingrApp(App):
         self._changed = True
         self.refresh_status(self)
 
-    def update_statistics(self, latency: float | None = None, loss: float | None = None):
+    def update_statistics(self, latency: float = None, loss: float = None):
         """Update the statistics display with new network measurements.
 
         Called by the pinger when new latency and packet loss measurements
@@ -163,8 +163,10 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={self.loss}, latency={self.latency}"
         )
 
-        self.latency = latency
-        self.loss = loss
+        if latency is not None:
+            self.latency = latency
+        if loss is not None:
+            self.loss = loss
 
         self._changed = True
 
@@ -185,9 +187,9 @@ class PingrThingrApp(App):
                 logger.debug(
                     f"In refresh_status(): Application is running, showing latency and loss"
                 )
-                loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "---"
+                loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "N/A"
                 latency_str = (
-                    f"{(self.latency):.2f} ms" if self.latency is not None else "---"
+                    f"{(self.latency):.2f} ms" if self.latency is not None else "N/A"
                 )
                 self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
                 display = self.settings.get("display_mode", "Dot")
