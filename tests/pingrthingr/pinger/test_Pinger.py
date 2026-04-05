@@ -34,7 +34,19 @@ def ping_response():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", ["all_success", "all_failures", "one_failure"])
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        "all_success",
+        "all_failures",
+        "one_failure",
+        "just_one_bad",
+        "just_one_good",
+        "no_results",
+        "one_outlier",
+        "two_outliers",
+    ],
+)
 async def test_Pinger(mocker, ping_response, test_case):
     ping_reponse_value, callback_response = ping_response(test_case)
     mocker.patch(
