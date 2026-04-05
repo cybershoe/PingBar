@@ -149,7 +149,7 @@ class PingrThingrApp(App):
         self._changed = True
         self.refresh_status(self)
 
-    def update_statistics(self, latency: float = None, loss: float = None):
+    def update_statistics(self, latency: float | None = None, loss: float | None = None):
         """Update the statistics display with new network measurements.
 
         Called by the pinger when new latency and packet loss measurements
