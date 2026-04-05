@@ -58,19 +58,23 @@ def status_dot_icon(
     symbol_name = "circle.fill"
 
     match (latency, loss):
-        case (la, lo) if la is None or lo is None:
+        case (la, lo) if lo is None:
             symbol_name = "circle.dotted"
             color = None
             state = "unknown"
         case (la, lo) if (
-            la > latency_critical_threshold or lo > loss_critical_threshold
-        ):
+            la or 0.0
+        ) > latency_critical_threshold or lo > loss_critical_threshold:
             color = NSColor.redColor()
             state = "critical"
-        case (la, lo) if la > latency_alert_threshold or lo > loss_alert_threshold:
+        case (la, lo) if (
+            la or 0.0
+        ) > latency_alert_threshold or lo > loss_alert_threshold:
             color = NSColor.orangeColor()
             state = "alert"
-        case (la, lo) if la > latency_warn_threshold or lo > loss_warn_threshold:
+        case (la, lo) if (
+            la or 0.0
+        ) > latency_warn_threshold or lo > loss_warn_threshold:
             color = NSColor.yellowColor()
             state = "warn"
         case _:
