@@ -185,9 +185,9 @@ class PingrThingrApp(App):
                 logger.debug(
                     f"In refresh_status(): Application is running, showing latency and loss"
                 )
-                loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "N/A"
+                loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "---"
                 latency_str = (
-                    f"{(self.latency):.2f} ms" if self.latency is not None else "N/A"
+                    f"{(self.latency):.2f} ms" if self.latency is not None else "---"
                 )
                 self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
                 display = self.settings.get("display_mode", "Dot")
