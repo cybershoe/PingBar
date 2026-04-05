@@ -194,6 +194,7 @@ class Pinger:
                                         host.avg_rtt
                                         for host in results
                                         if host.avg_rtt is not None
+                                        and host.is_alive
                                     ]
                                 )
                                 avg_loss = self.remove_outliers_and_avg(
