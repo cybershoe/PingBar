@@ -163,10 +163,8 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={self.loss}, latency={self.latency}"
         )
 
-        if latency is not None:
-            self.latency = latency
-        if loss is not None:
-            self.loss = loss
+        self.latency = latency
+        self.loss = loss
 
         self._changed = True
 
