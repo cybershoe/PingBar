@@ -50,7 +50,9 @@ def mocked_pinger(mocker, ping_response):
     ) -> Tuple[Pinger, Tuple[int, int], Mock | Callable | None]:
         ping_reponse_value, callback_response = ping_response(testcase)
         mocker.patch(
-            "pingrthingr.pinger.pinger.async_multiping", return_value=ping_reponse_value, side_effect=side_effect
+            "pingrthingr.pinger.pinger.async_multiping",
+            return_value=ping_reponse_value,
+            side_effect=side_effect,
         )
         pinger = Pinger(
             targets=targets,
@@ -140,14 +142,18 @@ class TestPingerResponses:
     async def test_pinger_timeout(self, mocker, mocked_pinger, caplog):
         mocked_pinger(side_effect=asyncio.TimeoutError("Ping timed out"))
         with caplog.at_level(logging.WARNING):
-            await asyncio.sleep(0.1)  # Allow the Pinger to initialize and handle the timeout
+            await asyncio.sleep(
+                0.1
+            )  # Allow the Pinger to initialize and handle the timeout
             assert "Ping operation timed out after 30 seconds" in caplog.text
 
     @pytest.mark.asyncio
     async def test_pinger_exception(self, mocker, mocked_pinger, caplog):
         mocked_pinger(side_effect=Exception("Ping failed"))
         with caplog.at_level(logging.ERROR):
-            await asyncio.sleep(0.1)  # Allow the Pinger to initialize and handle the exception
+            await asyncio.sleep(
+                0.1
+            )  # Allow the Pinger to initialize and handle the exception
             assert "Ping failed" in caplog.text
 
 
