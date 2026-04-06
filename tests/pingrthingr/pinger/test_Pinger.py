@@ -11,7 +11,6 @@ from pingrthingr.pinger import Pinger
 
 base_path = Path(__file__).parent
 
-
 @pytest.fixture
 def ping_response():
     def _ping_response(testcase: str) -> Tuple[List[Host], Tuple[int, int]]:
@@ -32,6 +31,21 @@ def ping_response():
 
     return _ping_response
 
+@pytest.fixture
+def mocked_pinger(mocker, ping_response, request):
+    def _mocked_pinger(testcase: str = "just_one_good") -> Tuple[Pinger, Tuple[int, int], Mock]:
+        ping_reponse_value, callback_response = ping_response(testcase)
+        mocker.patch(
+            "pingrthingr.pinger.pinger.async_multiping", return_value=ping_reponse_value
+        )
+        callback_mock = Mock()
+        pinger = Pinger(
+            targets=["8.8.8.8"], count=1, timeout=1, cb=callback_mock, start_running=True
+        )
+        return pinger, callback_response, callback_mock
+
+    return _mocked_pinger
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
@@ -47,15 +61,8 @@ def ping_response():
         "two_outliers",
     ],
 )
-async def test_Pinger(mocker, ping_response, test_case):
-    ping_reponse_value, callback_response = ping_response(test_case)
-    mocker.patch(
-        "pingrthingr.pinger.pinger.async_multiping", return_value=ping_reponse_value
-    )
-    callback_mock = Mock()
-    Pinger(
-        targets=["8.8.8.8"], count=1, timeout=1, cb=callback_mock, start_running=True
-    )
+async def test_Pinger(mocker, ping_response, test_case, mocked_pinger):
+    pinger, callback_response, callback_mock = mocked_pinger(test_case)
     await asyncio.sleep(0.1)  # Allow the Pinger to initialize
     assert callback_mock.called, "Callback should be called after pinging"
     args, kwargs = callback_mock.call_args
@@ -72,3 +79,36 @@ async def test_Pinger(mocker, ping_response, test_case):
         assert arg == pytest.approx(
             callback_response[i]
         ), f"Expected callback argument {i} to be approximately {callback_response[i]}, got {arg}"
+
+class TestPingerStartPauseResumeDestroy():
+
+    @pytest.mark.asyncio
+    async def test_start(self, mocked_pinger):
+        pinger, callback_response, callback_mock = mocked_pinger()  
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        assert callback_mock.called, "Callback should be called after pinging"
+        assert len(asyncio.all_tasks(loop=pinger.loop)) == 1, "There should be one task in the loop when running"
+
+    @pytest.mark.asyncio
+    async def test_pause_and_restart(self, mocked_pinger):
+        pinger, callback_response, callback_mock = mocked_pinger() 
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        pinger.run(False)
+        callback_mock.reset_mock()
+        await asyncio.sleep(0.2)  # Wait longer than the ping interval
+        assert not callback_mock.called, "Callback should not be called when paused"
+        assert pinger.pinger_coroutine == None, "Pinger coroutine should be None when paused"
+        assert len(asyncio.all_tasks(loop=pinger.loop)) == 0, "There should be no tasks in the loop when paused"
+        pinger.run(True)
+        await asyncio.sleep(0.1)  # Allow the Pinger to restart
+        assert callback_mock.called, "Callback should be called after resuming"
+        assert len(asyncio.all_tasks(loop=pinger.loop)) == 1, "There should be one task in the loop when resumed"
+    
+    @pytest.mark.asyncio
+    async def test_destroy(self, mocked_pinger):
+        pinger, callback_response, callback_mock = mocked_pinger() 
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        del(pinger)
+        callback_mock.reset_mock()
+        await asyncio.sleep(0.2)  # Wait longer than the ping interval
+        assert not callback_mock.called, "Callback should not be called after destroy"
