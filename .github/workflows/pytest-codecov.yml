@@ -30,6 +30,7 @@ jobs:
         run: |
           pytest --cov --cov-branch --cov-report=xml 
       - uses: montudor/action-zip@v1
+        if: always() # Ensures reports are zipped even if tests fail
         with:
           args: zip -qq -r tests.zip .tests
 
