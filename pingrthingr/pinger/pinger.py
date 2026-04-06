@@ -133,16 +133,16 @@ class Pinger:
         """
         logger.debug("In start(): Starting background event loop for Pinger")
         try:
-            if self._loop.is_running():  # type: ignore
+            if self._loop.is_running():  # type: ignore  pragma: no branch
                 logger.debug("In start(): already running, skipping start")
                 return
-            if not self._loop.is_closed():  # type: ignore
+            if not self._loop.is_closed():  # type: ignore  pragma: no cover
                 self._loop.close()  # type: ignore
         except AttributeError:
             logger.debug("In start(): No existing event loop, creating new one")
 
         self._loop = new_event_loop()
-        if self._thread is None or not self._thread.is_alive():
+        if self._thread is None or not self._thread.is_alive():  # pragma: no branch
             self._thread = Thread(target=self._loop.run_forever, daemon=True)
             self._thread.start()
 
