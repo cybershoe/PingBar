@@ -111,12 +111,10 @@ class Pinger:
             self._pinger_coroutine.cancel()  # type: ignore
         except AttributeError:
             logger.info("No ping task to cancel during cleanup")
-            pass  # coroutine may not exist if __init__ failed
         try:
             self._loop.call_soon_threadsafe(self._loop.stop)  # type: ignore
         except AttributeError:
             logger.info("No event loop to stop during cleanup")
-            pass  # loop may not exist if __init__ failed
         if self._thread is not None and self._thread.is_alive():
             logger.debug("Waiting for background thread to stop during cleanup")
             self._thread.join(timeout=5)
