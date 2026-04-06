@@ -104,16 +104,16 @@ class Pinger:
                 pending = all_tasks(loop=self._loop)
                 for task in pending:
                     task.cancel()
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             logger.info("No loop to cancel")
         try:
             self._loop.call_soon_threadsafe(self._loop.stop)  # type: ignore
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             logger.info("No event loop to stop during cleanup")
         if self._thread is not None and self._thread.is_alive():
             logger.debug("Waiting for background thread to stop during cleanup")
             self._thread.join(timeout=5)
-            if self._thread.is_alive():
+            if self._thread.is_alive():  # pragma: no cover
                 logger.warning(
                     "Background thread did not stop within timeout period during cleanup"
                 )
