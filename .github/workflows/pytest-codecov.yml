@@ -29,10 +29,9 @@ jobs:
       - name: Run tests with pytest
         run: |
           pytest --cov --cov-branch --cov-report=xml 
-      - uses: montudor/action-zip@v1
+      - name: Zip Test Artifacts
         if: always() # Ensures reports are zipped even if tests fail
-        with:
-          args: zip -qq -r tests.zip .tests
+        run: zip -qq -r tests.zip .tests
 
       - name: Upload Test Artifacts
         uses: actions/upload-artifact@v4
