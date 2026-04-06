@@ -33,7 +33,8 @@ def ping_response():
     return _ping_response
 
 @pytest.fixture
-def mocked_pinger(mocker, ping_response, request):
+def mocked_pinger(mocker, ping_response):
+    pingers = []
     def _mocked_pinger(testcase: str = "just_one_good", start_running: bool = True) -> Tuple[Pinger, Tuple[int, int], Mock]:
         ping_reponse_value, callback_response = ping_response(testcase)
         mocker.patch(
@@ -43,9 +44,15 @@ def mocked_pinger(mocker, ping_response, request):
         pinger = Pinger(
             targets=["8.8.8.8"], count=1, timeout=1, cb=callback_mock, start_running=start_running
         )
+        pingers.append(pinger)  # Keep a reference to allow cleanup
         return pinger, callback_response, callback_mock
 
-    return _mocked_pinger
+    yield _mocked_pinger
+
+    for pinger in pingers:
+        pinger.stop()  # Ensure all pingers are stopped after tests
+        del pinger  # Remove reference to allow garbage collection
+
 
 
 @pytest.mark.asyncio
@@ -118,3 +125,12 @@ class TestPingerStartPauseResumeDestroy():
         await asyncio.sleep(0.1)  # Allow the Pinger to restart
         assert callback_mock.called, "Callback should be called after resuming"
     
+    @pytest.mark.asyncio
+    async def test_stop_when_stopped(self, mocked_pinger):
+        pinger, _, callback_mock = mocked_pinger(start_running=False) 
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        assert not callback_mock.called, "Callback should not be called when paused"
+        pinger.stop()  # Should not raise an exception even if already stopped
+        assert not callback_mock.called, "Callback should not be called after stopping when already stopped"
+        assert pinger._pinger_coroutine is None, "Pinger coroutine should be None after stopping when already stopped"
+        
