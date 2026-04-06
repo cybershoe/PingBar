@@ -69,11 +69,11 @@ def mocked_pinger(mocker, ping_response):
         "two_outliers",
     ],
 )
-async def test_Pinger(mocker, ping_response, test_case, mocked_pinger):
-    pinger, callback_response, callback_mock = mocked_pinger(test_case)
+async def test_Pinger(test_case, mocked_pinger):
+    _, callback_response, callback_mock = mocked_pinger(test_case)
     await asyncio.sleep(0.1)  # Allow the Pinger to initialize
     assert callback_mock.called, "Callback should be called after pinging"
-    args, kwargs = callback_mock.call_args
+    args, _ = callback_mock.call_args
     assert (
         len(args) == 2
     ), "Callback should be called with two arguments: latency and loss"
@@ -93,7 +93,7 @@ class TestPingerStartPauseResumeDestroy():
 
     @pytest.mark.asyncio
     async def test_start(self, mocked_pinger):
-        pinger, callback_response, callback_mock = mocked_pinger()  
+        pinger, _, callback_mock = mocked_pinger()  
         await asyncio.sleep(0.1)  # Allow the Pinger to initialize
         assert callback_mock.called, "Callback should be called after pinging"
         assert len(asyncio.all_tasks(loop=pinger._loop)) == 1, "There should be one task in the loop when running"
@@ -101,7 +101,7 @@ class TestPingerStartPauseResumeDestroy():
     @pytest.mark.asyncio
     async def test_start_paused(self, mocked_pinger):
         starting_thread_count = len(threading_enumerate())
-        pinger, callback_response, callback_mock = mocked_pinger(start_running=False) 
+        pinger, _, callback_mock = mocked_pinger(start_running=False) 
         await asyncio.sleep(0.1)  # Allow the Pinger to initialize
         assert not callback_mock.called, "Callback should not be called when paused"
         assert pinger._pinger_coroutine == None, "Pinger coroutine should be None when paused"
@@ -111,7 +111,7 @@ class TestPingerStartPauseResumeDestroy():
     @pytest.mark.asyncio
     async def test_pause_and_restart(self, mocked_pinger):
         starting_thread_count = len(threading_enumerate())
-        pinger, callback_response, callback_mock = mocked_pinger() 
+        pinger, _, callback_mock = mocked_pinger() 
         await asyncio.sleep(0.1)  # Allow the Pinger to initialize
         assert len(threading_enumerate()) == starting_thread_count + 1, "There should be one additional thread for the Pinger"
         pinger.run(False)
