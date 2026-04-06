@@ -149,7 +149,7 @@ class PingrThingrApp(App):
         self._changed = True
         self.refresh_status(self)
 
-    def update_statistics(self, latency: float = None, loss: float = None):
+    def update_statistics(self, latency: float | None = None, loss: float | None = None):
         """Update the statistics display with new network measurements.
 
         Called by the pinger when new latency and packet loss measurements
@@ -163,10 +163,8 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={self.loss}, latency={self.latency}"
         )
 
-        if latency is not None:
-            self.latency = latency
-        if loss is not None:
-            self.loss = loss
+        self.latency = latency
+        self.loss = loss
 
         self._changed = True
 
@@ -187,9 +185,9 @@ class PingrThingrApp(App):
                 logger.debug(
                     f"In refresh_status(): Application is running, showing latency and loss"
                 )
-                loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "N/A"
+                loss_str = f"{(self.loss*100):.2f}%" if self.loss is not None else "---"
                 latency_str = (
-                    f"{(self.latency):.2f} ms" if self.latency is not None else "N/A"
+                    f"{(self.latency):.2f} ms" if self.latency is not None else "---"
                 )
                 self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
                 display = self.settings.get("display_mode", "Dot")

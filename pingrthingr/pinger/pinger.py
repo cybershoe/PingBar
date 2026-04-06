@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 from asyncio import (
     AbstractEventLoop,
+    all_tasks,
+    gather,
     set_event_loop,
     new_event_loop,
     run_coroutine_threadsafe,
@@ -18,7 +20,7 @@ from asyncio import (
     CancelledError,
     TimeoutError,
 )
-from typing import List
+from typing import List, Callable
 from threading import Thread
 from socket import inet_aton
 from time import monotonic
@@ -46,7 +48,7 @@ class Pinger:
         interval: float = 0.5,
         frequency: int = 10,
         start_running: bool = False,
-        cb: callable = None,
+        cb: Callable | None = None,
     ):
         """Initialize the Pinger instance.
 
@@ -75,46 +77,79 @@ class Pinger:
         self._interval = interval
         self.cb = cb
 
-        self.loop = new_event_loop()
-        Thread(
-            target=self._start_background_loop, args=(self.loop,), daemon=True
-        ).start()
-        self.pinger_coroutine = None
+        self._loop = None
+        self._thread = None
+        # Thread(
+        #     target=self._start_background_loop, args=(self.loop,), daemon=True
+        # ).start()
+        self._pinger_coroutine = None
 
         logger.info(f"Pinger initialized")
         logger.debug(
             f"In __init__(): Configuration - timeout: {timeout}, count: {count}, interval: {interval}, frequency: {frequency}"
         )
         if start_running:
-            self.run(True)  # Start in the running state
+            self.start()  # Start in the running state
 
-    def __del__(self):
-        """Clean up resources when the Pinger instance is destroyed.
+    def stop(self) -> None:
+        """Stop the pinger, cancelling the ping task and shutting down the event loop.
 
-        Attempts to stop the background event loop gracefully.
+        Cancels the running ping coroutine, stops the event loop, and waits up to
+        5 seconds for the background thread to finish. Cleans up gracefully if the
+        coroutine or loop do not exist. Logs a warning if the thread does not stop
+        within the timeout.
         """
-        logger.debug(
-            "Pinger instance is being destroyed, attempting to stop background loop"
-        )
         try:
-            self.loop.call_soon_threadsafe(self.loop.stop)
-        except AttributeError:
-            pass  # loop may not exist if __init__ failed
+            if self._loop is not None:
+                pending = all_tasks(loop=self._loop)
+                for task in pending:
+                    task.cancel()
+        except AttributeError:  # pragma: no cover
+            logger.info("No loop to cancel")
+        try:
+            self._loop.call_soon_threadsafe(self._loop.stop)  # type: ignore
+        except AttributeError:  # pragma: no cover
+            logger.info("No event loop to stop during cleanup")
+        if self._thread is not None and self._thread.is_alive():
+            logger.debug("Waiting for background thread to stop during cleanup")
+            self._thread.join(timeout=5)
+            if self._thread.is_alive():  # pragma: no cover
+                logger.warning(
+                    "Background thread did not stop within timeout period during cleanup"
+                )
+        self._thread = None
+        self._loop = None
+        self._pinger_coroutine = None
 
-    def _start_background_loop(self, loop: AbstractEventLoop) -> None:
-        """Start the background event loop for async operations.
+        logger.debug("Pinger cleanup complete")
 
-        This method runs in a separate daemon thread to handle async ping operations
-        without blocking the main application thread.
+    def start(self) -> None:
+        """Start the pinger, creating a new event loop and scheduling the ping task.
 
-        Args:
-            loop (AbstractEventLoop): The asyncio event loop to run.
+        Creates a new asyncio event loop and daemon thread if one is not already
+        running, then schedules the ping coroutine. If the loop is already running,
+        this method returns immediately. If the loop exists but is stopped, it is
+        replaced with a new one before starting.
         """
+        logger.debug("In start(): Starting background event loop for Pinger")
+        try:
+            if self._loop.is_running():  # type: ignore  pragma: no branch
+                logger.debug("In start(): already running, skipping start")
+                return
+            if not self._loop.is_closed():  # type: ignore  pragma: no cover
+                self._loop.close()  # type: ignore
+        except AttributeError:
+            logger.debug("In start(): No existing event loop, creating new one")
+
+        self._loop = new_event_loop()
+        if self._thread is None or not self._thread.is_alive():  # pragma: no branch
+            self._thread = Thread(target=self._loop.run_forever, daemon=True)
+            self._thread.start()
+
+        self._pinger_coroutine = run_coroutine_threadsafe(self._run_pings(), self._loop)
         logger.debug(
-            "In _start_background_loop(): Starting background event loop for Pinger"
+            "In start(): Background event loop started and ping task scheduled"
         )
-        set_event_loop(loop)
-        loop.run_forever()
 
     @property
     def targets(self) -> List[str]:
@@ -193,7 +228,7 @@ class Pinger:
                                     [
                                         host.avg_rtt
                                         for host in results
-                                        if host.avg_rtt is not None
+                                        if host.avg_rtt is not None and host.is_alive
                                     ]
                                 )
                                 avg_loss = self.remove_outliers_and_avg(
@@ -220,34 +255,16 @@ class Pinger:
     def run(self, running: bool) -> None:
         """Start or stop the ping monitoring.
 
-        Controls the ping monitoring state. When starting, creates a new
-        asynchronous ping task. When stopping, cancels any running task
-        and calls the callback with None values to indicate stopped state.
+        Controls the ping monitoring state. Wrapper for start() and stop() methods.
 
         Args:
             running (bool): True to start pinging, False to stop pinging.
         """
         if running:
-            logger.info("Starting ping monitoring")
-            if self.pinger_coroutine is None:
-                self.pinger_coroutine = run_coroutine_threadsafe(
-                    self._run_pings(), self.loop
-                )
-            else:
-                logger.warning(
-                    "Attempted to start ping monitoring, but it is already running"
-                )
+            self.start()
+
         else:
-            logger.info("Stopping ping monitoring")
-            if self.pinger_coroutine is not None:
-                self.pinger_coroutine.cancel()
-                self.pinger_coroutine = None
-            else:
-                logger.warning(
-                    "Attempted to stop ping monitoring, but no ping task was running"
-                )
-            if self.cb:
-                self.cb(None, None)
+            self.stop()
 
     def remove_outliers_and_avg(self, values: List[float]) -> float | None:
         """Remove outlier values and return the mean of remaining values.
