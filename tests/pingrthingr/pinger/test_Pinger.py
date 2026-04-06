@@ -126,6 +126,18 @@ class TestPingerStartPauseResumeDestroy():
         assert callback_mock.called, "Callback should be called after resuming"
     
     @pytest.mark.asyncio
+    async def test_start_when_started(self, mocked_pinger):
+        pinger, _, callback_mock = mocked_pinger() 
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        starting_thread_count = len(threading_enumerate())
+        assert callback_mock.called, "Callback should be called after pinging"
+        callback_mock.reset_mock()
+        pinger.run(True)  # Should not have any effect since it's already running
+        await asyncio.sleep(0.1)  # Allow time for any unintended effects
+        assert pinger._pinger_coroutine is not None, "Pinger coroutine should still be set after calling run(True) when already running"
+        assert not pinger._pinger_coroutine.done(), "Ping task should still be running after calling run(True) when already running"
+        assert len(threading_enumerate()) == starting_thread_count, "There should be no new threads after calling run(True) while already running"
+
     async def test_stop_when_stopped(self, mocked_pinger):
         pinger, _, callback_mock = mocked_pinger(start_running=False) 
         await asyncio.sleep(0.1)  # Allow the Pinger to initialize
