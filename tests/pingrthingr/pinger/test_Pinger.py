@@ -115,6 +115,12 @@ class TestPingerResponses:
         assert pinger.cb is None
         # No callback to check, just ensure no exceptions are raised
 
+    @pytest.mark.asyncio
+    async def test_pinger_multiple_targets(self, mocked_pinger):
+        bad_cb = Mock(side_effect=Exception("This is a bad callback"))
+        with pytest.raises(Exception, match="This is a bad callback"):
+            mocked_pinger(cb=bad_cb)
+
 class TestPingerStartPauseResumeDestroy:
 
     @pytest.mark.asyncio
