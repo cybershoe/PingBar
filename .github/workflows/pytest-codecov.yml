@@ -34,7 +34,7 @@ jobs:
         if: always() # Ensures reports are uploaded even if tests fail
         with:
           name: test_results-${{ matrix.python-version }}
-          path: .tests/ # Path to your test output
+          path: /Users/runner/work/PingrThingr/PingrThingr/.tests/ # Path to your test output
           retention-days: 5  # Optional: default is 90 days
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
