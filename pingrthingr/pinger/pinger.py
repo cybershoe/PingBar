@@ -18,7 +18,7 @@ from asyncio import (
     CancelledError,
     TimeoutError,
 )
-from typing import List
+from typing import List, Callable
 from threading import Thread
 from socket import inet_aton
 from time import monotonic
@@ -46,7 +46,7 @@ class Pinger:
         interval: float = 0.5,
         frequency: int = 10,
         start_running: bool = False,
-        cb: callable = None,
+        cb: Callable | None = None,
     ):
         """Initialize the Pinger instance.
 
