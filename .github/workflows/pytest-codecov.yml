@@ -29,8 +29,15 @@ jobs:
       - name: Run tests with pytest
         run: |
           pytest --cov --cov-branch --cov-report=xml 
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        if: always() # Ensures reports are uploaded even if tests fail
+        with:
+          name: test_results-${{ matrix.python-version }}
+          path: .tests/ # Path to your test output
+          retention-days: 5  # Optional: default is 90 days
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
-        if: matrix.python-version == '3.13'
+        if: ${{ matrix.python-version == '3.13' && always() }} # Only upload once, after the last Python version runs
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
