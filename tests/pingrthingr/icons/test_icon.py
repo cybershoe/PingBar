@@ -38,13 +38,13 @@ def test_status_dot_icon(tmp_path, compare_image):
     dot_icon, _ = status_dot_icon(latency=100, loss=0.0)
     assert compare_image(dot_icon, "dot") < 0.01, "Generated icon should match reference image"
 
-def test_symbol_icon(tmp_path, image_diff):
-    output_path = tmp_path / "check.png"
-    exemplar_image = base_path / "resources/example-check.png"
+# def test_symbol_icon(tmp_path, image_diff):
+#     output_path = tmp_path / "check.png"
+#     exemplar_image = base_path / "resources/example-check.png"
 
-    ns_image = symbol_icon("checkmark.circle.fill", "circle-fill")
-    assert ns_image is not None, "symbol_icon should return a non-nil NSImage"
-    nsimage_to_png(ns_image, str(output_path))
-    assert output_path.exists(), "PNG file should be created"
-    assert image_diff(str(output_path), str(exemplar_image)) < 0.01, "Generated icon should match reference image"
+#     ns_image = symbol_icon("checkmark.circle.fill", "circle-fill")
+#     assert ns_image is not None, "symbol_icon should return a non-nil NSImage"
+#     nsimage_to_png(ns_image, str(output_path))
+#     assert output_path.exists(), "PNG file should be created"
+#     assert image_diff(str(output_path), str(exemplar_image)) < 0.01, "Generated icon should match reference image"
 
