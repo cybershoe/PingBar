@@ -5,7 +5,7 @@ from icmplib import Host
 from pathlib import Path
 from json import load, JSONDecodeError
 from threading import enumerate as threading_enumerate
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 from unittest.mock import Mock
 
 from pingrthingr.pinger import Pinger
@@ -39,22 +39,21 @@ def mocked_pinger(mocker, ping_response):
     pingers = []
 
     def _mocked_pinger(
-        testcase: str = "just_one_good", targets: List[str] = ["127.0.0.1"], start_running: bool = True
-    ) -> Tuple[Pinger, Tuple[int, int], Mock]:
+        testcase: str = "just_one_good", targets: List[str] = ["127.0.0.1"], cb: Callable | None = Mock(), start_running: bool = True
+    ) -> Tuple[Pinger, Tuple[int, int], Mock | Callable |None]:
         ping_reponse_value, callback_response = ping_response(testcase)
         mocker.patch(
             "pingrthingr.pinger.pinger.async_multiping", return_value=ping_reponse_value
         )
-        callback_mock = Mock()
         pinger = Pinger(
             targets=targets,
             count=1,
             timeout=1,
-            cb=callback_mock,
+            cb=cb,
             start_running=start_running,
         )
         pingers.append(pinger)  # Keep a reference to allow cleanup
-        return pinger, callback_response, callback_mock
+        return pinger, callback_response, cb
 
     yield _mocked_pinger
 
@@ -108,6 +107,13 @@ class TestPingerResponses:
     async def test_pinger_invalid_targets(self, mocked_pinger):
         with pytest.raises(ValueError, match="Invalid IP address: invalid_ip"):
              mocked_pinger(targets=["invalid_ip"])
+
+    @pytest.mark.asyncio
+    async def test_pinger_no_cb(self, mocked_pinger):
+        pinger, _, _ = mocked_pinger(cb=None)
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        assert pinger.cb is None
+        # No callback to check, just ensure no exceptions are raised
 
 class TestPingerStartPauseResumeDestroy:
 
