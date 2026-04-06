@@ -138,6 +138,7 @@ class TestPingerStartPauseResumeDestroy():
         assert not pinger._pinger_coroutine.done(), "Ping task should still be running after calling run(True) when already running"
         assert len(threading_enumerate()) == starting_thread_count, "There should be no new threads after calling run(True) while already running"
 
+    @pytest.mark.asyncio
     async def test_stop_when_stopped(self, mocked_pinger):
         pinger, _, callback_mock = mocked_pinger(start_running=False) 
         await asyncio.sleep(0.1)  # Allow the Pinger to initialize
