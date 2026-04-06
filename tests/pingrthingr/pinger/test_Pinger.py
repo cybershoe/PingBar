@@ -39,7 +39,7 @@ def mocked_pinger(mocker, ping_response):
     pingers = []
 
     def _mocked_pinger(
-        testcase: str = "just_one_good", start_running: bool = True
+        testcase: str = "just_one_good", targets: List[str] = ["127.0.0.1"], start_running: bool = True
     ) -> Tuple[Pinger, Tuple[int, int], Mock]:
         ping_reponse_value, callback_response = ping_response(testcase)
         mocker.patch(
@@ -47,7 +47,7 @@ def mocked_pinger(mocker, ping_response):
         )
         callback_mock = Mock()
         pinger = Pinger(
-            targets=["8.8.8.8"],
+            targets=targets,
             count=1,
             timeout=1,
             cb=callback_mock,
@@ -97,7 +97,17 @@ class TestPingerResponses:
             assert arg == pytest.approx(
                 callback_response[i]
             ), f"Expected callback argument {i} to be approximately {callback_response[i]}, got {arg}"
+    
+    @pytest.mark.asyncio
+    async def test_pinger_no_targets(self, mocked_pinger):
+        _, callback_response, callback_mock = mocked_pinger(targets=[])
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        assert not callback_mock.called, "Callback should not be called with no targets"
 
+    @pytest.mark.asyncio
+    async def test_pinger_invalid_targets(self, mocked_pinger):
+        with pytest.raises(ValueError, match="Invalid IP address: invalid_ip"):
+             mocked_pinger(targets=["invalid_ip"])
 
 class TestPingerStartPauseResumeDestroy:
 
