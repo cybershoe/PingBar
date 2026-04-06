@@ -1,5 +1,6 @@
 import pytest
 import asyncio
+import logging
 
 from icmplib import Host
 from pathlib import Path
@@ -11,6 +12,8 @@ from unittest.mock import Mock
 from pingrthingr.pinger import Pinger
 
 base_path = Path(__file__).parent
+
+LOGGER = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -39,11 +42,15 @@ def mocked_pinger(mocker, ping_response):
     pingers = []
 
     def _mocked_pinger(
-        testcase: str = "just_one_good", targets: List[str] = ["127.0.0.1"], cb: Callable | None = Mock(), start_running: bool = True
-    ) -> Tuple[Pinger, Tuple[int, int], Mock | Callable |None]:
+        testcase: str = "just_one_good",
+        side_effect: Exception | None = None,
+        targets: List[str] = ["127.0.0.1"],
+        cb: Callable | None = Mock(),
+        start_running: bool = True,
+    ) -> Tuple[Pinger, Tuple[int, int], Mock | Callable | None]:
         ping_reponse_value, callback_response = ping_response(testcase)
         mocker.patch(
-            "pingrthingr.pinger.pinger.async_multiping", return_value=ping_reponse_value
+            "pingrthingr.pinger.pinger.async_multiping", return_value=ping_reponse_value, side_effect=side_effect
         )
         pinger = Pinger(
             targets=targets,
@@ -92,11 +99,13 @@ class TestPingerResponses:
                 arg, (float, type(None))
             ), "Callback arguments should be numbers or None"
             if arg is not None:
-                assert arg >= 0, f"Callback argument {i} should be non-negative, got {arg}"
+                assert (
+                    arg >= 0
+                ), f"Callback argument {i} should be non-negative, got {arg}"
             assert arg == pytest.approx(
                 callback_response[i]
             ), f"Expected callback argument {i} to be approximately {callback_response[i]}, got {arg}"
-    
+
     @pytest.mark.asyncio
     async def test_pinger_no_targets(self, mocked_pinger):
         _, callback_response, callback_mock = mocked_pinger(targets=[])
@@ -106,7 +115,7 @@ class TestPingerResponses:
     @pytest.mark.asyncio
     async def test_pinger_invalid_targets(self, mocked_pinger):
         with pytest.raises(ValueError, match="Invalid IP address: invalid_ip"):
-             mocked_pinger(targets=["invalid_ip"])
+            mocked_pinger(targets=["invalid_ip"])
 
     @pytest.mark.asyncio
     async def test_pinger_no_cb(self, mocked_pinger):
@@ -116,10 +125,31 @@ class TestPingerResponses:
         # No callback to check, just ensure no exceptions are raised
 
     @pytest.mark.asyncio
-    async def test_pinger_multiple_targets(self, mocked_pinger):
-        bad_cb = Mock(side_effect=Exception("This is a bad callback"))
-        with pytest.raises(Exception, match="This is a bad callback"):
+    async def test_bad_cb(self, mocked_pinger, caplog):
+        bad_cb = Mock()
+        bad_cb.side_effect = ValueError("This is a bad callback")
+        with caplog.at_level(logging.ERROR):
             mocked_pinger(cb=bad_cb)
+            await asyncio.sleep(
+                0.1
+            )  # Allow the Pinger to initialize and call the bad callback
+            assert bad_cb.called, "Bad callback should be called"
+            assert "Error in callback" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_pinger_timeout(self, mocker, mocked_pinger, caplog):
+        mocked_pinger(side_effect=asyncio.TimeoutError("Ping timed out"))
+        with caplog.at_level(logging.WARNING):
+            await asyncio.sleep(0.1)  # Allow the Pinger to initialize and handle the timeout
+            assert "Ping operation timed out after 30 seconds" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_pinger_exception(self, mocker, mocked_pinger, caplog):
+        mocked_pinger(side_effect=Exception("Ping failed"))
+        with caplog.at_level(logging.ERROR):
+            await asyncio.sleep(0.1)  # Allow the Pinger to initialize and handle the exception
+            assert "Ping failed" in caplog.text
+
 
 class TestPingerStartPauseResumeDestroy:
 
