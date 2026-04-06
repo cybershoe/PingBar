@@ -34,14 +34,14 @@ def ping_response():
 
 @pytest.fixture
 def mocked_pinger(mocker, ping_response, request):
-    def _mocked_pinger(testcase: str = "just_one_good") -> Tuple[Pinger, Tuple[int, int], Mock]:
+    def _mocked_pinger(testcase: str = "just_one_good", start_running: bool = True) -> Tuple[Pinger, Tuple[int, int], Mock]:
         ping_reponse_value, callback_response = ping_response(testcase)
         mocker.patch(
             "pingrthingr.pinger.pinger.async_multiping", return_value=ping_reponse_value
         )
         callback_mock = Mock()
         pinger = Pinger(
-            targets=["8.8.8.8"], count=1, timeout=1, cb=callback_mock, start_running=True
+            targets=["8.8.8.8"], count=1, timeout=1, cb=callback_mock, start_running=start_running
         )
         return pinger, callback_response, callback_mock
 
@@ -81,6 +81,7 @@ async def test_Pinger(mocker, ping_response, test_case, mocked_pinger):
             callback_response[i]
         ), f"Expected callback argument {i} to be approximately {callback_response[i]}, got {arg}"
 
+
 class TestPingerStartPauseResumeDestroy():
 
     @pytest.mark.asyncio
@@ -91,6 +92,16 @@ class TestPingerStartPauseResumeDestroy():
         assert len(asyncio.all_tasks(loop=pinger._loop)) == 1, "There should be one task in the loop when running"
 
     @pytest.mark.asyncio
+    async def test_start_paused(self, mocked_pinger):
+        starting_thread_count = len(threading_enumerate())
+        pinger, callback_response, callback_mock = mocked_pinger(start_running=False) 
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        assert not callback_mock.called, "Callback should not be called when paused"
+        assert pinger._pinger_coroutine == None, "Pinger coroutine should be None when paused"
+        assert pinger._loop is None or not pinger._loop.is_running(), "Event loop should be stopped when paused"
+        assert len(threading_enumerate()) == starting_thread_count, "Pinger thread should not be running when paused"
+        
+    @pytest.mark.asyncio
     async def test_pause_and_restart(self, mocked_pinger):
         starting_thread_count = len(threading_enumerate())
         pinger, callback_response, callback_mock = mocked_pinger() 
@@ -100,7 +111,7 @@ class TestPingerStartPauseResumeDestroy():
         callback_mock.reset_mock()
         await asyncio.sleep(0.2)  # Wait longer than the ping interval
         assert not callback_mock.called, "Callback should not be called when paused"
-        assert pinger._pinger_coroutine == None, "Pinger coroutine should be None when paused"
+        assert pinger._pinger_coroutine is None, "Pinger coroutine should be None when paused"
         assert pinger._loop is None or not pinger._loop.is_running(), "Event loop should be stopped when paused"
         assert len(threading_enumerate()) == starting_thread_count, "Pinger thread should be stopped when paused"
         pinger.run(True)
