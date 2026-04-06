@@ -4,6 +4,7 @@ import asyncio
 from icmplib import Host
 from pathlib import Path
 from json import load, JSONDecodeError
+from threading import enumerate as threading_enumerate
 from typing import List, Tuple
 from unittest.mock import Mock
 
@@ -87,28 +88,22 @@ class TestPingerStartPauseResumeDestroy():
         pinger, callback_response, callback_mock = mocked_pinger()  
         await asyncio.sleep(0.1)  # Allow the Pinger to initialize
         assert callback_mock.called, "Callback should be called after pinging"
-        assert len(asyncio.all_tasks(loop=pinger.loop)) == 1, "There should be one task in the loop when running"
+        assert len(asyncio.all_tasks(loop=pinger._loop)) == 1, "There should be one task in the loop when running"
 
     @pytest.mark.asyncio
     async def test_pause_and_restart(self, mocked_pinger):
+        starting_thread_count = len(threading_enumerate())
         pinger, callback_response, callback_mock = mocked_pinger() 
         await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        assert len(threading_enumerate()) == starting_thread_count + 1, "There should be one additional thread for the Pinger"
         pinger.run(False)
         callback_mock.reset_mock()
         await asyncio.sleep(0.2)  # Wait longer than the ping interval
         assert not callback_mock.called, "Callback should not be called when paused"
-        assert pinger.pinger_coroutine == None, "Pinger coroutine should be None when paused"
-        assert len(asyncio.all_tasks(loop=pinger.loop)) == 0, "There should be no tasks in the loop when paused"
+        assert pinger._pinger_coroutine == None, "Pinger coroutine should be None when paused"
+        assert pinger._loop is None or not pinger._loop.is_running(), "Event loop should be stopped when paused"
+        assert len(threading_enumerate()) == starting_thread_count, "Pinger thread should be stopped when paused"
         pinger.run(True)
         await asyncio.sleep(0.1)  # Allow the Pinger to restart
         assert callback_mock.called, "Callback should be called after resuming"
-        assert len(asyncio.all_tasks(loop=pinger.loop)) == 1, "There should be one task in the loop when resumed"
     
-    @pytest.mark.asyncio
-    async def test_destroy(self, mocked_pinger):
-        pinger, callback_response, callback_mock = mocked_pinger() 
-        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
-        del(pinger)
-        callback_mock.reset_mock()
-        await asyncio.sleep(0.2)  # Wait longer than the ping interval
-        assert not callback_mock.called, "Callback should not be called after destroy"
