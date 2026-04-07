@@ -41,6 +41,19 @@ class SettingsManager():
         
         logger.debug(f"Current settings after loading: \n{self._settings.model_dump_json(indent=2)}")
 
+    def save_settings(self) -> None:
+        """Save current settings to the JSON file specified by self._settings_file."""
+        if self._settings_file is None:
+            logger.warning("No settings file specified, cannot save settings")
+            return
+        try:
+            with open(self._settings_file, "w") as f:
+                json_dump(self._settings.model_dump(), f, indent=2)
+                logger.info(f"Settings saved to {self._settings_file}")
+        except Exception as e:
+            logger.error(f"{e.__class__.__name__} saving settings to {self._settings_file}: {e}")
+
+
 def update_ping_targets(targets: List[str]) -> List[str] | None:
     """Display preferences dialog for configuring ping targets.
 

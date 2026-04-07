@@ -45,3 +45,19 @@ class TestSettingsManager:
         valid_settings = json_load(open(settings_file))
         settings_manager = SettingsManager(str(settings_file))
         assert settings_manager._settings.model_dump() == valid_settings
+
+    def test_save_settings(self, tmp_path):
+        # Test saving of settings to file
+        settings_file = tmp_path / "settings.json"
+        settings_manager = SettingsManager(settings_file)
+        settings_manager._settings.display_mode = "Text"
+        settings_manager._settings.paused = True
+        settings_manager._settings.targets = ["1.2.3.4"]
+        settings_manager.save_settings()
+        saved_settings = json_load(open(settings_file))
+        assert saved_settings == {
+            'display_mode': 'Text', 
+            'paused': True, 
+            'targets': ['1.2.3.4']
+        }
+                                        
