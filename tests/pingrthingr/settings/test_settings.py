@@ -45,7 +45,7 @@ class TestSelectableMenu:
         mock_cb.assert_called_once_with("Option 2")  # Callback should be called with selected option
 
     def test_no_options(self, mock_selectable_menu):
-        menu, mock_cb = mock_selectable_menu(options=[], selected=None)
+        menu, mock_cb = mock_selectable_menu(options=None, selected=None)
         assert len(menu._menu_items) == 0, "Menu should have no options"
         assert menu.get_selected() is None, "No option should be selected"
         menu.set_selected("Option 1")  # Should not raise an error even though there are no options
