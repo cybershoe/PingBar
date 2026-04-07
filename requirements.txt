@@ -1,5 +1,7 @@
 altgraph==0.17.5
+annotated-types==0.7.0
 asyncio==4.0.0
+bpylist2==4.1.1
 coverage==7.13.5
 diffimg==0.3.0
 dmgbuild==1.6.7
@@ -14,6 +16,8 @@ packaging==26.0
 pillow==12.2.0
 pluggy==1.6.0
 py2app==0.28.10
+pydantic==2.12.5
+pydantic_core==2.41.5
 Pygments==2.20.0
 pyobjc-core==12.1
 pyobjc-framework-Cocoa==12.1
@@ -25,4 +29,5 @@ pytest-image-diff==0.0.14
 pytest-mock==3.15.1
 rumps==0.4.0
 setuptools==82.0.1
+typing-inspection==0.4.2
 typing_extensions==4.15.0
