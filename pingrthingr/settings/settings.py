@@ -25,6 +25,7 @@ class SettingsManager():
         """
         if self._settings_file is None:
             logger.warning("No settings file specified, using default settings")
+            self._settings = SettingsModel()
             return
         try:
             with open(self._settings_file, "r") as f:
@@ -35,7 +36,7 @@ class SettingsManager():
             logger.info(f"Settings file {self._settings_file} not found, using default settings")
             self._settings = SettingsModel()
         except Exception as e:
-            logger.error(f"Error loading settings from {self._settings_file}: {e}, using default settings")
+            logger.error(f"{e.__class__.__name__} loading settings from {self._settings_file}: {e}, using default settings")
             self._settings = SettingsModel()
         
         logger.debug(f"Current settings after loading: \n{self._settings.model_dump_json(indent=2)}")
