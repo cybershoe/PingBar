@@ -17,6 +17,7 @@ class SettingsManager():
     def __init__(self, settings_file: str | None = None):
         self._settings_file = settings_file
         self.load()
+        self._callbacks = {}
 
     def load(self) -> None:
         """Load settings from the JSON file specified by self._settings_file.
@@ -53,6 +54,34 @@ class SettingsManager():
         except Exception as e:
             logger.error(f"{e.__class__.__name__} saving settings to {self._settings_file}: {e}")
 
+    def register_callback(self, setting_name: str, callback: Callable) -> None:
+        """Register a callback function to be called when a specific setting changes.
+
+        Args:
+            setting_name (str): The name of the setting to watch for changes.
+            callback (Callable): The function to call when the setting changes. It will be called with the new value of the setting as its argument.
+        """
+        if setting_name not in SettingsModel.model_fields.keys():
+            logger.error(f"Attempted to register callback for invalid setting: {setting_name}")
+            raise ValueError(f"Invalid setting name: {setting_name}")
+        self._callbacks.setdefault(setting_name, []).append(callback)
+
+        logger.debug(f"Registered callback for setting '{setting_name}'")
+
+    def deregister_callback(self, setting_name: str, callback: Callable) -> None:
+        """Deregister a previously registered callback function for a specific setting.
+
+        Args:
+            setting_name (str): The name of the setting the callback was registered for.
+            callback (Callable): The function to deregister.
+        """
+        try:
+            self._callbacks[setting_name].remove(callback)
+            logger.debug(f"Deregistered callback for setting '{setting_name}'")
+        except KeyError:
+            logger.warning(f"Attempted to deregister callback for non-existent setting '{setting_name}'")
+        except ValueError:
+            logger.warning(f"Attempted to deregister non-existent callback for setting '{setting_name}'")
 
 def update_ping_targets(targets: List[str]) -> List[str] | None:
     """Display preferences dialog for configuring ping targets.
