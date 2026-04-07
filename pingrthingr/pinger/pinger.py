@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 from asyncio import (
     AbstractEventLoop,
+    all_tasks,
+    gather,
     set_event_loop,
     new_event_loop,
     run_coroutine_threadsafe,
@@ -89,16 +91,6 @@ class Pinger:
         if start_running:
             self.start()  # Start in the running state
 
-    def __del__(self):
-        """Clean up resources when the Pinger instance is destroyed.
-
-        Attempts to stop the background event loop gracefully.
-        """
-        logger.debug(
-            "Pinger instance is being destroyed, attempting to stop background loop"
-        )
-        self.stop()
-
     def stop(self) -> None:
         """Stop the pinger, cancelling the ping task and shutting down the event loop.
 
@@ -108,23 +100,28 @@ class Pinger:
         within the timeout.
         """
         try:
-            self._pinger_coroutine.cancel()  # type: ignore
-        except AttributeError:
-            logger.info("No ping task to cancel during cleanup")
+            if self._loop is not None:
+                pending = all_tasks(loop=self._loop)
+                for task in pending:
+                    task.cancel()
+        except AttributeError:  # pragma: no cover
+            logger.info("No loop to cancel")
         try:
             self._loop.call_soon_threadsafe(self._loop.stop)  # type: ignore
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             logger.info("No event loop to stop during cleanup")
         if self._thread is not None and self._thread.is_alive():
             logger.debug("Waiting for background thread to stop during cleanup")
             self._thread.join(timeout=5)
-            if self._thread.is_alive():
+            if self._thread.is_alive():  # pragma: no cover
                 logger.warning(
                     "Background thread did not stop within timeout period during cleanup"
                 )
-        logger.debug("Pinger cleanup complete")
-
         self._thread = None
+        self._loop = None
+        self._pinger_coroutine = None
+
+        logger.debug("Pinger cleanup complete")
 
     def start(self) -> None:
         """Start the pinger, creating a new event loop and scheduling the ping task.
@@ -136,15 +133,16 @@ class Pinger:
         """
         logger.debug("In start(): Starting background event loop for Pinger")
         try:
-            if self._loop.is_running():  # type: ignore
+            if self._loop.is_running():  # type: ignore  pragma: no branch
                 logger.debug("In start(): already running, skipping start")
                 return
-            self._loop.call_soon_threadsafe(self._loop.close)  # type: ignore
+            if not self._loop.is_closed():  # type: ignore  pragma: no cover
+                self._loop.close()  # type: ignore
         except AttributeError:
             logger.debug("In start(): No existing event loop, creating new one")
 
         self._loop = new_event_loop()
-        if self._thread is None or not self._thread.is_alive():
+        if self._thread is None or not self._thread.is_alive():  # pragma: no branch
             self._thread = Thread(target=self._loop.run_forever, daemon=True)
             self._thread.start()
 
