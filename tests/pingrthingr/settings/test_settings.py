@@ -69,6 +69,19 @@ class TestSettingsSetGetandCallbacks:
         assert "display_mode" in settings_manager._callbacks
         assert mock_callback in settings_manager._callbacks["display_mode"]
 
+    def test_double_register_callback(self):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        assert mock_callback in settings_manager._callbacks["display_mode"]
+        settings_manager.register_callback("display_mode", mock_callback)
+        settings_manager.set("display_mode", "Text")
+        assert len(settings_manager._callbacks["display_mode"]) == 1, "Callback should not be registered multiple times"
+        assert mock_callback.call_count == 1, "Callback should not be registered multiple times"
+        settings_manager.deregister_callback("display_mode", mock_callback)  # Deregister once
+        settings_manager.set("display_mode", "Dot")
+        assert mock_callback.call_count == 1, "Callback should not be called after deregistration"
+
     def test_set_setting_with_callback(self):
         settings_manager = SettingsManager()
         mock_callback = Mock()
