@@ -19,5 +19,5 @@ IPAddress = Annotated[str, AfterValidator(validate_ip_address)]
 class SettingsModel(BaseModel):
     display_mode: Literal['Dot', 'Text'] = Field(default="Dot", description="Display mode for status icon (Dot or Text)")
     paused: bool = Field(default=False, description="Whether the application is paused")
-    ping_targets: list[IPAddress] = Field(default_factory=list, description="List of target IP addresses to ping")
+    targets: list[IPAddress] = Field(default_factory=list, description="List of target IP addresses to ping")
 
