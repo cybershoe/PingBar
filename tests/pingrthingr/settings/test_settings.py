@@ -11,9 +11,9 @@ class TestSelectableMenu:
         mock_cb = Mock()
         def _mock_selectable_menu(
                 title="Test Menu",
-                options: list[str] = ["Option 1", "Option 2", "Option 3"],
-                selected: str = "Option 1",
-                cb: Callable = mock_cb,
+                options: list[str] | None = ["Option 1", "Option 2", "Option 3"],
+                selected: str | None = "Option 1",
+                cb: Callable | None = mock_cb,
 
         ):
             mock_menu_item = mocker.patch("rumps.MenuItem", autospec=True)
@@ -59,3 +59,7 @@ class TestSelectableMenu:
         menu.set_selected("Invalid Option")  # Should not raise an error, but should not change selection
         assert menu.get_selected() is None, "Invalid selected option should result in no selection"
         assert menu.title == "Test Menu", "Menu title should not include selected option if selection is invalid"
+
+    def test_initialize_with_no_cb(self, mock_selectable_menu):
+        menu, _ = mock_selectable_menu(cb=None)  # Should not error when callback is None
+        assert menu._cb is None, "Callback should be None when not provided"
