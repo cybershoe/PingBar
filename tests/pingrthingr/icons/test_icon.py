@@ -40,8 +40,8 @@ def nsimage_to_png(
     """
 
     logical_size = ns_image.size()
-    pixel_w = int(logical_size.width)
-    pixel_h = int(logical_size.height)
+    pixel_w = int(logical_size.width * 2)
+    pixel_h = int(logical_size.height * 2)
 
     bitmap_rep = NSBitmapImageRep.alloc().initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bytesPerRow_bitsPerPixel_(
         None, pixel_w, pixel_h, 8, 4, True, False, NSDeviceRGBColorSpace, 0, 0
