@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 from pydantic import BaseModel, Field, AfterValidator
 from socket import inet_aton
 from typing import Annotated, Literal

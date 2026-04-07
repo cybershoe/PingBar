@@ -2,7 +2,7 @@ import pytest
 from typing import Callable, Tuple
 from unittest.mock import Mock
 from rumps import MenuItem
-from pingrthingr.settings.settings import SelectableMenu
+from pingrthingr.settings import SelectableMenu
 
 class TestSelectableMenu:
 
