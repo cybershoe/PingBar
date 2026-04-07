@@ -62,4 +62,5 @@ class TestSelectableMenu:
 
     def test_initialize_with_no_cb(self, mock_selectable_menu):
         menu, _ = mock_selectable_menu(cb=None)  # Should not error when callback is None
+        menu.set_selected("Option 2")  # Should not raise an error when setting selection without a callback
         assert menu._cb is None, "Callback should be None when not provided"
