@@ -77,6 +77,17 @@ class TestSettingsSetGetandCallbacks:
         assert settings_manager._settings.display_mode == "Text"
         mock_callback.assert_called_once_with("Text")
 
+    def test_deregister_callback(self):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        settings_manager.set("display_mode", "Text")
+        assert mock_callback.called, "Callback should have been called when setting was changed"
+        settings_manager.deregister_callback("display_mode", mock_callback)
+        assert mock_callback not in settings_manager._callbacks.get("display_mode", []), "Callback should have been deregistered"
+        settings_manager.set("display_mode", "Dot")
+        assert mock_callback.call_count == 1, "Callback should not have been called after deregistration"
+
     def test_set_get(self):
         settings_manager = SettingsManager()
         assert settings_manager.get("paused") == False
