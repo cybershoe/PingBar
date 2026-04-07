@@ -1,11 +1,13 @@
 from AppKit import (
     NSBitmapImageRep,
+    NSCalibratedRGBColorSpace,
+    NSColor,
     NSDeviceRGBColorSpace,
     NSGraphicsContext,
     NSImage,
     NSMakeRect,
     NSPNGFileType,
-    NSCalibratedRGBColorSpace,
+    NSRectFill,
 )
 from pathlib import Path
 from typing import Literal
@@ -29,6 +31,7 @@ ping_thresholds = [
 def nsimage_to_png(
     ns_image: NSImage,
     path: str,
+    dark: bool = False
 ) -> None:
     """Write an NSImage to a PNG file without requiring a display context.
 
@@ -51,6 +54,11 @@ def nsimage_to_png(
     ctx = NSGraphicsContext.graphicsContextWithBitmapImageRep_(bitmap_rep)
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.setCurrentContext_(ctx)
+    if dark:
+        NSColor.blackColor().setFill()
+    else:
+        NSColor.whiteColor().setFill()
+    NSRectFill(NSMakeRect(0, 0, pixel_w, pixel_h))
     ns_image.drawInRect_(NSMakeRect(0, 0, pixel_w, pixel_h))
     NSGraphicsContext.restoreGraphicsState()
 
@@ -60,12 +68,12 @@ def nsimage_to_png(
 
 @pytest.fixture
 def compare_image(image_diff, tmp_path):
-    def _test_image_diff(image: NSImage, test_name: str) -> float:
+    def _test_image_diff(image: NSImage, test_name: str, dark: bool = False) -> float:
         exemplar_image = base_path / f"resources/example-{test_name}.png"
         output_path = tmp_path / f"compare-{test_name}.png"
         if not Path(exemplar_image).is_file():
-            nsimage_to_png(image, str(exemplar_image)) 
-        nsimage_to_png(image, str(output_path)) 
+            nsimage_to_png(image, str(exemplar_image), dark=dark) 
+        nsimage_to_png(image, str(output_path), dark=dark) 
         return image_diff(str(output_path), str(exemplar_image))
     return _test_image_diff
 
@@ -83,7 +91,7 @@ class TestIconImages:
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_text_icon(self,compare_image, mock_darkmode, darkmode, case, latency, loss):
         text_icon, _ = status_text_icon(latency=latency, loss=loss)
-        assert compare_image(text_icon, f"text-{case}-{darkmode}") < 0.01, "Generated icon should match reference image"
+        assert compare_image(text_icon, f"text-{case}-{darkmode}", dark=(darkmode == "Dark")) < 0.01, "Generated icon should match reference image"
 
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_dot_icon(self, compare_image, case, latency, loss):
