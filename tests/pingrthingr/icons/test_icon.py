@@ -90,6 +90,10 @@ class TestIconImages:
         dot_icon, _ = status_dot_icon(latency=latency, loss=loss)
         assert compare_image(dot_icon, f"dot-{case}") < 0.01, "Generated icon should match reference image"
 
+    def test_pause_icon(self, compare_image):
+        pause_icon = symbol_icon("pause.circle", "Paused")
+        assert compare_image(pause_icon, "pause") < 0.01, "Generated pause icon should match reference image"
+
 class TestIconSameState:
     @pytest.mark.parametrize("testfunction", [status_dot_icon, status_text_icon])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
