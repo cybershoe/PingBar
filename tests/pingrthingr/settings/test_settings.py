@@ -53,7 +53,7 @@ class TestSettingsManager:
         settings_manager._settings.display_mode = "Text"
         settings_manager._settings.paused = True
         settings_manager._settings.targets = ["1.2.3.4"]
-        settings_manager.save_settings()
+        settings_manager.save()
         saved_settings = json_load(open(settings_file))
         assert saved_settings == {
             'display_mode': 'Text', 

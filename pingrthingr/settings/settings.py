@@ -16,9 +16,9 @@ class SettingsManager():
     """
     def __init__(self, settings_file: str | None = None):
         self._settings_file = settings_file
-        self.load_settings()
+        self.load()
 
-    def load_settings(self) -> None:
+    def load(self) -> None:
         """Load settings from the JSON file specified by self._settings_file.
 
         If the file does not exist or contains invalid data, defaults will be used.
@@ -41,7 +41,7 @@ class SettingsManager():
         
         logger.debug(f"Current settings after loading: \n{self._settings.model_dump_json(indent=2)}")
 
-    def save_settings(self) -> None:
+    def save(self) -> None:
         """Save current settings to the JSON file specified by self._settings_file."""
         if self._settings_file is None:
             logger.warning("No settings file specified, cannot save settings")
