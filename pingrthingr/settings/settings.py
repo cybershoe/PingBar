@@ -63,7 +63,7 @@ class SettingsManager():
         """
         if setting_name not in SettingsModel.model_fields.keys():
             logger.error(f"Attempted to register callback for invalid setting: {setting_name}")
-        self._callbacks.setdefault(setting_name, set()).addfoo(callback)
+        self._callbacks.setdefault(setting_name, set()).add(callback)
 
         logger.debug(f"Registered callback for setting '{setting_name}'")
 
