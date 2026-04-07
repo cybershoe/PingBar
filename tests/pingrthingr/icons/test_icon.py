@@ -16,6 +16,7 @@ from pingrthingr.icons import symbol_icon, status_dot_icon, status_text_icon
 base_path = Path(__file__).parent
 
 ping_thresholds = [
+    ('unknown', None, None),
     ('no_loss', 0.0, 0.0),
     ('warn_loss', 0.0, 0.02),
     ('warn_latency', 100.0, 0.0),
@@ -88,3 +89,12 @@ class TestIconImages:
     def test_status_dot_icon(self, compare_image, case, latency, loss):
         dot_icon, _ = status_dot_icon(latency=latency, loss=loss)
         assert compare_image(dot_icon, f"dot-{case}") < 0.01, "Generated icon should match reference image"
+
+class TestIconSameState:
+    @pytest.mark.parametrize("testfunction", [status_dot_icon, status_text_icon])
+    @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
+    def test_status_icon_same_state(self, testfunction, case, latency, loss):
+        icon1, state1 = testfunction(latency=latency, loss=loss, last_state=None)
+        icon2, state2 = testfunction(latency=latency, loss=loss, last_state=state1)
+        assert icon1 is not None, "Icon should be generated on first call"
+        assert icon2 is None, "Icon should not be regenerated if state is unchanged"
