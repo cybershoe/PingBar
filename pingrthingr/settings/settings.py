@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 from rumps import MenuItem, Window, alert
 from socket import inet_aton
 from json import load as json_load, dump as json_dump, dumps as json_dumps
-from typing import List, Callable
+from typing import List, Callable, Any
 from .models import SettingsModel
 
 
@@ -51,7 +51,7 @@ class SettingsManager():
             with open(self._settings_file, "w") as f:
                 json_dump(self._settings.model_dump(), f, indent=2)
                 logger.info(f"Settings saved to {self._settings_file}")
-        except Exception as e:
+        except (OSError, PermissionError) as e:
             logger.error(f"{e.__class__.__name__} saving settings to {self._settings_file}: {e}")
 
     def register_callback(self, setting_name: str, callback: Callable) -> None:
@@ -63,7 +63,6 @@ class SettingsManager():
         """
         if setting_name not in SettingsModel.model_fields.keys():
             logger.error(f"Attempted to register callback for invalid setting: {setting_name}")
-            raise ValueError(f"Invalid setting name: {setting_name}")
         self._callbacks.setdefault(setting_name, []).append(callback)
 
         logger.debug(f"Registered callback for setting '{setting_name}'")
@@ -82,6 +81,34 @@ class SettingsManager():
             logger.warning(f"Attempted to deregister callback for non-existent setting '{setting_name}'")
         except ValueError:
             logger.warning(f"Attempted to deregister non-existent callback for setting '{setting_name}'")
+
+    def get(self, setting_name: str) -> Any | None:
+        """Get the current value of a specific setting.
+
+        Args:
+            setting_name (str): The name of the setting to retrieve.
+
+        Returns:
+            The current value of the specified setting.
+        """
+        if setting_name not in SettingsModel.model_fields.keys():
+            logger.error(f"Attempted to get invalid setting: {setting_name}")
+            return None
+        return getattr(self._settings, setting_name, None)
+    
+    def set(self, name: str, value: Any) -> None:
+        if name not in SettingsModel.model_fields.keys():
+            logger.error(f"Attempted to set invalid setting: {name}")
+            return
+        setattr(self._settings, name, value)
+        
+        try:
+            for callback in self._callbacks[name]:
+                callback(value)
+        except KeyError:
+            logger.debug(f"No callbacks registered for setting '{name}'")
+        except TypeError as e:
+            logger.error(f"Error calling callback for setting '{name}': {e}")
 
 def update_ping_targets(targets: List[str]) -> List[str] | None:
     """Display preferences dialog for configuring ping targets.
