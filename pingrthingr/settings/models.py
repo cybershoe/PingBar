@@ -30,5 +30,5 @@ class SettingsModel(BaseModel):
             # Check fields that have defaults defined in the model
             for field_name, field_info in cls.model_fields.items():
                 if field_info.default is not None and field_name not in data:
-                    logging.info(f"Field '{field_name}' not provided; using default: {field_info.default}")
+                    logging.info(f"Field '{field_name}' not provided; using default value")
         return data

@@ -1,12 +1,12 @@
 import pytest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from json import load as json_load, dumps as json_dumps
 from pingrthingr.settings import SettingsManager
 
 base_path = Path(__file__).parent
 
-class TestSettingsManager:
+class TestSettingsLoadAndSave:
     def test_default_data(self):
         # Test default loading of data
         settings_manager = SettingsManager("./nofile.json")
@@ -60,4 +60,26 @@ class TestSettingsManager:
             'paused': True, 
             'targets': ['1.2.3.4']
         }
+
+class TestSettingsSetGetandCallbacks:
+    def test_register_callback(self):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        assert "display_mode" in settings_manager._callbacks
+        assert mock_callback in settings_manager._callbacks["display_mode"]
+
+    def test_set_setting_with_callback(self):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        settings_manager.set("display_mode", "Text")
+        assert settings_manager._settings.display_mode == "Text"
+        mock_callback.assert_called_once_with("Text")
+
+    def test_set_get(self):
+        settings_manager = SettingsManager()
+        assert settings_manager.get("paused") == False
+        settings_manager.set("paused", True)
+        assert settings_manager.get("paused") == True
                                         
