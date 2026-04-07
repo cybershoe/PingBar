@@ -77,13 +77,14 @@ def mock_darkmode(request, mocker):
     mock = mocker.patch("pingrthingr.icons.icon.NSUserDefaults", mock_ns_user_defaults)
     return mock
 
-@pytest.mark.parametrize("mock_darkmode, darkmode", [('Light',)*2, ('Dark',)*2], indirect=['mock_darkmode'])
-@pytest.mark.parametrize("case, latency, loss", ping_thresholds)
-def test_status_text_icon(compare_image, mock_darkmode, darkmode, case, latency, loss):
-    text_icon, _ = status_text_icon(latency=latency, loss=loss)
-    assert compare_image(text_icon, f"text-{case}-{darkmode}") < 0.01, "Generated icon should match reference image"
+class TestIconImages:
+    @pytest.mark.parametrize("mock_darkmode, darkmode", [('Light',)*2, ('Dark',)*2], indirect=['mock_darkmode'])
+    @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
+    def test_status_text_icon(self,compare_image, mock_darkmode, darkmode, case, latency, loss):
+        text_icon, _ = status_text_icon(latency=latency, loss=loss)
+        assert compare_image(text_icon, f"text-{case}-{darkmode}") < 0.01, "Generated icon should match reference image"
 
-@pytest.mark.parametrize("case, latency, loss", ping_thresholds)
-def test_status_dot_icon(compare_image, case, latency, loss):
-    dot_icon, _ = status_dot_icon(latency=latency, loss=loss)
-    assert compare_image(dot_icon, f"dot-{case}") < 0.01, "Generated icon should match reference image"
+    @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
+    def test_status_dot_icon(self, compare_image, case, latency, loss):
+        dot_icon, _ = status_dot_icon(latency=latency, loss=loss)
+        assert compare_image(dot_icon, f"dot-{case}") < 0.01, "Generated icon should match reference image"
