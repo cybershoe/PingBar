@@ -43,3 +43,19 @@ class TestSelectableMenu:
             if item.title != "Option 2":
                 assert item.state == 0, "Non-selected items should have state 0"
         mock_cb.assert_called_once_with("Option 2")  # Callback should be called with selected option
+
+    def test_no_options(self, mock_selectable_menu):
+        menu, mock_cb = mock_selectable_menu(options=[], selected=None)
+        assert len(menu._menu_items) == 0, "Menu should have no options"
+        assert menu.get_selected() is None, "No option should be selected"
+        menu.set_selected("Option 1")  # Should not raise an error even though there are no options
+        mock_cb.assert_not_called()  # Callback should not be called when setting selection with no options
+
+    def test_set_with_invalid_selected_option(self, mock_selectable_menu):
+        pytest.raises(ValueError, mock_selectable_menu, options=["Option A", "Option B"], selected="Invalid Option")
+
+    def test_set_selected_with_invalid_option(self, mock_selectable_menu):
+        menu, mock_cb = mock_selectable_menu()
+        menu.set_selected("Invalid Option")  # Should not raise an error, but should not change selection
+        assert menu.get_selected() is None, "Invalid selected option should result in no selection"
+        assert menu.title == "Test Menu", "Menu title should not include selected option if selection is invalid"
