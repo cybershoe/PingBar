@@ -14,8 +14,8 @@ from json import dump as json_dump, load as json_load
 from .pinger import Pinger
 from .icons import status_text_icon, status_dot_icon, symbol_icon
 from .settings import SelectableMenu, update_ping_targets, SettingsManager
-from objc import selector as objc_selector
-from Foundation import NSOperationQueue, NSBlockOperation
+from objc import selector as objc_selector  # type: ignore
+from Foundation import NSOperationQueue, NSBlockOperation  # type: ignore
 
 
 class PingrThingrApp(App):
@@ -189,7 +189,7 @@ class PingrThingrApp(App):
                     icon, new_state = status_text_icon(latency, loss, self._last_state)
                 case _:
                     raise ValueError(
-                        f"Invalid display_mode setting: {self.settings.get('display_mode')}"
+                        f"Invalid display_mode setting: {self._settings.get('display_mode')}"
                     )
 
             logger.debug(
@@ -233,6 +233,3 @@ class PingrThingrApp(App):
         logger.debug(f"Toggling pause state from {sender.state} to {not sender.state}")
 
         self._settings.set("paused", not sender.state)
-        # self.set_setting("paused", not self.get_setting("paused", False))
-        # sender.state = self.get_setting("paused", False)
-        # self.refresh_status_(use_saved=True)
