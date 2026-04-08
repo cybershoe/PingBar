@@ -102,6 +102,7 @@ class SettingsManager():
             logger.error(f"Attempted to set invalid setting: {name}")
             return
         setattr(self._settings, name, value)
+        self.save()
 
         try:
             for callback in self._callbacks[name]:
