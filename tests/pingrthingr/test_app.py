@@ -39,10 +39,17 @@ class TestPingrThingrAppInitialization:
         assert app._icon_nsimage is not None, "Icon NSImage should be initialized"  
         assert Path(app._settings_path) == tmp_path / "settings.json", "Settings file path should be correctly set"
 
-    def test_ping_response_updates(self, mocked_app):
+    def test_ping_response_updates(self, mocked_app, mocker):
         app, _, mocked_nsapp = mocked_app
+        mock_ns_block_operation = mocker.MagicMock()
+        mock_ns_operation_queue = mocker.MagicMock()
+        mocker.patch("pingrthingr.app.NSBlockOperation", mock_ns_block_operation)
+        mocker.patch("pingrthingr.app.NSOperationQueue", mock_ns_operation_queue)
+
         # Simulate a ping response and check if statistics are updated
-        app.refresh_status_(latency=100, loss=0)
+        app.update_statistics(latency=100, loss=0)
+        assert mock_ns_block_operation.blockOperationWithBlock_.call_count == 1, "NSBlockOperation should be created to update statistics"
+        mock_ns_block_operation.blockOperationWithBlock_.call_args[0][0]()  # Call the block to execute the statistics update
         assert app.latency == 100, "Latency should be updated to 100"
         assert app.loss == 0, "Loss should be updated to 0"
         assert app.statistics_menu.title != "waiting...", "Statistics menu title should be updated" 
