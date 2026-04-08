@@ -2,6 +2,7 @@ import pytest
 
 from pingrthingr import PingrThingrApp
 from pathlib import Path
+from json import load as json_load
 from time import sleep
 
 
@@ -56,5 +57,5 @@ class TestPingrThingrAppInitialization:
         assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when paused"
         settings_file = tmp_path / "settings.json"
         assert settings_file.is_file(), "Settings file should be created"
-        settings_data = settings_file.read_text()
-        assert '"paused": true' in settings_data, "Settings file should reflect paused state"
+        settings_data = json_load(open(settings_file))
+        assert settings_data.get("paused") is True, "Settings file should reflect paused state"
