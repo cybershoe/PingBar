@@ -63,7 +63,7 @@ class PingrThingrApp(App):
             "Display Mode",
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
-            cb=lambda x : self._settings.set("display_mode", x),
+            cb=lambda x: self._settings.set("display_mode", x),
             # cb=self.set_display_mode,
         )
         self.pause_menu.state = self._settings.get("paused", False)
@@ -79,7 +79,9 @@ class PingrThingrApp(App):
 
         self._settings.register_callback("paused", self.pause_cb)
         self._settings.register_callback("targets", self.ping_targets_cb)
-        self._settings.register_callback("display_mode", lambda _ : self.refresh_status_(use_saved=True))
+        self._settings.register_callback(
+            "display_mode", lambda _: self.refresh_status_(use_saved=True)
+        )
 
         logger.info(f"Initialized PingrThingr")
 
@@ -121,7 +123,9 @@ class PingrThingrApp(App):
         # self._changed = True
         # self.refresh_status_(use_saved=True)
 
-    def update_statistics(self, latency: float | None = None, loss: float | None = None) -> None:
+    def update_statistics(
+        self, latency: float | None = None, loss: float | None = None
+    ) -> None:
         """Update the statistics display with new network measurements.
 
         Called by the pinger when new latency and packet loss measurements
@@ -131,18 +135,27 @@ class PingrThingrApp(App):
             latency (float, optional): The average latency in milliseconds. Defaults to None.
             loss (float, optional): The packet loss as a decimal (0.0-1.0). Defaults to None.
         """
-        
+
         logger.debug(
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        operation = NSBlockOperation.blockOperationWithBlock_(lambda: self.refresh_status_(latency, loss))
+        operation = NSBlockOperation.blockOperationWithBlock_(
+            lambda: self.refresh_status_(latency, loss)
+        )
         NSOperationQueue.mainQueue().addOperation_(operation)
 
     @objc_selector
-    def refresh_status_(self, latency: float | None = None, loss: float | None = None, use_saved: bool = False):
+    def refresh_status_(
+        self,
+        latency: float | None = None,
+        loss: float | None = None,
+        use_saved: bool = False,
+    ):
         """Refresh the status display and menu item text every second."""
-        print(f"Refreshing status: latency={latency}, loss={loss}, use_saved={use_saved}")
+        print(
+            f"Refreshing status: latency={latency}, loss={loss}, use_saved={use_saved}"
+        )
 
         if use_saved:
             latency = self.latency
@@ -150,7 +163,7 @@ class PingrThingrApp(App):
         else:
             self.latency = latency
             self.loss = loss
-        
+
         if self._settings.get("paused"):
             logger.debug(
                 f"In refresh_status(): Application is paused, showing paused status"
@@ -163,23 +176,17 @@ class PingrThingrApp(App):
                 f"In refresh_status(): Application is running, showing latency and loss"
             )
             loss_str = f"{(loss*100):.2f}%" if loss is not None else "---"
-            latency_str = (
-                f"{(latency):.2f} ms" if latency is not None else "---"
-            )
+            latency_str = f"{(latency):.2f} ms" if latency is not None else "---"
             self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status(): Current display_mode: {display}")
 
             match display:
                 case "Dot":
-                    icon, new_state = status_dot_icon(
-                        latency, loss, self._last_state
-                    )
+                    icon, new_state = status_dot_icon(latency, loss, self._last_state)
 
                 case "Text":
-                    icon, new_state = status_text_icon(
-                        latency, loss, self._last_state
-                    )
+                    icon, new_state = status_text_icon(latency, loss, self._last_state)
                 case _:
                     raise ValueError(
                         f"Invalid display_mode setting: {self.settings.get('display_mode')}"
@@ -223,9 +230,7 @@ class PingrThingrApp(App):
         Args:
             sender: The menu item that was clicked.
         """
-        logger.debug(
-            f"Toggling pause state from {sender.state} to {not sender.state}"
-        )
+        logger.debug(f"Toggling pause state from {sender.state} to {not sender.state}")
 
         self._settings.set("paused", not sender.state)
         # self.set_setting("paused", not self.get_setting("paused", False))
