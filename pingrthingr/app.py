@@ -8,11 +8,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from rumps import App, clicked, MenuItem, timer
+from rumps import App, clicked, MenuItem, timer, application_support
+from os.path import join as path_join
 from json import dump as json_dump, load as json_load
 from .pinger import Pinger
 from .icons import status_text_icon, status_dot_icon, symbol_icon
-from .settings import SelectableMenu, update_ping_targets
+from .settings import SelectableMenu, update_ping_targets, SettingsManager
 from objc import selector as objc_selector
 from Foundation import NSOperationQueue, NSBlockOperation
 
@@ -41,7 +42,9 @@ class PingrThingrApp(App):
             **kwargs: Arbitrary keyword arguments passed to parent App class.
         """
         super(PingrThingrApp, self).__init__(*args, **kwargs)
-        self.settings = {}
+        self._settings_path = path_join(application_support(self.name), "settings.json")
+        logger.debug(f"Settings file path: {self._settings_path}")
+        self._settings = SettingsManager(self._settings_path)
         self._load_settings()
         self.latency = None
         self.loss = None
@@ -49,7 +52,7 @@ class PingrThingrApp(App):
         self._icon_nsimage = symbol_icon(
             (
                 "pause.circle"
-                if self.get_setting("paused", False)
+                if self._settings.get("paused")
                 else "waveform.path.ecg"
             ),
             "PingrThingr",
