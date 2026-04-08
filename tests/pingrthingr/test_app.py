@@ -19,17 +19,6 @@ def mocked_app(mocker, tmp_path):
     yield app, mock_pinger, mock_nsapp
 
 class TestPingrThingrAppInitialization:
-
-    # @pytest.fixture(autouse=True)
-    # def setup(self, tmp_path, mocker):
-    #     # Mock the Pinger to avoid actual network activity during tests
-    #     self.mock_pinger = mocker.MagicMock()
-    #     mocker.patch("pingrthingr.app.Pinger", return_value=self.mock_pinger)
-    #     # Mock application_support to use a temporary directory for settings
-    #     mocker.patch("pingrthingr.app.application_support", return_value=str(tmp_path))
-
- 
-
     def test_initialization(self, mocked_app, tmp_path):
         app, _, _ = mocked_app
         assert app._settings is not None, "SettingsManager should be initialized"
@@ -41,6 +30,8 @@ class TestPingrThingrAppInitialization:
         assert app._icon_nsimage is not None, "Icon NSImage should be initialized"  
         assert Path(app._settings_path) == tmp_path / "settings.json", "Settings file path should be correctly set"
 
+
+class TestPingUpdates:
     def test_ping_response_updates(self, mocked_app, mocker):
         app, _, mocked_nsapp = mocked_app
         mock_ns_block_operation = mocker.MagicMock()
@@ -57,6 +48,7 @@ class TestPingrThingrAppInitialization:
         assert app.statistics_menu.title != "waiting...", "Statistics menu title should be updated" 
         assert mocked_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon"
 
+class TestSettingsChanges:
     def test_pause(self, mocked_app, tmp_path, mocker):
         app, mock_pinger, mock_nsapp = mocked_app
         mock_sender = mocker.MagicMock(state=False)
