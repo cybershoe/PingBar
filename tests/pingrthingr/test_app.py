@@ -55,9 +55,10 @@ class TestPingrThingrAppInitialization:
         assert app.statistics_menu.title != "waiting...", "Statistics menu title should be updated" 
         assert mocked_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon"
 
-    def test_pause(self, mocked_app, tmp_path):
+    def test_pause(self, mocked_app, tmp_path, mocker):
         app, mock_pinger, mock_nsapp = mocked_app
-        app.pause_toggle(value=True)
+        mock_sender = mocker.MagicMock(state=False)
+        app.pause_toggle(mock_sender)
         mock_pinger.run.assert_called_with(False)
         assert app.pause_menu.state == True, "Pause menu state should be set to True when paused"
         assert app.latency is None and app.loss is None, "Latency and loss should be reset to None when paused"
@@ -77,3 +78,13 @@ class TestPingrThingrAppInitialization:
         assert settings_data.get("display_mode") == "Text", "Settings file should reflect display mode change"
         app._settings.set("display_mode", "Dot")
         assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
+
+    def test_update_ping_targets(self, mocked_app, mocker, tmp_path):
+        app, _, mock_nsapp = mocked_app
+        new_targets = ["3.4.5.6", "7.8.9.10"]
+        mocker.patch('pingrthingr.settings.update_ping_targets', return_value=new_targets)
+        app._settings.set("targets", new_targets)
+        settings_file = tmp_path / "settings.json"
+        settings_data = json_load(open(settings_file))
+        assert settings_data.get("targets") == new_targets, "Settings file should reflect updated ping targets"
+     
