@@ -13,7 +13,7 @@ from os.path import join as path_join
 from json import dump as json_dump, load as json_load
 from .pinger import Pinger
 from .icons import status_text_icon, status_dot_icon, symbol_icon
-from .settings import SelectableMenu, update_ping_targets, SettingsManager
+from .settings import SelectableMenu, ping_target_window, SettingsManager
 from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation  # type: ignore
 
@@ -194,12 +194,12 @@ class PingrThingrApp(App):
         Args:
             _: Unused menu item parameter.
         """
-        new_targets = update_ping_targets(self._settings.get("targets", []))  # type: ignore
+        new_targets = ping_target_window(self._settings.get("targets", []))  # type: ignore
         if new_targets is not None:
-            logger.debug(f"Updating targets from update_ping_targets(): {new_targets}")
+            logger.debug(f"Updating targets from ping_target_window(): {new_targets}")
             self._settings.set("targets", new_targets)
         else:
-            logger.debug(f"update_ping_targets() returned None, no changes to targets")
+            logger.debug(f"ping_target_window() returned None, no changes to targets")
 
     @clicked("Pause")
     def pause_toggle(self, sender):
