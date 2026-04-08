@@ -21,7 +21,7 @@ def ping_target_window(targets: List[str]) -> List[str] | None:
         List[str] | None: Updated list of target IP addresses if user clicked Save,
                          or None if user clicked Cancel or closed the dialog.
     """
-    while True:
+    while True:  # pragma: no cover. not feasible to test headless
         logger.debug(f"In ping_target_window(): Current targets: {targets}")
         response = Window(
             title="Ping Targets",
