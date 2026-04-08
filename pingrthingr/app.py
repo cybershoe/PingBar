@@ -107,9 +107,6 @@ class PingrThingrApp(App):
         """
         self.pinger.targets = targets
 
-    def display_mode_cb(self, mode: str):
-        self.refresh_status_(use_saved=True)
-
     def update_statistics(
         self, latency: float | None = None, loss: float | None = None
     ) -> None:
@@ -139,11 +136,7 @@ class PingrThingrApp(App):
         loss: float | None = None,
         use_saved: bool = False,
     ):
-        """Refresh the status display and menu item text every second."""
-        print(
-            f"Refreshing status: latency={latency}, loss={loss}, use_saved={use_saved}"
-        )
-
+        """Refresh the status display and menu item text"""
         if use_saved:
             latency = self.latency
             loss = self.loss
