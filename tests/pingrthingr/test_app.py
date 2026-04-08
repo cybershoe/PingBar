@@ -47,10 +47,14 @@ class TestPingrThingrAppInitialization:
         assert app.statistics_menu.title != "waiting...", "Statistics menu title should be updated" 
         assert mocked_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon"
 
-    def test_pause(self, mocked_app):
+    def test_pause(self, mocked_app, tmp_path):
         app, mock_pinger, mock_nsapp = mocked_app
         app._settings.set("paused",True)
         mock_pinger.run.assert_called_with(False)
         assert app.pause_menu.state == True, "Pause menu state should be set to True when paused"
         assert app.latency is None and app.loss is None, "Latency and loss should be reset to None when paused"
         assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when paused"
+        settings_file = tmp_path / "settings.json"
+        assert settings_file.is_file(), "Settings file should be created"
+        settings_data = settings_file.read_text()
+        assert '"paused": true' in settings_data, "Settings file should reflect paused state"
