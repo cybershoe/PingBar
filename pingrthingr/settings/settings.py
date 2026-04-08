@@ -108,14 +108,13 @@ class SettingsManager:
             The current value of the specified setting, or the default value if not found.
         """
         if setting_name not in SettingsModel.model_fields.keys():
-            logger.error(f"Attempted to get invalid setting: {setting_name}")
-            return default
+            raise AttributeError(f"Attempted to get invalid setting: {setting_name}")
         return getattr(self._settings, setting_name, default)
 
     def set(self, name: str, value: Any) -> None:
         if name not in SettingsModel.model_fields.keys():
             logger.error(f"Attempted to set invalid setting: {name}")
-            return
+            raise AttributeError(f"Attempted to set invalid setting: {name}")
         setattr(self._settings, name, value)
         self.save()
 

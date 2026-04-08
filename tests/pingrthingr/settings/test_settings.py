@@ -111,4 +111,14 @@ class TestSettingsSetGetandCallbacks:
         assert settings_manager.get("paused") == False
         settings_manager.set("paused", True)
         assert settings_manager.get("paused") == True
+
+    def test_set_invalid_setting(self):
+        settings_manager = SettingsManager()
+        with pytest.raises(AttributeError):
+            settings_manager.set("invalid_setting", "value")
+
+    def test_get_invalid_setting(self):
+        settings_manager = SettingsManager()
+        with pytest.raises(AttributeError):
+            settings_manager.get("invalid_setting")
                                         
