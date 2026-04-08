@@ -17,19 +17,19 @@ class TestSettingsLoadAndSave:
         settings_manager = SettingsManager("./nofile.json")
         assert settings_manager._settings.model_dump() == default_settings
 
-    def test_file_not_found(self, tmp_path, default_settings):
+    def test_load_file_not_found(self, tmp_path, default_settings):
         # Test defaults loaded when file is not found
         settings_file = tmp_path / "badfile.json"
         settings_manager = SettingsManager(str(settings_file))
         assert settings_manager._settings.model_dump() == default_settings
 
-    def test_unreadable_file(self, default_settings):
+    def test_load_unreadable_file(self, default_settings):
         # Test defaults loaded when file is unreadable
         with patch("pingrthingr.settings.settings.open", side_effect=PermissionError("Permission denied")):
             settings_manager = SettingsManager(str("unreadable.json"))
         assert settings_manager._settings.model_dump() == default_settings
 
-    def test_malformed_file(self, tmp_path, default_settings):
+    def test_load_malformed_file(self, tmp_path, default_settings):
         # Test defaults loaded when file is malformed
         settings_file = tmp_path / "badfile.json"
         settings_file.write_text("not a json file")
@@ -37,14 +37,14 @@ class TestSettingsLoadAndSave:
         assert settings_manager._settings.model_dump() == default_settings
 
     @pytest.mark.parametrize("settings_json", json_load(open(base_path / "resources/invalid_settings.json")))
-    def test_invalid_data(self, tmp_path, settings_json, default_settings):
+    def test_load_invalid_data(self, tmp_path, settings_json, default_settings):
         # Test defaults loaded when file contains invalid data
         settings_file = tmp_path / "badfile.json"
         settings_file.write_text(json_dumps(settings_json))
         settings_manager = SettingsManager(str(settings_file))
         assert settings_manager._settings.model_dump() == default_settings
 
-    def test_valid_data(self):
+    def test_load_valid_data(self):
         # Test loading of valid data
         settings_file = base_path / "resources/valid_settings.json"
         valid_settings = json_load(open(settings_file))
