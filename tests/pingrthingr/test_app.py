@@ -92,4 +92,5 @@ class TestPingrThingrAppInitialization:
         app, _, _ = mocked_app
         mocker.patch('pingrthingr.settings.update_ping_targets', return_value=None)
         settings_file = tmp_path / "settings.json"
+        assert app._settings.get("targets") == [], "Settings should not be updated when update is cancelled"
         assert not settings_file.is_file(), "Settings file should not be created when update is cancelled"
