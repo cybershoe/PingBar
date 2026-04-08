@@ -82,19 +82,20 @@ class SettingsManager():
         except ValueError:
             logger.warning(f"Attempted to deregister non-existent callback for setting '{setting_name}'")
 
-    def get(self, setting_name: str) -> Any | None:
+    def get(self, setting_name: str, default: Any = None) -> Any | None:
         """Get the current value of a specific setting.
 
         Args:
             setting_name (str): The name of the setting to retrieve.
+            default: The default value to return if the setting is not found.
 
         Returns:
-            The current value of the specified setting.
+            The current value of the specified setting, or the default value if not found.
         """
         if setting_name not in SettingsModel.model_fields.keys():
             logger.error(f"Attempted to get invalid setting: {setting_name}")
-            return None
-        return getattr(self._settings, setting_name, None)
+            return default
+        return getattr(self._settings, setting_name, default)
     
     def set(self, name: str, value: Any) -> None:
         if name not in SettingsModel.model_fields.keys():
