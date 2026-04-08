@@ -83,69 +83,6 @@ class PingrThingrApp(App):
 
         logger.info(f"Initialized PingrThingr")
 
-    def _load_settings(self):
-        """Load application settings from settings.json file.
-
-        Attempts to load settings from the settings.json file. If the file
-        doesn't exist or contains invalid JSON, default settings are used.
-        """
-        try:
-            with self.open("settings.json", "r") as f:
-                self.settings = json_load(f)
-                logger.info(f"Settings loaded from settings.json")
-        except (IOError, ValueError):
-            self.settings = {
-                "paused": False,
-                "targets": ["8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1"],
-                "display_mode": "Dot",
-            }
-            logger.warning(f"Failed to load settings.json, using default settings")
-
-        logger.debug(f"In _load_settings(): Loaded settings: {self.settings}")
-
-    def _save_settings(self):
-        """Save current application settings to settings.json file.
-
-        Persists the current settings dictionary to the settings.json file
-        in JSON format.
-        """
-        with self.open("settings.json", "w") as f:
-            json_dump(self.settings, f)
-        logger.info(f"In _save_settings(): Settings saved to settings.json")
-
-    def set_setting(self, key, value):
-        """Set a setting value and save to file.
-
-        Args:
-            key (str): The setting key to update.
-            value: The value to set for the key.
-        """
-        self.settings[key] = value
-        logger.debug(f"In set_setting(): Setting updated: {key} = {value}")
-        if key == "targets":
-            self.pinger.targets = value
-        # if key == "paused":
-        #     self.pinger.run(not value)
-        #     self.pause_menu.state = value
-        #     self.latency = None
-        #     self.loss = None
-        #     self._changed = True
-
-        self._save_settings()
-
-    def get_setting(self, key, default=None):
-        """Get a setting value.
-
-        Args:
-            key (str): The setting key to retrieve.
-            default: Default value to return if key doesn't exist.
-
-        Returns:
-            The setting value or the default value if key doesn't exist.
-        """
-        logger.debug(f"In get_setting(): Retrieving setting: {key} (default={default})")
-        return self.settings.get(key, default)
-
     def pause_cb(self, paused: bool):
         """Pause or resume the pinger.
 
