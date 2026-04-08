@@ -76,7 +76,8 @@ class PingrThingrApp(App):
             cb=self.update_statistics,
         )
 
-        self._settings.register_callback("paused", self.pause)
+        self._settings.register_callback("paused", self.pause_cb)
+        self._settings.register_callback("targets", self.ping_targets_cb)
 
         logger.info(f"Initialized PingrThingr")
 
@@ -121,12 +122,12 @@ class PingrThingrApp(App):
         logger.debug(f"In set_setting(): Setting updated: {key} = {value}")
         if key == "targets":
             self.pinger.targets = value
-        if key == "paused":
-            self.pinger.run(not value)
-            self.pause_menu.state = value
-            self.latency = None
-            self.loss = None
-            self._changed = True
+        # if key == "paused":
+        #     self.pinger.run(not value)
+        #     self.pause_menu.state = value
+        #     self.latency = None
+        #     self.loss = None
+        #     self._changed = True
 
         self._save_settings()
 
@@ -143,7 +144,7 @@ class PingrThingrApp(App):
         logger.debug(f"In get_setting(): Retrieving setting: {key} (default={default})")
         return self.settings.get(key, default)
 
-    def pause(self, paused: bool):
+    def pause_cb(self, paused: bool):
         """Pause or resume the pinger.
 
         Args:
@@ -154,6 +155,14 @@ class PingrThingrApp(App):
         self.latency = None
         self.loss = None
         self.refresh_status_(use_saved=True)
+
+    def ping_targets_cb(self, targets: list[str]):
+        """Set the list of ping target IP addresses.
+
+        Args:
+            targets (list[str]): List of IP addresses to ping.
+        """
+        self.pinger.targets = targets
 
     def set_display_mode(self, mode: str) -> None:
         """Set the display mode for the status icon.
@@ -255,10 +264,10 @@ class PingrThingrApp(App):
         Args:
             _: Unused menu item parameter.
         """
-        new_targets = update_ping_targets(self.get_setting("targets", []))
+        new_targets = update_ping_targets(self._settings.get("targets", []))  # type: ignore
         if new_targets is not None:
             logger.debug(f"Updating targets from update_ping_targets(): {new_targets}")
-            self.set_setting("targets", new_targets)
+            self._settings.set("targets", new_targets)
         else:
             logger.debug(f"update_ping_targets() returned None, no changes to targets")
 
