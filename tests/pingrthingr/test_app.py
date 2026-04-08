@@ -131,10 +131,10 @@ class TestSettingsChanges:
             mock_nsapp.setStatusBarIcon.called
         ), "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
 
-    def test_update_ping_targets(self, mocked_app, mocker, tmp_path):
+    def test_ping_target_window(self, mocked_app, mocker, tmp_path):
         app, _, _ = mocked_app
         new_targets = ["3.4.5.6", "7.8.9.10"]
-        mocker.patch("pingrthingr.app.update_ping_targets", return_value=new_targets)
+        mocker.patch("pingrthingr.app.ping_target_window", return_value=new_targets)
         app.ping_targets(None)
         settings_file = tmp_path / "settings.json"
         settings_data = json_load(open(settings_file))
@@ -144,7 +144,7 @@ class TestSettingsChanges:
 
     def test_cancelled_ping_targets(self, mocked_app, mocker, tmp_path):
         app, _, _ = mocked_app
-        mocker.patch("pingrthingr.app.update_ping_targets", return_value=None)
+        mocker.patch("pingrthingr.app.ping_target_window", return_value=None)
         settings_file = tmp_path / "settings.json"
         pre_app_targets = app._settings.get("targets")
         app.ping_targets(None)

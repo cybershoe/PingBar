@@ -7,7 +7,7 @@ from socket import inet_aton
 from json import load as json_load, dump as json_dump, dumps as json_dumps
 from typing import List
 
-def update_ping_targets(targets: List[str]) -> List[str] | None:
+def ping_target_window(targets: List[str]) -> List[str] | None:
     """Display preferences dialog for configuring ping targets.
 
     Shows a modal dialog window allowing the user to enter or modify
@@ -22,7 +22,7 @@ def update_ping_targets(targets: List[str]) -> List[str] | None:
                          or None if user clicked Cancel or closed the dialog.
     """
     while True:
-        logger.debug(f"In update_ping_targets(): Current targets: {targets}")
+        logger.debug(f"In ping_target_window(): Current targets: {targets}")
         response = Window(
             title="Ping Targets",
             message="Enter target IP addresses (comma-separated):",
@@ -34,7 +34,7 @@ def update_ping_targets(targets: List[str]) -> List[str] | None:
 
         if response.clicked == 1:
             logger.debug(
-                f"In update_ping_targets(): User entered targets: {response.text}"
+                f"In ping_target_window(): User entered targets: {response.text}"
             )
             new_targets = [t.strip() for t in response.text.split(",") if t.strip()]
             try:
@@ -43,11 +43,11 @@ def update_ping_targets(targets: List[str]) -> List[str] | None:
             except OSError:
                 alert(f"Invalid IP address: {target}")
                 logger.error(
-                    f"In update_ping_targets(): Invalid IP address entered: {target}"
+                    f"In ping_target_window(): Invalid IP address entered: {target}"
                 )
             else:
                 logger.debug(
-                    f"In update_ping_targets(): Valid targets entered, returning: {new_targets}"
+                    f"In ping_target_window(): Valid targets entered, returning: {new_targets}"
                 )
                 return new_targets
         else:
