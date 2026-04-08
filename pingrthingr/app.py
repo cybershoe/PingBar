@@ -63,7 +63,8 @@ class PingrThingrApp(App):
             "Display Mode",
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
-            cb=self.set_display_mode,
+            cb=lambda x : self._settings.set("display_mode", x),
+            # cb=self.set_display_mode,
         )
         self.pause_menu.state = self._settings.get("paused", False)
         self.menu = [self.statistics_menu, self.pause_menu, self.display_menu]
@@ -78,6 +79,7 @@ class PingrThingrApp(App):
 
         self._settings.register_callback("paused", self.pause_cb)
         self._settings.register_callback("targets", self.ping_targets_cb)
+        self._settings.register_callback("display_mode", lambda _ : self.refresh_status_(use_saved=True))
 
         logger.info(f"Initialized PingrThingr")
 
@@ -164,19 +166,23 @@ class PingrThingrApp(App):
         """
         self.pinger.targets = targets
 
-    def set_display_mode(self, mode: str) -> None:
-        """Set the display mode for the status icon.
-
-        Updates the display mode setting and triggers a visual refresh
-        of the menu bar icon.
-
-        Args:
-            mode (str): The display mode to set.
-        """
-        logger.debug(f"In set_display_mode(): Setting display_mode to {mode}")
-        self.set_setting("display_mode", mode)
-        self._changed = True
+    def display_mode_cb(self, mode: str):
         self.refresh_status_(use_saved=True)
+
+    def set_display_mode(self, mode: str) -> None:
+        self._settings.set("display_mode", mode)
+        # """Set the display mode for the status icon.
+
+        # Updates the display mode setting and triggers a visual refresh
+        # of the menu bar icon.
+
+        # Args:
+        #     mode (str): The display mode to set.
+        # """
+        # logger.debug(f"In set_display_mode(): Setting display_mode to {mode}")
+        # self.set_setting("display_mode", mode)
+        # self._changed = True
+        # self.refresh_status_(use_saved=True)
 
     def update_statistics(self, latency: float | None = None, loss: float | None = None) -> None:
         """Update the statistics display with new network measurements.
