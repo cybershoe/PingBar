@@ -45,14 +45,14 @@ class PingrThingrApp(App):
         self._settings_path = path_join(application_support(self.name), "settings.json")
         logger.debug(f"Settings file path: {self._settings_path}")
         self._settings = SettingsManager(self._settings_path)
-        self._load_settings()
+        # self._load_settings()
         self.latency = None
         self.loss = None
         self.title = None
         self._icon_nsimage = symbol_icon(
             (
                 "pause.circle"
-                if self._settings.get("paused")
+                if self._settings.get("paused", False)
                 else "waveform.path.ecg"
             ),
             "PingrThingr",
@@ -62,19 +62,22 @@ class PingrThingrApp(App):
         self.display_menu = SelectableMenu(
             "Display Mode",
             options=["Dot", "Text"],
-            selected=self.get_setting("display_mode", "Dot"),
+            selected=self._settings.get("display_mode", "Dot"),
             cb=self.set_display_mode,
         )
-        self.pause_menu.state = self.get_setting("paused", False)
+        self.pause_menu.state = self._settings.get("paused", False)
         self.menu = [self.statistics_menu, self.pause_menu, self.display_menu]
         # self._changed = False
         self._last_state = None
 
         self.pinger = Pinger(
-            targets=self.settings.get("targets", []),
-            start_running=not self.settings.get("paused", False),
+            targets=self._settings.get("targets", []),  # type: ignore
+            start_running=not self._settings.get("paused", False),
             cb=self.update_statistics,
         )
+
+        self._settings.register_callback("paused", self.pause)
+
         logger.info(f"Initialized PingrThingr")
 
     def _load_settings(self):
@@ -140,6 +143,18 @@ class PingrThingrApp(App):
         logger.debug(f"In get_setting(): Retrieving setting: {key} (default={default})")
         return self.settings.get(key, default)
 
+    def pause(self, paused: bool):
+        """Pause or resume the pinger.
+
+        Args:
+            paused (bool): True to pause the pinger, False to resume.
+        """
+        self.pinger.run(not paused)
+        self.pause_menu.state = paused
+        self.latency = None
+        self.loss = None
+        self.refresh_status_(use_saved=True)
+
     def set_display_mode(self, mode: str) -> None:
         """Set the display mode for the status icon.
 
@@ -184,7 +199,7 @@ class PingrThingrApp(App):
             self.latency = latency
             self.loss = loss
         
-        if self.settings.get("paused"):
+        if self._settings.get("paused"):
             logger.debug(
                 f"In refresh_status(): Application is paused, showing paused status"
             )
@@ -200,7 +215,7 @@ class PingrThingrApp(App):
                 f"{(latency):.2f} ms" if latency is not None else "---"
             )
             self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
-            display = self.settings.get("display_mode", "Dot")
+            display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status(): Current display_mode: {display}")
 
             match display:
@@ -248,7 +263,7 @@ class PingrThingrApp(App):
             logger.debug(f"update_ping_targets() returned None, no changes to targets")
 
     @clicked("Pause")
-    def onoff(self, sender):
+    def pause_toggle(self, sender):
         """Toggle the pinger on/off state.
 
         Toggles the menu item state and starts/stops the pinger accordingly.
@@ -257,8 +272,10 @@ class PingrThingrApp(App):
             sender: The menu item that was clicked.
         """
         logger.debug(
-            f"Toggling pause state from {self.get_setting('paused', None)} to {not self.get_setting('paused', None)}"
+            f"Toggling pause state from {sender.state} to {not sender.state}"
         )
-        self.set_setting("paused", not self.get_setting("paused", False))
-        sender.state = self.get_setting("paused", False)
-        self.refresh_status_(use_saved=True)
+
+        self._settings.set("paused", not sender.state)
+        # self.set_setting("paused", not self.get_setting("paused", False))
+        # sender.state = self.get_setting("paused", False)
+        # self.refresh_status_(use_saved=True)
