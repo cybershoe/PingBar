@@ -57,7 +57,7 @@ class TestPingrThingrAppInitialization:
 
     def test_pause(self, mocked_app, tmp_path):
         app, mock_pinger, mock_nsapp = mocked_app
-        app._settings.set("paused",True)
+        app.pause_toggle(value=True)
         mock_pinger.run.assert_called_with(False)
         assert app.pause_menu.state == True, "Pause menu state should be set to True when paused"
         assert app.latency is None and app.loss is None, "Latency and loss should be reset to None when paused"
