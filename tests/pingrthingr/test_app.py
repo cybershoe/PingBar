@@ -66,3 +66,14 @@ class TestPingrThingrAppInitialization:
         assert settings_file.is_file(), "Settings file should be created"
         settings_data = json_load(open(settings_file))
         assert settings_data.get("paused") is True, "Settings file should reflect paused state"
+
+    def test_display_mode_change(self, mocked_app, tmp_path):
+        app, _, mock_nsapp = mocked_app
+        app._settings.set("display_mode", "Text")
+        assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
+        settings_file = tmp_path / "settings.json"
+        assert settings_file.is_file(), "Settings file should be created"
+        settings_data = json_load(open(settings_file))
+        assert settings_data.get("display_mode") == "Text", "Settings file should reflect display mode change"
+        app._settings.set("display_mode", "Dot")
+        assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
