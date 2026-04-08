@@ -91,10 +91,12 @@ class PingrThingrApp(App):
         Args:
             paused (bool): True to pause the pinger, False to resume.
         """
+        logging.debug(f"In pause_cb(): Setting pinger running state to {not paused}")
         self.pinger.run(not paused)
         self.pause_menu.state = paused
-        self.latency = None
-        self.loss = None
+        if paused:
+            self.latency = None
+            self.loss = None
         self.refresh_status_(use_saved=True)
 
     def ping_targets_cb(self, targets: list[str]):
