@@ -110,21 +110,6 @@ class PingrThingrApp(App):
     def display_mode_cb(self, mode: str):
         self.refresh_status_(use_saved=True)
 
-    def set_display_mode(self, mode: str) -> None:
-        self._settings.set("display_mode", mode)
-        # """Set the display mode for the status icon.
-
-        # Updates the display mode setting and triggers a visual refresh
-        # of the menu bar icon.
-
-        # Args:
-        #     mode (str): The display mode to set.
-        # """
-        # logger.debug(f"In set_display_mode(): Setting display_mode to {mode}")
-        # self.set_setting("display_mode", mode)
-        # self._changed = True
-        # self.refresh_status_(use_saved=True)
-
     def update_statistics(
         self, latency: float | None = None, loss: float | None = None
     ) -> None:
