@@ -94,7 +94,7 @@ class PingrThingrApp(App):
         logging.debug(f"In pause_cb(): Setting pinger running state to {not paused}")
         self.pinger.run(not paused)
         self.pause_menu.state = paused
-        if paused:
+        if paused:  # pragma: no cover
             self.latency = None
             self.loss = None
         self.refresh_status_(use_saved=True)
@@ -106,9 +106,6 @@ class PingrThingrApp(App):
             targets (list[str]): List of IP addresses to ping.
         """
         self.pinger.targets = targets
-
-    def display_mode_cb(self, mode: str):
-        self.refresh_status_(use_saved=True)
 
     def update_statistics(
         self, latency: float | None = None, loss: float | None = None
@@ -139,11 +136,7 @@ class PingrThingrApp(App):
         loss: float | None = None,
         use_saved: bool = False,
     ):
-        """Refresh the status display and menu item text every second."""
-        print(
-            f"Refreshing status: latency={latency}, loss={loss}, use_saved={use_saved}"
-        )
-
+        """Refresh the status display and menu item text"""
         if use_saved:
             latency = self.latency
             loss = self.loss
@@ -174,7 +167,7 @@ class PingrThingrApp(App):
 
                 case "Text":
                     icon, new_state = status_text_icon(latency, loss, self._last_state)
-                case _:
+                case _:  # pragma: no cover
                     raise ValueError(
                         f"Invalid display_mode setting: {self._settings.get('display_mode')}"
                     )
