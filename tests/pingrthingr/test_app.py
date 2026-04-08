@@ -18,6 +18,15 @@ def mocked_app(mocker, tmp_path):
 
     yield app, mock_pinger, mock_nsapp
 
+@pytest.fixture(autouse=True)
+def mocked_ns_block_operation(mocker):
+    mock_ns_block_operation = mocker.MagicMock()
+    mock_ns_operation_queue = mocker.MagicMock()
+    mocker.patch("pingrthingr.app.NSBlockOperation", mock_ns_block_operation)
+    mocker.patch("pingrthingr.app.NSOperationQueue", mock_ns_operation_queue)
+    yield mock_ns_block_operation
+
+
 class TestPingrThingrAppInitialization:
     def test_initialization(self, mocked_app, tmp_path):
         app, _, _ = mocked_app
@@ -32,21 +41,31 @@ class TestPingrThingrAppInitialization:
 
 
 class TestPingUpdates:
-    def test_ping_response_updates(self, mocked_app, mocker):
+    def test_ping_response_updates(self, mocked_app, mocked_ns_block_operation):
         app, _, mocked_nsapp = mocked_app
-        mock_ns_block_operation = mocker.MagicMock()
-        mock_ns_operation_queue = mocker.MagicMock()
-        mocker.patch("pingrthingr.app.NSBlockOperation", mock_ns_block_operation)
-        mocker.patch("pingrthingr.app.NSOperationQueue", mock_ns_operation_queue)
 
         # Simulate a ping response and check if statistics are updated
         app.update_statistics(latency=100, loss=0)
-        assert mock_ns_block_operation.blockOperationWithBlock_.call_count == 1, "NSBlockOperation should be created to update statistics"
-        mock_ns_block_operation.blockOperationWithBlock_.call_args[0][0]()  # Call the block to execute the statistics update
+        assert mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1, "NSBlockOperation should be created to update statistics"
+        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][0]()  # Call the block to execute the statistics update
         assert app.latency == 100, "Latency should be updated to 100"
         assert app.loss == 0, "Loss should be updated to 0"
         assert app.statistics_menu.title != "waiting...", "Statistics menu title should be updated" 
         assert mocked_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon"
+
+    def test_no_update_when_same(self, mocked_app, mocked_ns_block_operation):
+        app, _, mocked_nsapp = mocked_app
+        mocked_nsapp.setStatusBarIcon.reset_mock()  # Reset mock call count
+        app.update_statistics(latency=100, loss=0)
+        assert mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1, "NSBlockOperation should be created to update statistics"
+        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][0]()  # Call the block to execute the statistics update
+        assert mocked_nsapp.setStatusBarIcon.call_count == 1, "NSApp.setMenuBarIcon should be called to update the icon"
+
+        app.update_statistics(latency=100, loss=0)
+        assert mocked_ns_block_operation.blockOperationWithBlock_.call_count == 2, "NSBlockOperation should be created to update statistics"
+        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][0]()  # Call the block to execute the statistics update
+        assert mocked_nsapp.setStatusBarIcon.call_count == 1, "NSApp.setMenuBarIcon should not have been called again"
+
 
 class TestSettingsChanges:
     def test_pause(self, mocked_app, tmp_path, mocker):

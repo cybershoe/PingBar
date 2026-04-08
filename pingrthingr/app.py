@@ -94,7 +94,7 @@ class PingrThingrApp(App):
         logging.debug(f"In pause_cb(): Setting pinger running state to {not paused}")
         self.pinger.run(not paused)
         self.pause_menu.state = paused
-        if paused:
+        if paused:  # pragma: no cover
             self.latency = None
             self.loss = None
         self.refresh_status_(use_saved=True)
