@@ -1,123 +1,131 @@
-"""Settings and UI components module for PingrThingr application.
-
-This module provides custom UI components and settings management
-functionality for the PingrThingr menu bar application, including
-selectable menu items and configuration widgets.
-
-Classes:
-    SelectableMenu: A custom MenuItem that displays options as sub-menu items.
-"""
-
 import logging
 
 logger = logging.getLogger(__name__)
 
 from rumps import MenuItem, Window, alert
 from socket import inet_aton
-from typing import List, Callable
+from json import load as json_load, dump as json_dump, dumps as json_dumps
+from typing import List, Callable, Any
+from .models import SettingsModel
 
 
-class SelectableMenu(MenuItem):
-    """A selectable menu component that displays options as checkable sub-menu items.
+class SettingsManager:
+    """Settings management for PingrThingr application.
 
-    This class extends MenuItem to create a menu with selectable options where
-    only one option can be selected at a time. When an option is selected,
-    a callback function is invoked with the selected option.
+    Provides functionality for loading, saving, and updating application settings, including callback functions for changes to particular settings.
     """
 
-    def __init__(
-        self,
-        title="Select",
-        options: List[str] = None,
-        selected: str = None,
-        cb: Callable = None,
-        **kwargs,
-    ):
-        """Initialize the SelectableMenu with options and callback.
+    def __init__(self, settings_file: str | None = None):
+        self._settings_file = settings_file
+        self.load()
+        self._callbacks = {}
 
-        Args:
-            title (str, optional): The main menu item title. Defaults to "Select".
-            options (List[str], optional): List of option strings to display as sub-items.
-                                         Defaults to None, which creates an empty list.
-            selected (str, optional): Initially selected option. Must be in options list
-                                    or None for no initial selection. Defaults to None.
-            cb (Callable, optional): Callback function called with selected option string
-                                   when selection changes. Defaults to None.
-            **kwargs: Additional keyword arguments passed to parent MenuItem.
+    def load(self) -> None:
+        """Load settings from the JSON file specified by self._settings_file.
+
+        If the file does not exist or contains invalid data, defaults will be used.
         """
-        if options is None:
-            options = []
+        if self._settings_file is None:
+            logger.warning("No settings file specified, using default settings")
+            self._settings = SettingsModel()
+            return
+        try:
+            with open(self._settings_file, "r") as f:
+                data = json_load(f)
+                self._settings = SettingsModel(**data)
+                logger.info(f"Settings loaded from {self._settings_file}")
+        except FileNotFoundError:
+            logger.info(
+                f"Settings file {self._settings_file} not found, using default settings"
+            )
+            self._settings = SettingsModel()
+        except Exception as e:
+            logger.error(
+                f"{e.__class__.__name__} loading settings from {self._settings_file}: {e}, using default settings"
+            )
+            self._settings = SettingsModel()
 
-        if selected is not None and selected not in options:
-            raise ValueError("selected must be None or one of the provided options")
-        self._base_title = title
-        super(SelectableMenu, self).__init__(
-            f"{title}: {selected}" if selected else title, **kwargs
-        )
-        self._menu_items = []
-        cb_name = getattr(cb, "__name__", None)
         logger.debug(
-            f"In SelectableMenu.__init__(): Initializing SelectableMenu with options: {options}, selected: {selected}, callback: {cb_name}"
+            f"Current settings after loading: \n{self._settings.model_dump_json(indent=2)}"
         )
-        for option in options:
-            item = MenuItem(option, callback=self._option_selected)
-            if option == selected:
-                item.state = 1
-            self._menu_items.append(item)
-            logger.debug(f"Created menu item: {option} state: {item.state}")
-        self.menu = self._menu_items
-        for item in self._menu_items:
-            self.add(item)
-        self._cb = cb
 
-    def _option_selected(self, sender) -> None:
-        """Handle selection of a menu option.
+    def save(self) -> None:
+        """Save current settings to the JSON file specified by self._settings_file."""
+        if self._settings_file is None:
+            logger.warning("No settings file specified, cannot save settings")
+            return
+        try:
+            with open(self._settings_file, "w") as f:
+                json_dump(self._settings.model_dump(), f, indent=2)
+                logger.info(f"Settings saved to {self._settings_file}")
+        except (OSError, PermissionError) as e:
+            logger.error(
+                f"{e.__class__.__name__} saving settings to {self._settings_file}: {e}"
+            )
 
-        Called when a user clicks on one of the sub-menu items. Updates
-        the selection state and calls the callback function if provided.
+    def register_callback(self, setting_name: str, callback: Callable) -> None:
+        """Register a callback function to be called when a specific setting changes.
 
         Args:
-            sender: The MenuItem that was selected.
+            setting_name (str): The name of the setting to watch for changes.
+            callback (Callable): The function to call when the setting changes. It will be called with the new value of the setting as its argument.
         """
-        for item in self._menu_items:
-            item.state = 0
-        sender.state = 1
-        self.title = f"{self._base_title}: {sender.title}"
-        if self._cb:
-            self._cb(sender.title)
+        if setting_name not in SettingsModel.model_fields.keys():
+            logger.error(
+                f"Attempted to register callback for invalid setting: {setting_name}"
+            )
+        self._callbacks.setdefault(setting_name, set()).add(callback)
 
-    def get_selected(self) -> str | None:
-        """Get the currently selected option.
+        logger.debug(f"Registered callback for setting '{setting_name}'")
+
+    def deregister_callback(self, setting_name: str, callback: Callable) -> None:
+        """Deregister a previously registered callback function for a specific setting.
+
+        Args:
+            setting_name (str): The name of the setting the callback was registered for.
+            callback (Callable): The function to deregister.
+        """
+        try:
+            self._callbacks[setting_name].remove(callback)
+            logger.debug(f"Deregistered callback for setting '{setting_name}'")
+        except KeyError:
+            logger.warning(
+                f"Attempted to deregister callback for non-existent setting '{setting_name}'"
+            )
+        except ValueError:
+            logger.warning(
+                f"Attempted to deregister non-existent callback for setting '{setting_name}'"
+            )
+
+    def get(self, setting_name: str, default: Any = None) -> Any | None:
+        """Get the current value of a specific setting.
+
+        Args:
+            setting_name (str): The name of the setting to retrieve.
+            default: The default value to return if the setting is not found.
 
         Returns:
-            str | None: The title of the currently selected menu item,
-                       or None if no item is selected.
+            The current value of the specified setting, or the default value if not found.
         """
-        for item in self._menu_items:
-            if item.state == 1:
-                return item.title
-        return None
+        if setting_name not in SettingsModel.model_fields.keys():
+            logger.error(f"Attempted to get invalid setting: {setting_name}")
+            return default
+        return getattr(self._settings, setting_name, default)
 
-    def set_selected(self, option: str) -> None:
-        """Set the selected option programmatically.
-
-        Args:
-            option (str): The option to select. Must match one of the
-                         options provided during initialization.
-        """
-        selected_item = None
-        for item in self._menu_items:
-            if item.title == option:
-                selected_item = item
-                break
-
-        if selected_item is not None:
-            self._option_selected(selected_item)
+    def set(self, name: str, value: Any) -> None:
+        if name not in SettingsModel.model_fields.keys():
+            logger.error(f"Attempted to set invalid setting: {name}")
             return
+        setattr(self._settings, name, value)
+        self.save()
 
-        for item in self._menu_items:
-            item.state = 0
-        self.title = self._base_title
+        try:
+            for callback in self._callbacks[name]:
+                callback(value)
+        except KeyError:
+            logger.debug(f"No callbacks registered for setting '{name}'")
+        except TypeError as e:
+            logger.error(f"Error calling callback for setting '{name}': {e}")
 
 
 def update_ping_targets(targets: List[str]) -> List[str] | None:

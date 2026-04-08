@@ -1,66 +1,109 @@
 import pytest
-from typing import Callable, Tuple
-from unittest.mock import Mock
-from rumps import MenuItem
-from pingrthingr.settings.settings import SelectableMenu
+from pathlib import Path
+from unittest.mock import patch, Mock
+from json import load as json_load, dumps as json_dumps
+from pingrthingr.settings import SettingsManager
 
-class TestSelectableMenu:
+base_path = Path(__file__).parent
 
-    @pytest.fixture
-    def mock_selectable_menu(self, mocker):
-        mock_cb = Mock()
-        def _mock_selectable_menu(
-                title="Test Menu",
-                options: list[str] | None = ["Option 1", "Option 2", "Option 3"],
-                selected: str | None = "Option 1",
-                cb: Callable | None = mock_cb,
+class TestSettingsLoadAndSave:
+    def test_default_data(self):
+        # Test default loading of data
+        settings_manager = SettingsManager("./nofile.json")
+        assert settings_manager._settings.model_dump() == {'display_mode': 'Dot', 'paused': False, 'targets': []}
 
-        ):
-            mock_menu_item = mocker.patch("rumps.MenuItem", autospec=True)
-            return SelectableMenu(title=title, options=options, selected=selected, cb=cb), cb
-        
-        return _mock_selectable_menu
-    
-    def test_initialization(self, mock_selectable_menu):
-        menu, mock_cb = mock_selectable_menu()
-        assert menu.title == "Test Menu: Option 1", "Menu title should include selected option"
-        assert len(menu._menu_items) == 3, "Menu should have 3 options"
-        for item in menu._menu_items:
-            assert isinstance(item, MenuItem), "Sub-menu items should be MenuItem instances"
-            assert item.callback == menu._option_selected, "Sub-menu items should have correct callback"
-            assert item.state == (1 if item.title == "Option 1" else 0), "Selected item should have state 1, others should have state 0"
-        mock_cb.assert_not_called()  # Callback should not be called during initialization  
+    def test_file_not_found(self, tmp_path):
+        # Test defaults loaded when file is not found
+        settings_file = tmp_path / "badfile.json"
+        settings_manager = SettingsManager(str(settings_file))
+        assert settings_manager._settings.model_dump() == {'display_mode': 'Dot', 'paused': False, 'targets': []}
 
-    def test_option_selection(self, mock_selectable_menu):
-        menu, mock_cb = mock_selectable_menu()
-        assert menu.get_selected() == "Option 1", "Initially selected option should be 'Option 1'"
-        # Simulate selecting "Option 2"
-        option_2_item = next(item for item in menu._menu_items if item.title == "Option 2")
-        menu.set_selected("Option 2")
-        assert option_2_item.state == 1, "Selected item should have state 1"
-        assert menu.title == "Test Menu: Option 2", "Menu title should update to selected option"
-        for item in menu._menu_items:
-            if item.title != "Option 2":
-                assert item.state == 0, "Non-selected items should have state 0"
-        mock_cb.assert_called_once_with("Option 2")  # Callback should be called with selected option
+    def test_unreadable_file(self):
+        # Test defaults loaded when file is unreadable
+        with patch("pingrthingr.settings.settings.open", side_effect=PermissionError("Permission denied")):
+            settings_manager = SettingsManager(str("unreadable.json"))
+        assert settings_manager._settings.model_dump() == {'display_mode': 'Dot', 'paused': False, 'targets': []}
 
-    def test_no_options(self, mock_selectable_menu):
-        menu, mock_cb = mock_selectable_menu(options=None, selected=None)
-        assert len(menu._menu_items) == 0, "Menu should have no options"
-        assert menu.get_selected() is None, "No option should be selected"
-        menu.set_selected("Option 1")  # Should not raise an error even though there are no options
-        mock_cb.assert_not_called()  # Callback should not be called when setting selection with no options
+    def test_malformed_file(self, tmp_path):
+        # Test defaults loaded when file is malformed
+        settings_file = tmp_path / "badfile.json"
+        settings_file.write_text("not a json file")
+        settings_manager = SettingsManager(str(settings_file))
+        assert settings_manager._settings.model_dump() == {'display_mode': 'Dot', 'paused': False, 'targets': []} 
 
-    def test_set_with_invalid_selected_option(self, mock_selectable_menu):
-        pytest.raises(ValueError, mock_selectable_menu, options=["Option A", "Option B"], selected="Invalid Option")
+    @pytest.mark.parametrize("settings_json", json_load(open(base_path / "resources/invalid_settings.json")))
+    def test_invalid_data(self, tmp_path, settings_json):
+        # Test defaults loaded when file contains invalid data
+        settings_file = tmp_path / "badfile.json"
+        settings_file.write_text(json_dumps(settings_json))
+        settings_manager = SettingsManager(str(settings_file))
+        assert settings_manager._settings.model_dump() == {'display_mode': 'Dot', 'paused': False, 'targets': []} 
 
-    def test_set_selected_with_invalid_option(self, mock_selectable_menu):
-        menu, mock_cb = mock_selectable_menu()
-        menu.set_selected("Invalid Option")  # Should not raise an error, but should not change selection
-        assert menu.get_selected() is None, "Invalid selected option should result in no selection"
-        assert menu.title == "Test Menu", "Menu title should not include selected option if selection is invalid"
+    def test_valid_data(self):
+        # Test loading of valid data
+        settings_file = base_path / "resources/valid_settings.json"
+        valid_settings = json_load(open(settings_file))
+        settings_manager = SettingsManager(str(settings_file))
+        assert settings_manager._settings.model_dump() == valid_settings
 
-    def test_initialize_with_no_cb(self, mock_selectable_menu):
-        menu, _ = mock_selectable_menu(cb=None)  # Should not error when callback is None
-        menu.set_selected("Option 2")  # Should not raise an error when setting selection without a callback
-        assert menu._cb is None, "Callback should be None when not provided"
+    def test_save_settings(self, tmp_path):
+        # Test saving of settings to file
+        settings_file = tmp_path / "settings.json"
+        settings_manager = SettingsManager(settings_file)
+        settings_manager._settings.display_mode = "Text"
+        settings_manager._settings.paused = True
+        settings_manager._settings.targets = ["1.2.3.4"]
+        settings_manager.save()
+        saved_settings = json_load(open(settings_file))
+        assert saved_settings == {
+            'display_mode': 'Text', 
+            'paused': True, 
+            'targets': ['1.2.3.4']
+        }
+
+class TestSettingsSetGetandCallbacks:
+    def test_register_callback(self):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        assert "display_mode" in settings_manager._callbacks
+        assert mock_callback in settings_manager._callbacks["display_mode"]
+
+    def test_double_register_callback(self):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        assert mock_callback in settings_manager._callbacks["display_mode"]
+        settings_manager.register_callback("display_mode", mock_callback)
+        settings_manager.set("display_mode", "Text")
+        assert len(settings_manager._callbacks["display_mode"]) == 1, "Callback should not be registered multiple times"
+        assert mock_callback.call_count == 1, "Callback should not be registered multiple times"
+        settings_manager.deregister_callback("display_mode", mock_callback)  # Deregister once
+        settings_manager.set("display_mode", "Dot")
+        assert mock_callback.call_count == 1, "Callback should not be called after deregistration"
+
+    def test_set_setting_with_callback(self):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        settings_manager.set("display_mode", "Text")
+        assert settings_manager._settings.display_mode == "Text"
+        mock_callback.assert_called_once_with("Text")
+
+    def test_deregister_callback(self):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        settings_manager.set("display_mode", "Text")
+        assert mock_callback.called, "Callback should have been called when setting was changed"
+        settings_manager.deregister_callback("display_mode", mock_callback)
+        assert mock_callback not in settings_manager._callbacks.get("display_mode", []), "Callback should have been deregistered"
+        settings_manager.set("display_mode", "Dot")
+        assert mock_callback.call_count == 1, "Callback should not have been called after deregistration"
+
+    def test_set_get(self):
+        settings_manager = SettingsManager()
+        assert settings_manager.get("paused") == False
+        settings_manager.set("paused", True)
+        assert settings_manager.get("paused") == True
+                                        

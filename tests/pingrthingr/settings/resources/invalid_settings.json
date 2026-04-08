@@ -1,0 +1,6 @@
+[
+    {"paused": false, "targets": ["example.com", "1.1.1.1"], "display_mode": "Dot"},
+    {"paused": false, "targets": "1.2.3.4", "display_mode": "Dot"},
+    {"paused": 3, "targets": ["8.8.8.8", "1.1.1.1"], "display_mode": "Dot"},
+    {"paused": false, "targets": ["8.8.8.8", "1.1.1.1"], "display_mode": "Rorsharch"}
+]
