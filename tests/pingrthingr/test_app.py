@@ -80,11 +80,16 @@ class TestPingrThingrAppInitialization:
         assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
 
     def test_update_ping_targets(self, mocked_app, mocker, tmp_path):
-        app, _, mock_nsapp = mocked_app
+        app, _, _ = mocked_app
         new_targets = ["3.4.5.6", "7.8.9.10"]
         mocker.patch('pingrthingr.settings.update_ping_targets', return_value=new_targets)
         app._settings.set("targets", new_targets)
         settings_file = tmp_path / "settings.json"
         settings_data = json_load(open(settings_file))
         assert settings_data.get("targets") == new_targets, "Settings file should reflect updated ping targets"
-     
+
+    def test_cancelled_ping_targets(self, mocked_app, mocker, tmp_path):
+        app, _, _ = mocked_app
+        mocker.patch('pingrthingr.settings.update_ping_targets', return_value=None)
+        settings_file = tmp_path / "settings.json"
+        assert not settings_file.is_file(), "Settings file should not be created when update is cancelled"
