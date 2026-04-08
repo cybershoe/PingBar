@@ -1,10 +1,13 @@
 import pytest
+import logging
 from pathlib import Path
 from unittest.mock import patch, Mock
 from json import load as json_load, dumps as json_dumps
 from pingrthingr.settings import SettingsManager
 
 base_path = Path(__file__).parent
+
+LOGGER = logging.getLogger(__name__)
 
 @pytest.fixture
 def default_settings():
@@ -65,6 +68,16 @@ class TestSettingsLoadAndSave:
             'paused': True, 
             'targets': ['1.2.3.4']
         }
+
+    def test_save_no_permissions(self, caplog):
+        # Test saving settings when file is not writable
+        with caplog.at_level(logging.ERROR):
+            with patch("pingrthingr.settings.settings.open", side_effect=PermissionError("Permission denied")):
+                settings_manager = SettingsManager(str("noperms.json"))
+                settings_manager.save()  # Should log an error but not raise an exception
+                assert "saving settings tof" in caplog.text
+
+
 
 class TestSettingsSetGetandCallbacks:
     def test_register_callback(self):
