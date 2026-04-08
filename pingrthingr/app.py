@@ -174,7 +174,7 @@ class PingrThingrApp(App):
 
                 case "Text":
                     icon, new_state = status_text_icon(latency, loss, self._last_state)
-                case _:
+                case _:  # pragma: no branch
                     raise ValueError(
                         f"Invalid display_mode setting: {self._settings.get('display_mode')}"
                     )
