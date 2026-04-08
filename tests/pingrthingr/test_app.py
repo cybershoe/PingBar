@@ -18,6 +18,7 @@ def mocked_app(mocker, tmp_path):
 
     yield app, mock_pinger, mock_nsapp
 
+
 @pytest.fixture(autouse=True)
 def mocked_ns_block_operation(mocker):
     mock_ns_block_operation = mocker.MagicMock()
@@ -33,11 +34,15 @@ class TestPingrThingrAppInitialization:
         assert app._settings is not None, "SettingsManager should be initialized"
         assert app.pinger is not None, "Pinger should be initialized"
         assert app.menu is not None, "Menu should be initialized"
-        assert app.statistics_menu is not None, "Statistics menu item should be initialized"
+        assert (
+            app.statistics_menu is not None
+        ), "Statistics menu item should be initialized"
         assert app.pause_menu is not None, "Pause menu item should be initialized"
         assert app.display_menu is not None, "Display menu should be initialized"
-        assert app._icon_nsimage is not None, "Icon NSImage should be initialized"  
-        assert Path(app._settings_path) == tmp_path / "settings.json", "Settings file path should be correctly set"
+        assert app._icon_nsimage is not None, "Icon NSImage should be initialized"
+        assert (
+            Path(app._settings_path) == tmp_path / "settings.json"
+        ), "Settings file path should be correctly set"
 
 
 class TestPingUpdates:
@@ -46,25 +51,45 @@ class TestPingUpdates:
 
         # Simulate a ping response and check if statistics are updated
         app.update_statistics(latency=100, loss=0)
-        assert mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1, "NSBlockOperation should be created to update statistics"
-        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][0]()  # Call the block to execute the statistics update
+        assert (
+            mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1
+        ), "NSBlockOperation should be created to update statistics"
+        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][
+            0
+        ]()  # Call the block to execute the statistics update
         assert app.latency == 100, "Latency should be updated to 100"
         assert app.loss == 0, "Loss should be updated to 0"
-        assert app.statistics_menu.title != "waiting...", "Statistics menu title should be updated" 
-        assert mocked_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon"
+        assert (
+            app.statistics_menu.title != "waiting..."
+        ), "Statistics menu title should be updated"
+        assert (
+            mocked_nsapp.setStatusBarIcon.called
+        ), "NSApp.setMenuBarIcon should be called to update the icon"
 
     def test_no_update_when_same(self, mocked_app, mocked_ns_block_operation):
         app, _, mocked_nsapp = mocked_app
         mocked_nsapp.setStatusBarIcon.reset_mock()  # Reset mock call count
         app.update_statistics(latency=100, loss=0)
-        assert mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1, "NSBlockOperation should be created to update statistics"
-        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][0]()  # Call the block to execute the statistics update
-        assert mocked_nsapp.setStatusBarIcon.call_count == 1, "NSApp.setMenuBarIcon should be called to update the icon"
+        assert (
+            mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1
+        ), "NSBlockOperation should be created to update statistics"
+        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][
+            0
+        ]()  # Call the block to execute the statistics update
+        assert (
+            mocked_nsapp.setStatusBarIcon.call_count == 1
+        ), "NSApp.setMenuBarIcon should be called to update the icon"
 
         app.update_statistics(latency=100, loss=0)
-        assert mocked_ns_block_operation.blockOperationWithBlock_.call_count == 2, "NSBlockOperation should be created to update statistics"
-        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][0]()  # Call the block to execute the statistics update
-        assert mocked_nsapp.setStatusBarIcon.call_count == 1, "NSApp.setMenuBarIcon should not have been called again"
+        assert (
+            mocked_ns_block_operation.blockOperationWithBlock_.call_count == 2
+        ), "NSBlockOperation should be created to update statistics"
+        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][
+            0
+        ]()  # Call the block to execute the statistics update
+        assert (
+            mocked_nsapp.setStatusBarIcon.call_count == 1
+        ), "NSApp.setMenuBarIcon should not have been called again"
 
 
 class TestSettingsChanges:
@@ -73,38 +98,58 @@ class TestSettingsChanges:
         mock_sender = mocker.MagicMock(state=False)
         app.pause_toggle(mock_sender)
         mock_pinger.run.assert_called_with(False)
-        assert app.pause_menu.state == True, "Pause menu state should be set to True when paused"
-        assert app.latency is None and app.loss is None, "Latency and loss should be reset to None when paused"
-        assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when paused"
+        assert (
+            app.pause_menu.state == True
+        ), "Pause menu state should be set to True when paused"
+        assert (
+            app.latency is None and app.loss is None
+        ), "Latency and loss should be reset to None when paused"
+        assert (
+            mock_nsapp.setStatusBarIcon.called
+        ), "NSApp.setMenuBarIcon should be called to update the icon when paused"
         settings_file = tmp_path / "settings.json"
         assert settings_file.is_file(), "Settings file should be created"
         settings_data = json_load(open(settings_file))
-        assert settings_data.get("paused") is True, "Settings file should reflect paused state"
+        assert (
+            settings_data.get("paused") is True
+        ), "Settings file should reflect paused state"
 
     def test_display_mode_change(self, mocked_app, tmp_path):
         app, _, mock_nsapp = mocked_app
         app._settings.set("display_mode", "Text")
-        assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
+        assert (
+            mock_nsapp.setStatusBarIcon.called
+        ), "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
         settings_file = tmp_path / "settings.json"
         assert settings_file.is_file(), "Settings file should be created"
         settings_data = json_load(open(settings_file))
-        assert settings_data.get("display_mode") == "Text", "Settings file should reflect display mode change"
+        assert (
+            settings_data.get("display_mode") == "Text"
+        ), "Settings file should reflect display mode change"
         app._settings.set("display_mode", "Dot")
-        assert mock_nsapp.setStatusBarIcon.called, "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
+        assert (
+            mock_nsapp.setStatusBarIcon.called
+        ), "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
 
     def test_update_ping_targets(self, mocked_app, mocker, tmp_path):
         app, _, _ = mocked_app
         new_targets = ["3.4.5.6", "7.8.9.10"]
-        mocker.patch('pingrthingr.app.update_ping_targets', return_value=new_targets)
+        mocker.patch("pingrthingr.app.update_ping_targets", return_value=new_targets)
         app.ping_targets(None)
         settings_file = tmp_path / "settings.json"
         settings_data = json_load(open(settings_file))
-        assert settings_data.get("targets") == new_targets, "Settings file should reflect updated ping targets"
+        assert (
+            settings_data.get("targets") == new_targets
+        ), "Settings file should reflect updated ping targets"
 
     def test_cancelled_ping_targets(self, mocked_app, mocker, tmp_path):
         app, _, _ = mocked_app
-        mocker.patch('pingrthingr.app.update_ping_targets', return_value=None)
+        mocker.patch("pingrthingr.app.update_ping_targets", return_value=None)
         settings_file = tmp_path / "settings.json"
         app.ping_targets(None)
-        assert app._settings.get("targets") == [], "Settings should not be updated when update is cancelled"
-        assert not settings_file.is_file(), "Settings file should not be created when update is cancelled"
+        assert (
+            app._settings.get("targets") == []
+        ), "Settings should not be updated when update is cancelled"
+        assert (
+            not settings_file.is_file()
+        ), "Settings file should not be created when update is cancelled"
