@@ -75,9 +75,7 @@ class TestSettingsLoadAndSave:
             with patch("pingrthingr.settings.settings.open", side_effect=PermissionError("Permission denied")):
                 settings_manager = SettingsManager(str("noperms.json"))
                 settings_manager.save()  # Should log an error but not raise an exception
-                assert "saving settings tof" in caplog.text
-
-
+                assert "PermissionError saving settings to noperms.json" in caplog.text
 
 class TestSettingsSetGetandCallbacks:
     def test_register_callback(self):
