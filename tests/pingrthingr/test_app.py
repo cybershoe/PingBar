@@ -6,6 +6,18 @@ from json import load as json_load
 from time import sleep
 
 
+@pytest.fixture(autouse=True)
+def mocked_app(mocker, tmp_path):
+    # Create an instance of the app for testing
+    mock_pinger = mocker.MagicMock()
+    mocker.patch("pingrthingr.app.Pinger", return_value=mock_pinger)
+    mocker.patch("pingrthingr.app.application_support", return_value=str(tmp_path))
+    app = PingrThingrApp("testapp")
+    mock_nsapp = mocker.MagicMock()
+    mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
+
+    yield app, mock_pinger, mock_nsapp
+
 class TestPingrThingrAppInitialization:
 
     # @pytest.fixture(autouse=True)
@@ -16,17 +28,7 @@ class TestPingrThingrAppInitialization:
     #     # Mock application_support to use a temporary directory for settings
     #     mocker.patch("pingrthingr.app.application_support", return_value=str(tmp_path))
 
-    @pytest.fixture(autouse=True)
-    def mocked_app(self, mocker, tmp_path):
-        # Create an instance of the app for testing
-        mock_pinger = mocker.MagicMock()
-        mocker.patch("pingrthingr.app.Pinger", return_value=mock_pinger)
-        mocker.patch("pingrthingr.app.application_support", return_value=str(tmp_path))
-        app = PingrThingrApp("testapp")
-        mock_nsapp = mocker.MagicMock()
-        mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
-
-        yield app, mock_pinger, mock_nsapp
+ 
 
     def test_initialization(self, mocked_app, tmp_path):
         app, _, _ = mocked_app
@@ -82,15 +84,16 @@ class TestPingrThingrAppInitialization:
     def test_update_ping_targets(self, mocked_app, mocker, tmp_path):
         app, _, _ = mocked_app
         new_targets = ["3.4.5.6", "7.8.9.10"]
-        mocker.patch('pingrthingr.settings.update_ping_targets', return_value=new_targets)
-        app._settings.set("targets", new_targets)
+        mocker.patch('pingrthingr.app.update_ping_targets', return_value=new_targets)
+        app.ping_targets(None)
         settings_file = tmp_path / "settings.json"
         settings_data = json_load(open(settings_file))
         assert settings_data.get("targets") == new_targets, "Settings file should reflect updated ping targets"
 
     def test_cancelled_ping_targets(self, mocked_app, mocker, tmp_path):
         app, _, _ = mocked_app
-        mocker.patch('pingrthingr.settings.update_ping_targets', return_value=None)
+        mocker.patch('pingrthingr.app.update_ping_targets', return_value=None)
         settings_file = tmp_path / "settings.json"
+        app.ping_targets(None)
         assert app._settings.get("targets") == [], "Settings should not be updated when update is cancelled"
         assert not settings_file.is_file(), "Settings file should not be created when update is cancelled"
