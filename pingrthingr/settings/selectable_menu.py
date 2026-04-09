@@ -27,9 +27,9 @@ class SelectableMenu(MenuItem):
     def __init__(
         self,
         title="Select",
-        options: List[str] = None,
-        selected: str = None,
-        cb: Callable = None,
+        options: List[str] | None = None,
+        selected: str | None = None,
+        cb: Callable | None = None,
         **kwargs,
     ):
         """Initialize the SelectableMenu with options and callback.
