@@ -71,7 +71,7 @@ def compare_image(image_diff, tmp_path):
     def _test_image_diff(image: NSImage, test_name: str, dark: bool = False) -> float:
         exemplar_image = base_path / f"resources/example-{test_name}.png"
         output_path = tmp_path / f"compare-{test_name}.png"
-        if not Path(exemplar_image).is_file():
+        if not Path(exemplar_image).is_file():  # pragma: no cover
             nsimage_to_png(image, str(exemplar_image), dark=dark) 
         nsimage_to_png(image, str(output_path), dark=dark) 
         return image_diff(str(output_path), str(exemplar_image))
