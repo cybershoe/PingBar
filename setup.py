@@ -37,7 +37,7 @@ def get_branch_name():
 
 APP = ["main.py"]
 NAME = f"PingrThingr{get_branch_name()}"
-VERSION = "0.3.0-beta"
+VERSION = "0.3.0"
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": True,
