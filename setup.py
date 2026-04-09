@@ -12,11 +12,10 @@ from os import getenv
 
 # 1. Dynamically get the current git branch name
 def get_branch_name():
-    if getenv("BUILD_APPEND_BRANCH", 'true').lower() == 'true':
+    if getenv("BUILD_APPEND_BRANCH", "true").lower() == "true":
         try:
             branch = subprocess.check_output(
-                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'], 
-                text=True
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True
             ).strip()
             if branch == "main":
                 return ""
@@ -24,6 +23,7 @@ def get_branch_name():
         except subprocess.CalledProcessError:
             return "unknown"
     return ""
+
 
 APP = ["main.py"]
 NAME = f"PingrThingr{get_branch_name()}"
