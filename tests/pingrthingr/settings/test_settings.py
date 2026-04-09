@@ -131,14 +131,14 @@ class TestSettingsCallbacks:
             settings_manager.deregister_callback("invalid_setting", mock_callback)
             assert "Attempted to deregister callback for non-existent setting 'invalid_setting'" in caplog.text
 
-    # def test_deregister_nonexistent_callback(self, caplog):
-    #     settings_manager = SettingsManager()
-    #     mock_callback = Mock()
-    #     mock_callback2 = Mock()
-    #     settings_manager.register_callback("display_mode", mock_callback)
-    #     with caplog.at_level(logging.WARNING):
-    #         settings_manager.deregister_callback("display_mode", mock_callback2)  # Attempt to deregister a different callback
-    #         assert "Attempted to deregister non-existent callback for setting 'display_mode'" in caplog.text
+    def test_deregister_nonexistent_callback(self, caplog):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        mock_callback2 = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        with caplog.at_level(logging.WARNING):
+            settings_manager.deregister_callback("display_mode", mock_callback2)  # Attempt to deregister a different callback
+            assert "Attempted to deregister non-existent callback for setting 'display_mode'" in caplog.text
 
     def test_callback_not_callable(self, caplog):
         settings_manager = SettingsManager()
