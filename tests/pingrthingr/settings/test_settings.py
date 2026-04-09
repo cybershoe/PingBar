@@ -1,10 +1,13 @@
 import pytest
+import logging
 from pathlib import Path
 from unittest.mock import patch, Mock
 from json import load as json_load, dumps as json_dumps
 from pingrthingr.settings import SettingsManager
 
 base_path = Path(__file__).parent
+
+LOGGER = logging.getLogger(__name__)
 
 @pytest.fixture
 def default_settings():
@@ -17,19 +20,19 @@ class TestSettingsLoadAndSave:
         settings_manager = SettingsManager("./nofile.json")
         assert settings_manager._settings.model_dump() == default_settings
 
-    def test_file_not_found(self, tmp_path, default_settings):
+    def test_load_file_not_found(self, tmp_path, default_settings):
         # Test defaults loaded when file is not found
         settings_file = tmp_path / "badfile.json"
         settings_manager = SettingsManager(str(settings_file))
         assert settings_manager._settings.model_dump() == default_settings
 
-    def test_unreadable_file(self, default_settings):
+    def test_load_unreadable_file(self, default_settings):
         # Test defaults loaded when file is unreadable
         with patch("pingrthingr.settings.settings.open", side_effect=PermissionError("Permission denied")):
             settings_manager = SettingsManager(str("unreadable.json"))
         assert settings_manager._settings.model_dump() == default_settings
 
-    def test_malformed_file(self, tmp_path, default_settings):
+    def test_load_malformed_file(self, tmp_path, default_settings):
         # Test defaults loaded when file is malformed
         settings_file = tmp_path / "badfile.json"
         settings_file.write_text("not a json file")
@@ -37,14 +40,14 @@ class TestSettingsLoadAndSave:
         assert settings_manager._settings.model_dump() == default_settings
 
     @pytest.mark.parametrize("settings_json", json_load(open(base_path / "resources/invalid_settings.json")))
-    def test_invalid_data(self, tmp_path, settings_json, default_settings):
+    def test_load_invalid_data(self, tmp_path, settings_json, default_settings):
         # Test defaults loaded when file contains invalid data
         settings_file = tmp_path / "badfile.json"
         settings_file.write_text(json_dumps(settings_json))
         settings_manager = SettingsManager(str(settings_file))
         assert settings_manager._settings.model_dump() == default_settings
 
-    def test_valid_data(self):
+    def test_load_valid_data(self):
         # Test loading of valid data
         settings_file = base_path / "resources/valid_settings.json"
         valid_settings = json_load(open(settings_file))
@@ -66,7 +69,15 @@ class TestSettingsLoadAndSave:
             'targets': ['1.2.3.4']
         }
 
-class TestSettingsSetGetandCallbacks:
+    def test_save_no_permissions(self, caplog):
+        # Test saving settings when file is not writable
+        with caplog.at_level(logging.ERROR):
+            with patch("pingrthingr.settings.settings.open", side_effect=PermissionError("Permission denied")):
+                settings_manager = SettingsManager(str("noperms.json"))
+                settings_manager.save()  # Should log an error but not raise an exception
+                assert "PermissionError saving settings to noperms.json" in caplog.text
+
+class TestSettingsCallbacks:
     def test_register_callback(self):
         settings_manager = SettingsManager()
         mock_callback = Mock()
@@ -95,6 +106,13 @@ class TestSettingsSetGetandCallbacks:
         assert settings_manager._settings.display_mode == "Text"
         mock_callback.assert_called_once_with("Text")
 
+    def test_register_invalid_callback(self, caplog):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        with caplog.at_level(logging.ERROR):
+            settings_manager.register_callback("invalid_setting", mock_callback)
+            assert "Attempted to register callback for invalid setting invalid_setting" in caplog.text
+
     def test_deregister_callback(self):
         settings_manager = SettingsManager()
         mock_callback = Mock()
@@ -106,6 +124,30 @@ class TestSettingsSetGetandCallbacks:
         settings_manager.set("display_mode", "Dot")
         assert mock_callback.call_count == 1, "Callback should not have been called after deregistration"
 
+    def test_deregister_invalid_callback(self, caplog):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        with caplog.at_level(logging.WARNING):
+            settings_manager.deregister_callback("invalid_setting", mock_callback)
+            assert "Attempted to deregister callback for non-existent setting 'invalid_setting'" in caplog.text
+
+    def test_deregister_nonexistent_callback(self, caplog):
+        settings_manager = SettingsManager()
+        mock_callback = Mock()
+        mock_callback2 = Mock()
+        settings_manager.register_callback("display_mode", mock_callback)
+        with caplog.at_level(logging.WARNING):
+            settings_manager.deregister_callback("display_mode", mock_callback2)  # Attempt to deregister a different callback
+            assert "Attempted to deregister non-existent callback for setting 'display_mode'" in caplog.text
+
+    def test_callback_not_callable(self, caplog):
+        settings_manager = SettingsManager()
+        settings_manager.register_callback("display_mode", "cece n'est pas une fonction")  # type: ignore
+        with caplog.at_level(logging.ERROR):
+            settings_manager.set("display_mode", "Text")
+            assert "Error calling callback for setting 'display_mode'" in caplog.text
+
+class TestSettingsGetSet:
     def test_set_get(self):
         settings_manager = SettingsManager()
         assert settings_manager.get("paused") == False

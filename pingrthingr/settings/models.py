@@ -33,7 +33,7 @@ class SettingsModel(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def log_defaults(cls, data):
-        if isinstance(data, dict):
+        if isinstance(data, dict):  # pragma: no branch
             # Check fields that have defaults defined in the model
             for field_name, field_info in cls.model_fields.items():
                 if field_info.default is not None and field_name not in data:

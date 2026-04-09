@@ -25,11 +25,11 @@ def ping_response():
                 data = load(f)
                 for d in data["ping_response"]:
                     results.append(Host(**d))
-        except FileNotFoundError:
+        except FileNotFoundError:  # pragma: no cover
             pytest.fail(
                 f"Test case {testcase} not found. Please ensure the file {base_path}/resources/responses/{testcase}.json exists."
             )
-        except (JSONDecodeError, TypeError) as e:
+        except (JSONDecodeError, TypeError) as e:  # pragma: no cover
             pytest.fail(f"Error parsing test case {testcase}: {e}")
 
         return results, data["callback_response"]
