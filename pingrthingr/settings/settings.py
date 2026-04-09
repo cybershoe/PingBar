@@ -86,14 +86,15 @@ class SettingsManager:
         try:
             self._callbacks[setting_name].remove(callback)
             logger.debug(f"Deregistered callback for setting '{setting_name}'")
-        except KeyError:
-            logger.warning(
-                f"Attempted to deregister callback for non-existent setting '{setting_name}'"
-            )
-        except ValueError:
-            logger.warning(
-                f"Attempted to deregister non-existent callback for setting '{setting_name}'"
-            )
+        except KeyError as e:
+            if e.args[0] == setting_name:
+                logger.warning(
+                    f"Attempted to deregister callback for non-existent setting '{setting_name}'"
+                )
+            else:
+                logger.warning(
+                    f"Attempted to deregister non-existent callback for setting '{setting_name}'"
+                )
 
     def get(self, setting_name: str, default: Any = None) -> Any | None:
         """Get the current value of a specific setting.
