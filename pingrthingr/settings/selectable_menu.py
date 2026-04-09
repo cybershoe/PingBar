@@ -1,6 +1,6 @@
 """SelectableMenu UI component.
 
-This module provides a custom UI component for the PingrThingr menu 
+This module provides a custom UI component for the PingrThingr menu
 bar application
 
 Classes:
@@ -117,4 +117,3 @@ class SelectableMenu(MenuItem):
         for item in self._menu_items:
             item.state = 0
         self.title = self._base_title
-
