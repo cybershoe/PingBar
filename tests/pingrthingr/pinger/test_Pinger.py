@@ -29,7 +29,7 @@ def ping_response():
             pytest.fail(
                 f"Test case {testcase} not found. Please ensure the file {base_path}/resources/responses/{testcase}.json exists."
             )
-        except (JSONDecodeError, TypeError) as e:  # pragkma: no cover
+        except (JSONDecodeError, TypeError) as e:  # pragma: no cover
             pytest.fail(f"Error parsing test case {testcase}: {e}")
 
         return results, data["callback_response"]
