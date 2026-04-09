@@ -170,14 +170,14 @@ class Pinger:
             ValueError: If any target IP address is invalid.
         """
 
-        try:
-            for target in targets:
+        for target in targets:
+            try:
                 inet_aton(target)
-        except OSError:
-            raise ValueError(f"Invalid IP address: {target}")
-        else:
-            self._targets = targets
-            logger.info(f"Updated target IP addresses: {self._targets}")
+            except OSError:
+                raise ValueError(f"Invalid IP address: {target}")
+        
+        self._targets = targets
+        logger.info(f"Updated target IP addresses: {self._targets}")
 
     async def _run_pings(self) -> None:
         """Background async task that performs periodic ping operations.
