@@ -12,6 +12,15 @@ from os import getenv
 
 # 1. Dynamically get the current git branch name
 def get_branch_name():
+    """Get the current git branch name for build versioning.
+    
+    Retrieves the current git branch name and returns it as a suffix
+    for the application name. Returns empty string for the main branch.
+    
+    Returns:
+        str: Branch name prefixed with '-' or empty string for main branch.
+             Returns "unknown" if git command fails.
+    """
     if getenv("BUILD_APPEND_BRANCH", "true").lower() == "true":
         try:
             branch = subprocess.check_output(

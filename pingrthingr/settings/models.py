@@ -1,3 +1,9 @@
+"""Pydantic models for PingrThingr application settings validation.
+
+Provides data models and validation functions for application configuration,
+including IP address validation and settings schema definition.
+"""
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -8,6 +14,19 @@ from typing import Annotated, Literal
 
 
 def validate_ip_address(value):
+    """Validate that a string represents a valid IPv4 address.
+    
+    Uses socket.inet_aton to verify the IP address format.
+    
+    Args:
+        value (str): The IP address string to validate.
+        
+    Returns:
+        str: The validated IP address string.
+        
+    Raises:
+        ValueError: If the IP address format is invalid.
+    """
     try:
         inet_aton(value)
         return value
@@ -19,6 +38,16 @@ IPAddress = Annotated[str, AfterValidator(validate_ip_address)]
 
 
 class SettingsModel(BaseModel):
+    """Pydantic model for PingrThingr application settings.
+    
+    Defines the schema and validation rules for application configuration
+    settings including display mode, pause state, and ping targets.
+    
+    Attributes:
+        display_mode (Literal["Dot", "Text"]): Status icon display mode.
+        paused (bool): Whether the application is currently paused.
+        targets (list[IPAddress]): List of target IP addresses to ping.
+    """
     model_config = ConfigDict(validate_assignment=True)
 
     display_mode: Literal["Dot", "Text"] = Field(
@@ -33,6 +62,18 @@ class SettingsModel(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def log_defaults(cls, data):
+        """Log when default values are being used for missing fields.
+        
+        This validator runs before field validation to log informational
+        messages when configuration fields are not provided and defaults
+        will be used instead.
+        
+        Args:
+            data (dict): The input configuration data.
+            
+        Returns:
+            dict: The unmodified input data.
+        """
         if isinstance(data, dict):  # pragma: no branch
             # Check fields that have defaults defined in the model
             for field_name, field_info in cls.model_fields.items():

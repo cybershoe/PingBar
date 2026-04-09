@@ -1,3 +1,9 @@
+"""User interface for configuring ping target IP addresses.
+
+Provides the ping_target_window function that displays a dialog for
+user input and validation of target IP addresses for network monitoring.
+"""
+
 import logging
 
 logger = logging.getLogger(__name__)

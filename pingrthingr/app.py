@@ -136,7 +136,17 @@ class PingrThingrApp(App):
         loss: float | None = None,
         use_saved: bool = False,
     ):
-        """Refresh the status display and menu item text"""
+        """Refresh the status display and menu bar icon.
+        
+        Updates the menu item text with current network statistics and 
+        refreshes the menu bar icon based on the current display mode
+        and network connectivity status.
+        
+        Args:
+            latency (float, optional): Current latency in milliseconds. Defaults to None.
+            loss (float, optional): Current packet loss ratio (0.0-1.0). Defaults to None.
+            use_saved (bool, optional): Whether to use previously stored values. Defaults to False.
+        """
         if use_saved:
             latency = self.latency
             loss = self.loss
