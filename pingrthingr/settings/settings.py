@@ -124,4 +124,3 @@ class SettingsManager:
             logger.debug(f"No callbacks registered for setting '{name}'")
         except TypeError as e:
             logger.error(f"Error calling callback for setting '{name}': {e}")
-
