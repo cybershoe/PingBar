@@ -56,7 +56,7 @@ A macOS menu bar application for monitoring network connectivity through continu
 
 ### Requirements
 
-- macOS 13 or later
+- macOS 14 or later
 - Python 3.8 or later
 
 ### Dependencies
