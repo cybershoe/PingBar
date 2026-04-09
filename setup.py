@@ -7,23 +7,27 @@ information, and packaging options.
 
 from setuptools import setup
 import subprocess
+from os import getenv
+
 
 # 1. Dynamically get the current git branch name
 def get_branch_name():
-    try:
-        branch = subprocess.check_output(
-            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'], 
-            text=True
-        ).strip()
-        if branch == "main":
-            return ""
-        return f"-{branch}"
-    except subprocess.CalledProcessError:
-        return "unknown"
+    if getenv("BUILD_APPEND_BRANCH", 'true').lower() == 'true':
+        try:
+            branch = subprocess.check_output(
+                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'], 
+                text=True
+            ).strip()
+            if branch == "main":
+                return ""
+            return f"-{branch}"
+        except subprocess.CalledProcessError:
+            return "unknown"
+    return ""
 
 APP = ["main.py"]
 NAME = f"PingrThingr{get_branch_name()}"
-VERSION = "0.2.0"
+VERSION = "0.3.0-beta"
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": True,
