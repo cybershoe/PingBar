@@ -136,7 +136,7 @@ class PingrThingrApp(App):
         loss: float | None = None,
         use_saved: bool = False,
     ):
-        """Refresh the status display and menu bar icon.
+        """Refresh the status icon and dynamic menu text.
         
         Updates the menu item text with current network statistics and 
         refreshes the menu bar icon based on the current display mode

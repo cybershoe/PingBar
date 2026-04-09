@@ -18,7 +18,8 @@ def get_branch_name():
     for the application name. Returns empty string for the main branch.
     
     Returns:
-        str: Branch name prefixed with '-' or empty string for main branch.
+        str: Branch name prefixed with '-' or empty string for main branch,
+             or if BUILD_APPEND_BRANCH is not set to "true".
              Returns "unknown" if git command fails.
     """
     if getenv("BUILD_APPEND_BRANCH", "true").lower() == "true":
