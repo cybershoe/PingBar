@@ -44,19 +44,21 @@ def ping_target_window(targets: List[str]) -> List[str] | None:
                 f"In ping_target_window(): User entered targets: {response.text}"
             )
             new_targets = [t.strip() for t in response.text.split(",") if t.strip()]
-            try:
-                for target in new_targets:
+
+            for target in new_targets:
+                try:
                     inet_aton(target)
-            except OSError:
-                alert(f"Invalid IP address: {target}")
-                logger.error(
-                    f"In ping_target_window(): Invalid IP address entered: {target}"
-                )
-            else:
-                logger.debug(
-                    f"In ping_target_window(): Valid targets entered, returning: {new_targets}"
-                )
-                return new_targets
+                except OSError:
+                    alert(f"Invalid IP address: {target}")
+                    logger.error(
+                        f"In ping_target_window(): Invalid IP address entered: {target}"
+                    )
+                    return None
+            logger.debug(
+                f"In ping_target_window(): Valid targets entered, returning: {new_targets}"
+            )
+            return new_targets
+
         else:
             logger.info("User cancelled preferences dialog")
             return None
