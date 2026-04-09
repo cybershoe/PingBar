@@ -27,7 +27,7 @@ def get_branch_name():
             branch = subprocess.check_output(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True
             ).strip()
-            if branch == "main":
+            if branch == "main" or branch.startswith("release/"):
                 return ""
             return f"-{branch}"
         except subprocess.CalledProcessError:
