@@ -1,0 +1,13 @@
+  {
+    "ping_response": [
+      {
+        "address": "8.8.8.8",
+        "packets_sent": 5,
+        "rtts": []
+      }
+    ],
+    "callback_response": [
+      null,
+      1.0
+    ]
+  }

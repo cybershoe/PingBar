@@ -6,19 +6,47 @@ information, and packaging options.
 """
 
 from setuptools import setup
+import subprocess
+from os import getenv
+
+
+# 1. Dynamically get the current git branch name
+def get_branch_name():
+    """Get the current git branch name for build versioning.
+    
+    Retrieves the current git branch name and returns it as a suffix
+    for the application name. Returns empty string for the main branch.
+    
+    Returns:
+        str: Branch name prefixed with '-' or empty string for main branch,
+             or if BUILD_APPEND_BRANCH is not set to "true".
+             Returns "unknown" if git command fails.
+    """
+    if getenv("BUILD_APPEND_BRANCH", "true").lower() == "true":
+        try:
+            branch = subprocess.check_output(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True
+            ).strip()
+            if branch == "main" or branch.startswith("release/"):
+                return ""
+            return f"-{branch}"
+        except subprocess.CalledProcessError:
+            return "unknown"
+    return ""
+
 
 APP = ["main.py"]
-NAME = "PingrThingr"
-VERSION = "0.2.0"
+NAME = f"PingrThingr{get_branch_name()}"
+VERSION = "0.3.0"
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": True,
     "plist": {
         "LSUIElement": True,
-        "CFBundleName": "PingrThingr",
-        "CFBundleDisplayName": "PingrThingr",
+        "CFBundleName": NAME,
+        "CFBundleDisplayName": NAME,
         "CFBundleGetInfoString": "Made by Adam Schumacher",
-        "CFBundleIdentifier": "com.genericor.PingrThingr",
+        "CFBundleIdentifier": f"com.genericor.{NAME.lower().replace(' ', '')}",
         "CFBundleVersion": VERSION,
         "CFBundleShortVersionString": VERSION,
         "NSHumanReadableCopyright": "Copyright \u00a9 2026, Adam Schumacher, Released under the MIT License",

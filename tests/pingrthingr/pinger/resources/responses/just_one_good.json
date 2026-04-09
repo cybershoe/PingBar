@@ -1,0 +1,19 @@
+  {
+    "ping_response": [
+  {
+    "address": "8.8.8.8",
+    "packets_sent": 5,
+    "rtts": [
+      17.0,
+      14.9,
+      13.5,
+      16.5,
+      12.3
+    ]
+  }
+],
+  "callback_response": [
+    14.84,
+    0.0
+  ]
+}

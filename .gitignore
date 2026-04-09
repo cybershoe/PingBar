@@ -42,14 +42,13 @@ htmlcov/
 .tox/
 .nox/
 .coverage
-.coverage.*
 .cache
 nosetests.xml
-coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.tests/
 
 # Translations
 *.mo
@@ -169,3 +168,5 @@ Temporary Items
 # Application-specific
 settings.json
 *.dmg
+# Images vary by platform and should be tested locally, but not committed to the repository
+tests/pingrthingr/icons/resources/*.png
