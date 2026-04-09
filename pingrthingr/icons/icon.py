@@ -64,17 +64,17 @@ def status_dot_icon(
             state = "unknown"
         case (la, lo) if (
             la or 0.0
-        ) > latency_critical_threshold or lo > loss_critical_threshold:
+        ) > latency_critical_threshold or lo > loss_critical_threshold:  # type: ignore[comparison-overlap]
             color = NSColor.redColor()
             state = "critical"
         case (la, lo) if (
             la or 0.0
-        ) > latency_alert_threshold or lo > loss_alert_threshold:
+        ) > latency_alert_threshold or lo > loss_alert_threshold:  # type: ignore[comparison-overlap]
             color = NSColor.orangeColor()
             state = "alert"
         case (la, lo) if (
             la or 0.0
-        ) > latency_warn_threshold or lo > loss_warn_threshold:
+        ) > latency_warn_threshold or lo > loss_warn_threshold:  # type: ignore[comparison-overlap]
             color = NSColor.yellowColor()
             state = "warn"
         case _:
