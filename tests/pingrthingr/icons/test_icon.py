@@ -1,13 +1,13 @@
 from AppKit import (
-    NSBitmapImageRep,
-    NSCalibratedRGBColorSpace,
-    NSColor,
-    NSDeviceRGBColorSpace,
-    NSGraphicsContext,
-    NSImage,
-    NSMakeRect,
-    NSPNGFileType,
-    NSRectFill,
+    NSBitmapImageRep,  # type: ignore[import]
+    NSCalibratedRGBColorSpace,  # type: ignore[import]
+    NSColor,  # type: ignore[import]
+    NSDeviceRGBColorSpace,  # type: ignore[import]
+    NSGraphicsContext,  # type: ignore[import]
+    NSImage,  # type: ignore[import]
+    NSMakeRect,  # type: ignore[import]
+    NSPNGFileType,  # type: ignore[import]
+    NSRectFill,  # type: ignore[import]
 )
 from pathlib import Path
 from typing import Literal
