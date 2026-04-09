@@ -175,7 +175,7 @@ class Pinger:
                 inet_aton(target)
             except OSError:
                 raise ValueError(f"Invalid IP address: {target}")
-        
+
         self._targets = targets
         logger.info(f"Updated target IP addresses: {self._targets}")
 

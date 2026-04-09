@@ -6,17 +6,17 @@ with color-coded thresholds and SF Symbol icons.
 """
 
 from AppKit import (
-    NSImage,
-    NSColor,
-    NSMakeRect,
-    NSSize,
-    NSString,
-    NSFont,
-    NSForegroundColorAttributeName,
-    NSFontAttributeName,
-    NSImageSymbolConfiguration,
+    NSImage,  # type: ignore[import]
+    NSColor,  # type: ignore[import]
+    NSMakeRect,  # type: ignore[import]
+    NSSize,  # type: ignore[import]
+    NSString,  # type: ignore[import]
+    NSFont,  # type: ignore[import]
+    NSForegroundColorAttributeName,  # type: ignore[import]
+    NSFontAttributeName,  # type: ignore[import]
+    NSImageSymbolConfiguration,  # type: ignore[import]
 )
-from Foundation import NSUserDefaults
+from Foundation import NSUserDefaults  # type: ignore[import]
 from typing import Tuple
 
 
