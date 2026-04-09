@@ -1,6 +1,6 @@
 # <img src="images/PingrThingr.png" width=128/> PingrThingr
 
-A macOS menu bar application for monitoring network connectivity through continuous ping monitoring. PingrThingr provides at-a-glance visibility into your connection quality with color-coded status indicators and customizable ping targets.
+PingrThingr is macOS menu bar application for monitoring network connectivity through continuous ping monitoring. PingrThingr provides at-a-glance visibility into your connection quality with color-coded status indicators and customizable ping targets. Useful for rail or air commuters who regularly pass through coverage dead zones; see with a glance whether your connection has recovered, without constantly hitting refresh and hoping for the best.
 
 ## Features
 
@@ -57,7 +57,7 @@ A macOS menu bar application for monitoring network connectivity through continu
 ### Requirements
 
 - macOS 14 or later
-- Python 3.8 or later
+- Python 3.10 or later
 
 ### Dependencies
 

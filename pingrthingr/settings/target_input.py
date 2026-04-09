@@ -1,3 +1,9 @@
+"""User interface for configuring ping target IP addresses.
+
+Provides the ping_target_window function that displays a dialog for
+user input and validation of target IP addresses for network monitoring.
+"""
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -6,6 +12,7 @@ from rumps import Window, alert
 from socket import inet_aton
 from json import load as json_load, dump as json_dump, dumps as json_dumps
 from typing import List
+
 
 def ping_target_window(targets: List[str]) -> List[str] | None:
     """Display preferences dialog for configuring ping targets.

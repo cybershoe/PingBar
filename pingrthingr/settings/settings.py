@@ -1,3 +1,9 @@
+"""Settings persistence and management for PingrThingr application.
+
+Provides the SettingsManager class for loading, saving, and managing
+application configuration with callback support for setting changes.
+"""
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -111,6 +117,18 @@ class SettingsManager:
         return getattr(self._settings, setting_name, default)
 
     def set(self, name: str, value: Any) -> None:
+        """Set the value of a specific setting and trigger callbacks.
+        
+        Updates the specified setting with the new value, saves the settings
+        to disk, and calls any registered callbacks for that setting.
+        
+        Args:
+            name (str): The name of the setting to update.
+            value (Any): The new value to set for the setting.
+            
+        Raises:
+            AttributeError: If the setting name is not valid.
+        """
         if name not in SettingsModel.model_fields.keys():
             logger.error(f"Attempted to set invalid setting: {name}")
             raise AttributeError(f"Attempted to set invalid setting: {name}")
@@ -124,4 +142,3 @@ class SettingsManager:
             logger.debug(f"No callbacks registered for setting '{name}'")
         except TypeError as e:
             logger.error(f"Error calling callback for setting '{name}': {e}")
-
