@@ -56,7 +56,7 @@ PingrThingr is macOS menu bar application for monitoring network connectivity th
 
 ### Requirements
 
-- macOS 13 or later
+- macOS 14 or later
 - Python 3.10 or later
 
 ### Dependencies
