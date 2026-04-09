@@ -79,9 +79,6 @@ class Pinger:
 
         self._loop = None
         self._thread = None
-        # Thread(
-        #     target=self._start_background_loop, args=(self.loop,), daemon=True
-        # ).start()
         self._pinger_coroutine = None
 
         logger.info(f"Pinger initialized")
