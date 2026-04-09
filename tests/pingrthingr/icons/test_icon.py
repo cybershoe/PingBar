@@ -18,21 +18,18 @@ from pingrthingr.icons import symbol_icon, status_dot_icon, status_text_icon
 base_path = Path(__file__).parent
 
 ping_thresholds = [
-    ('unknown', None, None),
-    ('no_loss', 0.0, 0.0),
-    ('warn_loss', 0.0, 0.02),
-    ('warn_latency', 100.0, 0.0),
-    ('alert_loss', 0.0, 0.06),
-    ('alert_latency', 600.0, 0.0),
-    ('critical_loss', 0.0, 0.3),
-    ('critical_latency', 1001.0, 0.0),
+    ("unknown", None, None),
+    ("no_loss", 0.0, 0.0),
+    ("warn_loss", 0.0, 0.02),
+    ("warn_latency", 100.0, 0.0),
+    ("alert_loss", 0.0, 0.06),
+    ("alert_latency", 600.0, 0.0),
+    ("critical_loss", 0.0, 0.3),
+    ("critical_latency", 1001.0, 0.0),
 ]
 
-def nsimage_to_png(
-    ns_image: NSImage,
-    path: str,
-    dark: bool = False
-) -> None:
+
+def nsimage_to_png(ns_image: NSImage, path: str, dark: bool = False) -> None:
     """Write an NSImage to a PNG file without requiring a display context.
 
     For "retina" and "low", renders into an explicit off-screen NSBitmapImageRep
@@ -72,10 +69,12 @@ def compare_image(image_diff, tmp_path):
         exemplar_image = base_path / f"resources/example-{test_name}.png"
         output_path = tmp_path / f"compare-{test_name}.png"
         if not Path(exemplar_image).is_file():  # pragma: no cover
-            nsimage_to_png(image, str(exemplar_image), dark=dark) 
-        nsimage_to_png(image, str(output_path), dark=dark) 
+            nsimage_to_png(image, str(exemplar_image), dark=dark)
+        nsimage_to_png(image, str(output_path), dark=dark)
         return image_diff(str(output_path), str(exemplar_image))
+
     return _test_image_diff
+
 
 @pytest.fixture
 def mock_darkmode(request, mocker):
@@ -86,21 +85,38 @@ def mock_darkmode(request, mocker):
     mock = mocker.patch("pingrthingr.icons.icon.NSUserDefaults", mock_ns_user_defaults)
     return mock
 
+
 class TestIconImages:
-    @pytest.mark.parametrize("mock_darkmode, darkmode", [('Light',)*2, ('Dark',)*2], indirect=['mock_darkmode'])
+    @pytest.mark.parametrize(
+        "mock_darkmode, darkmode",
+        [("Light",) * 2, ("Dark",) * 2],
+        indirect=["mock_darkmode"],
+    )
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
-    def test_status_text_icon(self,compare_image, mock_darkmode, darkmode, case, latency, loss):
+    def test_status_text_icon(
+        self, compare_image, mock_darkmode, darkmode, case, latency, loss
+    ):
         text_icon, _ = status_text_icon(latency=latency, loss=loss)
-        assert compare_image(text_icon, f"text-{case}-{darkmode}", dark=(darkmode == "Dark")) < 0.01, "Generated icon should match reference image"
+        assert (
+            compare_image(
+                text_icon, f"text-{case}-{darkmode}", dark=(darkmode == "Dark")
+            )
+            < 0.01
+        ), "Generated icon should match reference image"
 
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_dot_icon(self, compare_image, case, latency, loss):
         dot_icon, _ = status_dot_icon(latency=latency, loss=loss)
-        assert compare_image(dot_icon, f"dot-{case}") < 0.01, "Generated icon should match reference image"
+        assert (
+            compare_image(dot_icon, f"dot-{case}") < 0.01
+        ), "Generated icon should match reference image"
 
     def test_pause_icon(self, compare_image):
         pause_icon = symbol_icon("pause.circle", "Paused")
-        assert compare_image(pause_icon, "pause") < 0.01, "Generated pause icon should match reference image"
+        assert (
+            compare_image(pause_icon, "pause") < 0.01
+        ), "Generated pause icon should match reference image"
+
 
 class TestIconSameState:
     @pytest.mark.parametrize("testfunction", [status_dot_icon, status_text_icon])
