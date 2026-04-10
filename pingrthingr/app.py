@@ -15,7 +15,8 @@ from .pinger import Pinger
 from .icons import status_text_icon, status_dot_icon, symbol_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from objc import selector as objc_selector  # type: ignore
-from Foundation import NSOperationQueue, NSBlockOperation  # type: ignore
+from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
+from AppKit import NSImage, NSView  # type: ignore
 
 
 class PingrThingrApp(App):
@@ -129,6 +130,53 @@ class PingrThingrApp(App):
         )
         NSOperationQueue.mainQueue().addOperation_(operation)
 
+    def _draw_icon(self, icon: NSImage | NSView | None = None):
+        """Draw the menu bar icon.
+
+        Accepts either an NSImage or NSView to use as the menu bar icon, or returns
+        immediately if icon is None. For an image, it sets self._icon_nsimage and
+        uses rumps' setStatusBarIcon() to update the icon. For a view, it sets 
+        a blank self._icon_nsview and adds the view as a subview, centering it within
+        the superview.
+
+        Args:
+            icon: NSImage | NSView | None - The icon to set.
+        """
+
+        if icon is None:
+            return
+        
+        # Remove existing subview(s) if present
+        if len(self._nsapp.nsstatusitem.button().subviews()) > 0:
+            for i in range(len(self._nsapp.nsstatusitem.button().subviews())):
+                self._nsapp.nsstatusitem.button().subviews()[i].removeFromSuperview()
+
+        # Set icon to image if provided, otherwise blank backgrop for view
+        if icon is not None and isinstance(icon, NSImage):
+            logger.debug(f"Drawing icon from NSImage")
+            self._icon_nsimage = icon
+        elif icon is not None and isinstance(icon, NSView):
+            blank_image = NSImage.alloc().initWithSize_(icon.frame().size)
+            self._icon_nsimage = blank_image
+        else:
+            raise TypeError(f"Invalid icon type: {type(icon)}. Expected NSImage or NSView.")
+
+        self._nsapp.setStatusBarIcon()
+
+        if isinstance(icon, NSView):
+            logger.debug(f"Adding NSView as subview to status bar button")
+            self._nsapp.nsstatusitem.button().addSubview_(icon)
+            # Center the view within the button
+            icon.setTranslatesAutoresizingMaskIntoConstraints_(False)
+            NSLayoutConstraint.activateConstraints_([
+                icon.centerYAnchor().constraintEqualToAnchor_(
+                    self._nsapp.nsstatusitem.button().centerYAnchor()
+                ),
+                icon.centerXAnchor().constraintEqualToAnchor_(
+                    self._nsapp.nsstatusitem.button().centerXAnchor()
+                ),
+            ])
+
     @objc_selector
     def refresh_status_(
         self,
@@ -191,8 +239,7 @@ class PingrThingrApp(App):
                 logger.debug(
                     f"In refresh_status(): Updating icon for new state: {new_state}"
                 )
-                self._icon_nsimage = icon
-                self._nsapp.setStatusBarIcon()
+                self._draw_icon(icon)
 
     @clicked("Ping targets")
     def ping_targets(self, _):
