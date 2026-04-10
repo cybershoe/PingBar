@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Literal
 from unittest.mock import Mock
 import pytest
-from pingrthingr.icons import symbol_icon, status_dot_icon, status_text_icon
+from pingrthingr.settings import ThresholdModel
+from pingrthingr.icons import symbol_icon, status_dot_icon, status_text_icon, generate_status_icon
 
 base_path = Path(__file__).parent
 
@@ -28,6 +29,8 @@ ping_thresholds = [
     ("critical_latency", 1001.0, 0.0),
 ]
 
+latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
+loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 
 def nsimage_to_png(ns_image: NSImage, path: str, dark: bool = False) -> None:
     """Write an NSImage to a PNG file without requiring a display context.
@@ -106,7 +109,7 @@ class TestIconImages:
 
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_dot_icon(self, compare_image, case, latency, loss):
-        dot_icon, _ = status_dot_icon(latency=latency, loss=loss)
+        dot_icon, _ = status_dot_icon(latency=latency, loss=loss, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
         assert (
             compare_image(dot_icon, f"dot-{case}") < 0.01
         ), "Generated icon should match reference image"
