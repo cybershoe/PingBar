@@ -1,1 +1,18 @@
-{"paused": false, "targets": ["8.8.8.8", "1.1.1.1"], "display_mode": "Dot"}
+{
+    "paused": false,
+    "targets": [
+        "8.8.8.8",
+        "1.1.1.1"
+    ],
+    "latency_thresholds": {
+        "critical": 1000.0,
+        "error": 500.0,
+        "warn": 80.0
+    },
+    "loss_thresholds": {
+        "critical": 0.25,
+        "error": 0.05,
+        "warn": 0.0
+    },
+    "display_mode": "Dot"
+}
