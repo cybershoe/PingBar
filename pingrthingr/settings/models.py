@@ -36,6 +36,10 @@ def validate_ip_address(value):
 
 IPAddress = Annotated[str, AfterValidator(validate_ip_address)]
 
+class ThresholdModel(BaseModel):
+    warn: float = Field(description="Threshold for warning state")
+    error: float = Field(description="Threshold for error state ")
+    critical: float = Field(description="Threshold for critical state")
 
 class SettingsModel(BaseModel):
     """Pydantic model for PingrThingr application settings.
@@ -57,6 +61,14 @@ class SettingsModel(BaseModel):
     targets: list[IPAddress] = Field(
         default=["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"],
         description="List of target IP addresses to ping",
+    )
+    latency_thresholds: ThresholdModel = Field(
+        default=ThresholdModel(warn=80.0, error=500.0, critical=1000.0),
+        description="Latency thresholds for warning, error, and critical states",
+    )
+    loss_thresholds: ThresholdModel = Field(
+        default=ThresholdModel(warn=0.0, error=0.05, critical=0.25),
+        description="Packet loss thresholds for warning, error, and critical states",
     )
 
     @model_validator(mode="before")
