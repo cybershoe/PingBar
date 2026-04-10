@@ -14,7 +14,12 @@ from typing import Literal
 from unittest.mock import Mock
 import pytest
 from pingrthingr.settings import ThresholdModel
-from pingrthingr.icons import symbol_icon, status_dot_icon, status_text_icon, generate_status_icon
+from pingrthingr.icons import (
+    symbol_icon,
+    status_dot_icon,
+    status_text_icon,
+    generate_status_icon,
+)
 
 base_path = Path(__file__).parent
 
@@ -31,6 +36,7 @@ ping_thresholds = [
 
 latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
 loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
+
 
 def nsimage_to_png(ns_image: NSImage, path: str, dark: bool = False) -> None:
     """Write an NSImage to a PNG file without requiring a display context.
@@ -109,7 +115,12 @@ class TestIconImages:
 
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_dot_icon(self, compare_image, case, latency, loss):
-        dot_icon, _ = status_dot_icon(latency=latency, loss=loss, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
+        dot_icon, _ = status_dot_icon(
+            latency=latency,
+            loss=loss,
+            latency_thresholds=latency_thresholds,
+            loss_thresholds=loss_thresholds,
+        )
         assert (
             compare_image(dot_icon, f"dot-{case}") < 0.01
         ), "Generated icon should match reference image"
@@ -126,7 +137,19 @@ class TestIconSameState:
     # @pytest.mark.parametrize("testfunction", [status_dot_icon, status_text_icon])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_icon_same_state(self, testfunction, case, latency, loss):
-        icon1, state1 = testfunction(latency=latency, loss=loss, last_state=None, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
-        icon2, state2 = testfunction(latency=latency, loss=loss, last_state=state1, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
+        icon1, state1 = testfunction(
+            latency=latency,
+            loss=loss,
+            last_state=None,
+            latency_thresholds=latency_thresholds,
+            loss_thresholds=loss_thresholds,
+        )
+        icon2, state2 = testfunction(
+            latency=latency,
+            loss=loss,
+            last_state=state1,
+            latency_thresholds=latency_thresholds,
+            loss_thresholds=loss_thresholds,
+        )
         assert icon1 is not None, "Icon should be generated on first call"
         assert icon2 is None, "Icon should not be regenerated if state is unchanged"

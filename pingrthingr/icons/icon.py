@@ -75,7 +75,7 @@ def generate_status_icon(
         case "Dot":
             icon, state = status_dot_icon(latency, loss, latency_thresholds, loss_thresholds, last_state, )
         case "Text":
-            icon, state = status_text_icon(latency, loss, last_state)
+            icon, state = status_text_icon(latency, loss, latency_thresholds, loss_thresholds, last_state)
         case _:
             raise NotImplemented(f"No implementation for icon style: {style}")
     return icon, state
@@ -143,6 +143,8 @@ def status_dot_icon(
 def status_text_icon(
     latency: float | None,
     loss: float | None,
+    latency_thresholds: ThresholdModel,
+    loss_thresholds: ThresholdModel,
     last_state: str | None = None,
     latency_warn_threshold: float = 80.0,
     latency_alert_threshold: float = 500.0,
@@ -198,45 +200,44 @@ def status_text_icon(
     normalFont = NSFont.systemFontOfSize_(9)
     boldFont = NSFont.boldSystemFontOfSize_(9)
 
-    latency_thresholds = [
-        latency_warn_threshold,
-        latency_alert_threshold,
-        latency_critical_threshold,
-    ]
+    # latency_thresholds = [
+    #     latency_warn_threshold,
+    #     latency_alert_threshold,
+    #     latency_critical_threshold,
+    # ]
 
-    loss_thresholds = [
-        loss_warn_threshold,
-        loss_alert_threshold,
-        loss_critical_threshold,
-    ]
+    # loss_thresholds = [
+    #     loss_warn_threshold,
+    #     loss_alert_threshold,
+    #     loss_critical_threshold,
+    # ]
 
-    for idx, (value, thresholds) in enumerate(
-        ((loss, loss_thresholds), (latency, latency_thresholds))
+    latency_criticality, loss_criticality = _criticality(latency, loss, latency_thresholds, loss_thresholds)
+
+    for idx, (value, criticality) in enumerate(
+        ((loss, loss_criticality), (latency, latency_criticality))
     ):
         # set text color and background based on thresholds
 
-        match value:
-            case None:
-                text_color = theme_color
-                font = normalFont
-            case v if v <= thresholds[0]:
-                text_color = theme_color
-                font = normalFont
-            case v if v <= thresholds[1]:
+        match criticality:
+            case 2:
                 text_color = NSColor.blackColor()
                 font = boldFont
                 rect = NSMakeRect(0, (10 * idx), size.width, 10)
                 NSColor.yellowColor().drawSwatchInRect_(rect)
-            case v if v <= thresholds[2]:
+            case 3:
                 text_color = NSColor.blackColor()
                 font = boldFont
                 rect = NSMakeRect(0, (10 * idx), size.width, 10)
                 NSColor.orangeColor().drawSwatchInRect_(rect)
-            case _:
+            case 4:
                 text_color = NSColor.whiteColor()
                 font = boldFont
                 rect = NSMakeRect(0, (10 * idx), size.width, 10)
                 NSColor.redColor().drawSwatchInRect_(rect)
+            case _:
+                text_color = theme_color
+                font = normalFont
 
         attributes = {
             NSForegroundColorAttributeName: text_color,
