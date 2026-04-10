@@ -5,6 +5,7 @@ from AppKit import (
     NSDeviceRGBColorSpace,  # type: ignore[import]
     NSGraphicsContext,  # type: ignore[import]
     NSImage,  # type: ignore[import]
+    NSView,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
     NSPNGFileType,  # type: ignore[import]
     NSRectFill,  # type: ignore[import]
@@ -37,8 +38,19 @@ ping_thresholds = [
 latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
 loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 
+def nsview_to_nsimage(nsview: NSView, path: str) -> NSImage:
+    viewbounds = nsview.bounds()
+    newbounds = NSMakeRect(0, -viewbounds.size.height/2, viewbounds.size.width, viewbounds.size.height)
+    bitmap_rep = nsview.bitmapImageRepForCachingDisplayInRect_(newbounds)
+    nsview.cacheDisplayInRect_toBitmapImageRep_(newbounds, bitmap_rep)
+    
+    image = NSImage.alloc().initWithSize_(viewbounds.size)
+    image.addRepresentation_(bitmap_rep)
+    
+    return image
 
-def nsimage_to_png(ns_image: NSImage, path: str, dark: bool = False) -> None:
+
+def nsimage_to_png(ns_image: NSImage | NSView, path: str) -> None:
     """Write an NSImage to a PNG file without requiring a display context.
 
     For "retina" and "low", renders into an explicit off-screen NSBitmapImageRep
@@ -50,6 +62,9 @@ def nsimage_to_png(ns_image: NSImage, path: str, dark: bool = False) -> None:
         path: Destination file path for the PNG.
     """
 
+    if isinstance(ns_image, NSView):
+        ns_image = nsview_to_nsimage(ns_image, path)
+
     logical_size = ns_image.size()
     pixel_w = int(logical_size.width * 2)
     pixel_h = int(logical_size.height * 2)
@@ -60,11 +75,7 @@ def nsimage_to_png(ns_image: NSImage, path: str, dark: bool = False) -> None:
     ctx = NSGraphicsContext.graphicsContextWithBitmapImageRep_(bitmap_rep)
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.setCurrentContext_(ctx)
-    if dark:
-        NSColor.blackColor().setFill()
-    else:
-        NSColor.whiteColor().setFill()
-    NSRectFill(NSMakeRect(0, 0, pixel_w, pixel_h))
+
     ns_image.drawInRect_(NSMakeRect(0, 0, pixel_w, pixel_h))
     NSGraphicsContext.restoreGraphicsState()
 
@@ -74,12 +85,13 @@ def nsimage_to_png(ns_image: NSImage, path: str, dark: bool = False) -> None:
 
 @pytest.fixture
 def compare_image(image_diff, tmp_path):
-    def _test_image_diff(image: NSImage, test_name: str, dark: bool = False) -> float:
+    def _test_image_diff(image: NSImage | NSView, test_name: str) -> float:
         exemplar_image = base_path / f"resources/example-{test_name}.png"
         output_path = tmp_path / f"compare-{test_name}.png"
         if not Path(exemplar_image).is_file():  # pragma: no cover
-            nsimage_to_png(image, str(exemplar_image), dark=dark)
-        nsimage_to_png(image, str(output_path), dark=dark)
+            nsimage_to_png(image, str(exemplar_image))
+
+        nsimage_to_png(image, str(output_path))
         return image_diff(str(output_path), str(exemplar_image))
 
     return _test_image_diff
@@ -96,19 +108,15 @@ def mock_darkmode(request, mocker):
 
 
 class TestIconImages:
-    @pytest.mark.parametrize(
-        "mock_darkmode, darkmode",
-        [("Light",) * 2, ("Dark",) * 2],
-        indirect=["mock_darkmode"],
-    )
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_text_icon(
-        self, compare_image, mock_darkmode, darkmode, case, latency, loss
+        self, compare_image, case, latency, loss
     ):
+        # Skip visual testing for headless environments        
         text_icon, _ = status_text_icon(latency=latency, loss=loss, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
         assert (
             compare_image(
-                text_icon, f"text-{case}-{darkmode}", dark=(darkmode == "Dark")
+                text_icon, f"text-{case}"
             )
             < 0.01
         ), "Generated icon should match reference image"

@@ -1,1 +1,0 @@
-These tests will always succeed on a remote runner, test locally to confirm icon behaviour
