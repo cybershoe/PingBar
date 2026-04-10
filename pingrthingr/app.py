@@ -168,18 +168,23 @@ class PingrThingrApp(App):
         if isinstance(icon, NSView):
             logger.debug(f"Adding NSView as subview to status bar button")
             self._nsapp.nsstatusitem.button().addSubview_(icon)
+
             # Center the view within the button
-            icon.setTranslatesAutoresizingMaskIntoConstraints_(False)
-            NSLayoutConstraint.activateConstraints_(
-                [
-                    icon.centerYAnchor().constraintEqualToAnchor_(
-                        self._nsapp.nsstatusitem.button().centerYAnchor()
-                    ),
-                    icon.centerXAnchor().constraintEqualToAnchor_(
-                        self._nsapp.nsstatusitem.button().centerXAnchor()
-                    ),
-                ]
-            )
+            offset_x = (self._nsapp.nsstatusitem.button().frame().size.width - icon.frame().size.width) / 2
+            offset_y = (icon.frame().size.height) / 2
+            icon.setFrameOrigin_((offset_x, 0 - offset_y))
+
+            # icon.setTranslatesAutoresizingMaskIntoConstraints_(False)
+            # NSLayoutConstraint.activateConstraints_(
+            #     [
+            #         icon.centerYAnchor().constraintEqualToAnchor_(
+            #             self._nsapp.nsstatusitem.button().centerYAnchor()
+            #         ),
+            #         icon.centerXAnchor().constraintEqualToAnchor_(
+            #             self._nsapp.nsstatusitem.button().centerXAnchor()
+            #         ),
+            #     ]
+            # )
 
     @objc_selector
     def refresh_status_(

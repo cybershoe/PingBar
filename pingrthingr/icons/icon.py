@@ -9,8 +9,10 @@ import logging
 
 from AppKit import (
     NSImage,  # type: ignore[import]
+    NSImageView,  # type: ignore[import]
     NSView,  # type: ignore[import]
     NSColor,  # type: ignore[import]
+    NSTextField,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
     NSSize,  # type: ignore[import]
     NSString,  # type: ignore[import]
@@ -152,7 +154,7 @@ def status_text_icon(
     loss_warn_threshold: float = 0.00,
     loss_alert_threshold: float = 0.05,
     loss_critical_threshold: float = 0.25,
-) -> Tuple[NSImage | None, str]:
+) -> Tuple[NSView | None, str]:
     """Create a status text icon showing latency and loss with color-coded thresholds.
 
     This function generates a two-line NSImage icon displaying network latency
@@ -192,13 +194,67 @@ def status_text_icon(
     else:
         theme_color = NSColor.blackColor()
 
-    image = NSImage.alloc().initWithSize_(size)
-
-    image.lockFocus()
-
     # Set up font and attributes
     normalFont = NSFont.systemFontOfSize_(9)
     boldFont = NSFont.boldSystemFontOfSize_(9)
+
+    latency_criticality, loss_criticality = _criticality(latency, loss, latency_thresholds, loss_thresholds)
+
+
+    view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    
+    # Draw first layer
+    if min(latency_criticality, loss_criticality) <= 1:
+        template_image = NSImage.alloc().initWithSize_(size)
+        template_image.lockFocus()
+        attributes = {
+            NSFontAttributeName: normalFont,
+        }
+        if loss_criticality <= 1:
+            text = f"{loss * 100:.1f} %" if loss is not None else "---"
+            value_text = NSString.stringWithString_(text)
+            value_size = value_text.sizeWithAttributes_(attributes)
+            value_x = size.width - value_size.width - 6
+            value_text.drawAtPoint_withAttributes_((value_x, 0), attributes)
+            template_image.unlockFocus()
+            template_image.setTemplate_(True)      
+        # crit_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+        latency_text = NSTextField.labelWithString_(f"{latency:.1f} ms" if latency is not None else "---")
+        latency_text.setFont_(normalFont)
+        latency_text.setAlignment_(2)  # right align
+        latency_text.setDrawsBackground_(True)
+        latency_text.setBackgroundColor_(NSColor.redColor())
+        
+        latency_text.setFrame_(NSMakeRect(0, 0, size.width, size.height/2))
+        
+        # Uncomment this line to use your workaround:
+        # latency_text.setFrame_(NSMakeRect(-size.width / 2, 0, size.width, size.height/2))
+        # latency_text.setFrame_(NSMakeRect(-size.width / 2, 0, size.width, size.height/2))
+
+        # if latency_criticality <= 1:
+        #     text = f"{latency:.1f} ms" if latency is not None else "---"
+        #     value_text = NSString.stringWithString_(text)
+        #     value_size = value_text.sizeWithAttributes_(attributes)
+        #     value_x = size.width - value_size.width - 2
+        #     value_text.drawAtPoint_withAttributes_((value_x, 10), attributes)
+
+
+
+        base_image_view = NSImageView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+        base_image_view.setWantsLayer_(True)
+        base_image_view.setImage_(template_image)
+        view.addSubview_(base_image_view)
+        view.addSubview_(latency_text)
+        base_image_view.setFrameOrigin_((0, 0-(size.height/2)))
+    # # Add a red rectangle within the NSView
+    # red_rectangle = NSView.alloc().initWithFrame_(NSMakeRect(3, 3, 10, 10))
+    # red_rectangle.setWantsLayer_(True)
+    # red_rectangle.layer().setBackgroundColor_(NSColor.redColor().CGColor())
+    # image.addSubview_(red_rectangle)
+    
+    # image.lockFocus()
+
+
 
     # latency_thresholds = [
     #     latency_warn_threshold,
@@ -212,49 +268,48 @@ def status_text_icon(
     #     loss_critical_threshold,
     # ]
 
-    latency_criticality, loss_criticality = _criticality(latency, loss, latency_thresholds, loss_thresholds)
 
-    for idx, (value, criticality) in enumerate(
-        ((loss, loss_criticality), (latency, latency_criticality))
-    ):
-        # set text color and background based on thresholds
+    # for idx, (value, criticality) in enumerate(
+    #     ((loss, loss_criticality), (latency, latency_criticality))
+    # ):
+    #     # set text color and background based on thresholds
 
-        match criticality:
-            case 2:
-                text_color = NSColor.blackColor()
-                font = boldFont
-                rect = NSMakeRect(0, (10 * idx), size.width, 10)
-                NSColor.yellowColor().drawSwatchInRect_(rect)
-            case 3:
-                text_color = NSColor.blackColor()
-                font = boldFont
-                rect = NSMakeRect(0, (10 * idx), size.width, 10)
-                NSColor.orangeColor().drawSwatchInRect_(rect)
-            case 4:
-                text_color = NSColor.whiteColor()
-                font = boldFont
-                rect = NSMakeRect(0, (10 * idx), size.width, 10)
-                NSColor.redColor().drawSwatchInRect_(rect)
-            case _:
-                text_color = theme_color
-                font = normalFont
+    #     match criticality:
+    #         case 2:
+    #             text_color = NSColor.blackColor()
+    #             font = boldFont
+    #             rect = NSMakeRect(0, (10 * idx), size.width, 10)
+    #             NSColor.yellowColor().drawSwatchInRect_(rect)
+    #         case 3:
+    #             text_color = NSColor.blackColor()
+    #             font = boldFont
+    #             rect = NSMakeRect(0, (10 * idx), size.width, 10)
+    #             NSColor.orangeColor().drawSwatchInRect_(rect)
+    #         case 4:
+    #             text_color = NSColor.whiteColor()
+    #             font = boldFont
+    #             rect = NSMakeRect(0, (10 * idx), size.width, 10)
+    #             NSColor.redColor().drawSwatchInRect_(rect)
+    #         case _:
+    #             text_color = theme_color
+    #             font = normalFont
 
-        attributes = {
-            NSForegroundColorAttributeName: text_color,
-            NSFontAttributeName: font,
-        }
+    #     attributes = {
+    #         NSForegroundColorAttributeName: text_color,
+    #         NSFontAttributeName: font,
+    #     }
 
-        text = f"{value * (1 if idx else 100):.1f}" if value is not None else "---"
-        text += " ms" if idx else " %"
-        value_text = NSString.stringWithString_(text)
-        value_size = value_text.sizeWithAttributes_(attributes)
-        value_x = size.width - value_size.width - 2
-        value_text.drawAtPoint_withAttributes_(
-            (value_x - 4 + (4 * idx), (10 * idx)), attributes
-        )
+    #     text = f"{value * (1 if idx else 100):.1f}" if value is not None else "---"
+    #     text += " ms" if idx else " %"
+    #     value_text = NSString.stringWithString_(text)
+    #     value_size = value_text.sizeWithAttributes_(attributes)
+    #     value_x = size.width - value_size.width - 2
+    #     value_text.drawAtPoint_withAttributes_(
+    #         (value_x - 4 + (4 * idx), (10 * idx)), attributes
+    #     )
 
-    image.unlockFocus()
-    return image, new_state
+    # image.unlockFocus()
+    return view, new_state
 
 
 def symbol_icon(
