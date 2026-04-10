@@ -7,6 +7,7 @@ with color-coded thresholds and SF Symbol icons.
 
 from AppKit import (
     NSImage,  # type: ignore[import]
+    NSView,  # type: ignore[import]
     NSColor,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
     NSSize,  # type: ignore[import]
@@ -20,6 +21,7 @@ from Foundation import NSUserDefaults  # type: ignore[import]
 from typing import Tuple, Literal
 from ..settings import ThresholdModel
 
+IconStyle = Literal["Dot", "Text"]
 
 def _criticality(
     self,
@@ -55,6 +57,16 @@ def _criticality(
 
     return criticality
 
+def generate_status_icon(style: IconStyle, latency: float | None, loss: float | None, last_state: str | None = None) -> NSImage | NSView | None:
+
+    match style:
+        case "Dot":
+            icon, state = status_dot_icon(latency, loss, last_state)
+        case "Text":
+            icon, state = status_text_icon(latency, loss, last_state)
+        case _:
+            raise ValueError(f"Invalid icon style: {style}")
+    return icon, state
 
 def status_dot_icon(
     latency: float | None,
