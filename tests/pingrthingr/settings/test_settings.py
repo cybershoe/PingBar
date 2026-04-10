@@ -61,7 +61,7 @@ class TestSettingsLoadAndSave:
         settings_manager = SettingsManager(str(settings_file))
         assert settings_manager._settings.model_dump() == valid_settings
 
-    def test_save_settings(self, tmp_path):
+    def test_save_settings(self, tmp_path, default_settings):
         # Test saving of settings to file
         settings_file = tmp_path / "settings.json"
         settings_manager = SettingsManager(settings_file)
@@ -70,11 +70,12 @@ class TestSettingsLoadAndSave:
         settings_manager._settings.targets = ["1.2.3.4"]
         settings_manager.save()
         saved_settings = json_load(open(settings_file))
-        assert saved_settings == {
-            "display_mode": "Text",
-            "paused": True,
-            "targets": ["1.2.3.4"],
-        }
+        changed_settings = default_settings.copy()
+        changed_settings['display_mode'] = "Text"
+        changed_settings['paused'] = True
+        changed_settings['targets'] = ["1.2.3.4"]
+        assert saved_settings == changed_settings
+
 
     def test_save_no_permissions(self, caplog):
         # Test saving settings when file is not writable

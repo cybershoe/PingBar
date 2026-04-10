@@ -35,7 +35,12 @@ def validate_ip_address(value):
 
 
 IPAddress = Annotated[str, AfterValidator(validate_ip_address)]
+IconStyle = Literal["Dot", "Text"]
 
+class ThresholdModel(BaseModel):
+    warn: float = Field(description="Threshold for warning state")
+    alert: float = Field(description="Threshold for error state ")
+    critical: float = Field(description="Threshold for critical state")
 
 class SettingsModel(BaseModel):
     """Pydantic model for PingrThingr application settings.
@@ -50,13 +55,21 @@ class SettingsModel(BaseModel):
     """
     model_config = ConfigDict(validate_assignment=True)
 
-    display_mode: Literal["Dot", "Text"] = Field(
-        default="Dot", description="Display mode for status icon (Dot or Text)"
+    display_mode: IconStyle = Field(
+        default="Dot", description=f"Display mode for status icon (one of {', '.join(IconStyle.__args__)})"
     )
     paused: bool = Field(default=False, description="Whether the application is paused")
     targets: list[IPAddress] = Field(
         default=["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"],
         description="List of target IP addresses to ping",
+    )
+    latency_thresholds: ThresholdModel = Field(
+        default=ThresholdModel(warn=80.0, alert=500.0, critical=1000.0),
+        description="Latency thresholds for warning, alert, and critical states",
+    )
+    loss_thresholds: ThresholdModel = Field(
+        default=ThresholdModel(warn=0.0, alert=0.05, critical=0.25),
+        description="Packet loss thresholds for warning, alert, and critical states",
     )
 
     @model_validator(mode="before")
