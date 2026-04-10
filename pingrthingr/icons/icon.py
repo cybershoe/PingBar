@@ -18,19 +18,42 @@ from AppKit import (
 )
 from Foundation import NSUserDefaults  # type: ignore[import]
 from typing import Tuple, Literal
+from ..settings import ThresholdModel
 
 
-class StatusIcon:
-    def __init__(
-        self,
-        style: Literal["dot", "text"] = "dot",
-        latency: float | None = None,
-        loss: float | None = None,
-    ):
-        self.style = style
-        self.last_state = None
-        self.latency = latency
-        self.loss = loss
+def _criticality(
+    self,
+    latency: float | None,
+    loss: float | None,
+    latency_thresholds: ThresholdModel,
+    loss_thresholds: ThresholdModel,
+) -> int:
+
+    if latency is None and loss is None:
+        return 0
+
+    criticality = 0
+
+    for value, thresholds in ((loss, loss_thresholds), (latency, latency_thresholds)):
+        if value is None:
+            raise ValueError(
+                "Both latency and loss must be provided to determine criticality"
+            )
+
+        match value:
+            # Special case to allow any non-zero value to be considered a warning or higher, but treat 0.0 as normal
+            case 0.0:
+                criticality = max(criticality, 1)
+            case v if v >= thresholds.critical:
+                criticality = max(criticality, 4)
+            case v if v >= thresholds.alert:
+                criticality = max(criticality, 3)
+            case v if v >= thresholds.warn:
+                criticality = max(criticality, 2)
+            case _:
+                criticality = max(criticality, 1)
+
+    return criticality
 
 
 def status_dot_icon(
