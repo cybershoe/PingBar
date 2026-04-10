@@ -5,6 +5,8 @@ network status information in the macOS menu bar, including status text
 with color-coded thresholds and SF Symbol icons.
 """
 
+import logging
+
 from AppKit import (
     NSImage,  # type: ignore[import]
     NSView,  # type: ignore[import]
@@ -21,51 +23,57 @@ from Foundation import NSUserDefaults  # type: ignore[import]
 from typing import Tuple, Literal
 from ..settings import ThresholdModel, IconStyle
 
+
 def _criticality(
-    self,
     latency: float | None,
     loss: float | None,
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
-) -> int:
+) -> Tuple[int, int]:
 
-    if latency is None and loss is None:
-        return 0
+    def _evaluate_criticality(value: float | None, thresholds: ThresholdModel) -> int:
 
-    criticality = 0
-
-    for value, thresholds in ((loss, loss_thresholds), (latency, latency_thresholds)):
         if value is None:
             raise ValueError(
-                "Both latency and loss must be provided to determine criticality"
+                "Cannot mix None values with numeric values for criticality evaluation"
             )
 
         match value:
             # Special case to allow any non-zero value to be considered a warning or higher, but treat 0.0 as normal
             case 0.0:
-                criticality = max(criticality, 1)
+                return 1
             case v if v >= thresholds.critical:
-                criticality = max(criticality, 4)
+                return 4
             case v if v >= thresholds.alert:
-                criticality = max(criticality, 3)
+                return 3
             case v if v >= thresholds.warn:
-                criticality = max(criticality, 2)
+                return 2
             case _:
-                criticality = max(criticality, 1)
+                return 1
 
-    return criticality
+    if latency is None and loss is None:
+        return (0, 0)
+
+    latency_criticality = _evaluate_criticality(latency, latency_thresholds)
+    loss_criticality = _evaluate_criticality(loss, loss_thresholds)
+
+
+    logging.debug(f"Latency: {latency}, Loss: {loss}, Latency Criticality: {latency_criticality}, Loss Criticality: {loss_criticality}")
+    return latency_criticality, loss_criticality
 
 
 def generate_status_icon(
     style: IconStyle,
     latency: float | None,
     loss: float | None,
+    latency_thresholds: ThresholdModel,
+    loss_thresholds: ThresholdModel,
     last_state: str | None = None,
 ) -> Tuple[NSImage | NSView | None, str]:
 
     match style:
         case "Dot":
-            icon, state = status_dot_icon(latency, loss, last_state)
+            icon, state = status_dot_icon(latency, loss, latency_thresholds, loss_thresholds, last_state, )
         case "Text":
             icon, state = status_text_icon(latency, loss, last_state)
         case _:
@@ -76,13 +84,9 @@ def generate_status_icon(
 def status_dot_icon(
     latency: float | None,
     loss: float | None,
+    latency_thresholds: ThresholdModel,
+    loss_thresholds: ThresholdModel,
     last_state: str | None = None,
-    latency_warn_threshold: float = 80.0,
-    latency_alert_threshold: float = 500.0,
-    latency_critical_threshold: float = 1000.0,
-    loss_warn_threshold: float = 0.00,
-    loss_alert_threshold: float = 0.05,
-    loss_critical_threshold: float = 0.25,
 ) -> Tuple[NSImage | None, str]:
     """Create a status dot icon based on latency and loss thresholds.
 
@@ -107,32 +111,28 @@ def status_dot_icon(
         if the new state equals the previous state, and a string describing the current state.
 
     """
+    criticality = max(_criticality(latency, loss, latency_thresholds, loss_thresholds))
 
-    symbol_name = "circle.fill"
+    symbol_name = "circle.dotted" if criticality == 0 else "circle.fill"
 
-    match (latency, loss):
-        case (la, lo) if lo is None:
-            symbol_name = "circle.dotted"
+    match criticality:
+        case 0:
             color = None
             state = "unknown"
-        case (la, lo) if (
-            la or 0.0
-        ) > latency_critical_threshold or lo > loss_critical_threshold:  # type: ignore[comparison-overlap]
-            color = NSColor.redColor()
-            state = "critical"
-        case (la, lo) if (
-            la or 0.0
-        ) > latency_alert_threshold or lo > loss_alert_threshold:  # type: ignore[comparison-overlap]
-            color = NSColor.orangeColor()
-            state = "alert"
-        case (la, lo) if (
-            la or 0.0
-        ) > latency_warn_threshold or lo > loss_warn_threshold:  # type: ignore[comparison-overlap]
-            color = NSColor.yellowColor()
-            state = "warn"
-        case _:
+        case 1:
             color = None
             state = "normal"
+        case 2:
+            color = NSColor.yellowColor()
+            state = "warn"
+        case 3:
+            color = NSColor.orangeColor()
+            state = "alert"
+        case 4:
+            color = NSColor.redColor()
+            state = "critical"
+        case _:
+            raise ValueError(f"Invalid criticality level: {criticality}")
 
     if state == last_state:
         return None, state

@@ -13,7 +13,7 @@ from os.path import join as path_join
 from json import dump as json_dump, load as json_load
 from .pinger import Pinger
 from .icons import status_text_icon, status_dot_icon, symbol_icon, generate_status_icon
-from .settings import SelectableMenu, ping_target_window, SettingsManager
+from .settings import SelectableMenu, ping_target_window, SettingsManager, ThresholdModel
 from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
@@ -135,7 +135,7 @@ class PingrThingrApp(App):
 
         Accepts either an NSImage or NSView to use as the menu bar icon, or returns
         immediately if icon is None. For an image, it sets self._icon_nsimage and
-        uses rumps' setStatusBarIcon() to update the icon. For a view, it sets 
+        uses rumps' setStatusBarIcon() to update the icon. For a view, it sets
         a blank self._icon_nsview and adds the view as a subview, centering it within
         the superview.
 
@@ -145,7 +145,7 @@ class PingrThingrApp(App):
 
         if icon is None:
             return
-        
+
         # Remove existing subview(s) if present
         if len(self._nsapp.nsstatusitem.button().subviews()) > 0:
             for i in range(len(self._nsapp.nsstatusitem.button().subviews())):
@@ -159,7 +159,9 @@ class PingrThingrApp(App):
             blank_image = NSImage.alloc().initWithSize_(icon.frame().size)
             self._icon_nsimage = blank_image
         else:
-            raise TypeError(f"Invalid icon type: {type(icon)}. Expected NSImage or NSView.")
+            raise TypeError(
+                f"Invalid icon type: {type(icon)}. Expected NSImage or NSView."
+            )
 
         self._nsapp.setStatusBarIcon()
 
@@ -168,14 +170,16 @@ class PingrThingrApp(App):
             self._nsapp.nsstatusitem.button().addSubview_(icon)
             # Center the view within the button
             icon.setTranslatesAutoresizingMaskIntoConstraints_(False)
-            NSLayoutConstraint.activateConstraints_([
-                icon.centerYAnchor().constraintEqualToAnchor_(
-                    self._nsapp.nsstatusitem.button().centerYAnchor()
-                ),
-                icon.centerXAnchor().constraintEqualToAnchor_(
-                    self._nsapp.nsstatusitem.button().centerXAnchor()
-                ),
-            ])
+            NSLayoutConstraint.activateConstraints_(
+                [
+                    icon.centerYAnchor().constraintEqualToAnchor_(
+                        self._nsapp.nsstatusitem.button().centerYAnchor()
+                    ),
+                    icon.centerXAnchor().constraintEqualToAnchor_(
+                        self._nsapp.nsstatusitem.button().centerXAnchor()
+                    ),
+                ]
+            )
 
     @objc_selector
     def refresh_status_(
@@ -185,11 +189,11 @@ class PingrThingrApp(App):
         use_saved: bool = False,
     ):
         """Refresh the status icon and dynamic menu text.
-        
-        Updates the menu item text with current network statistics and 
+
+        Updates the menu item text with current network statistics and
         refreshes the menu bar icon based on the current display mode
         and network connectivity status.
-        
+
         Args:
             latency (float, optional): Current latency in milliseconds. Defaults to None.
             loss (float, optional): Current packet loss ratio (0.0-1.0). Defaults to None.
@@ -221,16 +225,23 @@ class PingrThingrApp(App):
 
             # match display:
             #     case "Dot":
-                    # icon, new_state = status_dot_icon(latency, loss, self._last_state)
-            icon, new_state = generate_status_icon(display, latency, loss, self._last_state)  # type: ignore
+            # icon, new_state = status_dot_icon(latency, loss, self._last_state)
+            icon, new_state = generate_status_icon( # type: ignore
+                display,  # type: ignore
+                latency,
+                loss,
+                self._settings.get("latency_thresholds"),  # type: ignore
+                self._settings.get("loss_thresholds"),  # type: ignore
+                self._last_state
+            )  
 
-                # case "Text":
-                #     icon, new_state = generate_status_icon("Text", latency, loss, self._last_state)
+            # case "Text":
+            #     icon, new_state = generate_status_icon("Text", latency, loss, self._last_state)
 
-                # case _:  # pragma: no cover
-                #     raise ValueError(
-                #         f"Invalid display_mode setting: {self._settings.get('display_mode')}"
-                #     )
+            # case _:  # pragma: no cover
+            #     raise ValueError(
+            #         f"Invalid display_mode setting: {self._settings.get('display_mode')}"
+            #     )
 
             logger.debug(
                 f"In refresh_status(): Last state: {self._last_state}, new state: {new_state}"
