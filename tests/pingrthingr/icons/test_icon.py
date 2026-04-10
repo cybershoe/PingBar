@@ -105,7 +105,7 @@ class TestIconImages:
     def test_status_text_icon(
         self, compare_image, mock_darkmode, darkmode, case, latency, loss
     ):
-        text_icon, _ = status_text_icon(latency=latency, loss=loss)
+        text_icon, _ = status_text_icon(latency=latency, loss=loss, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
         assert (
             compare_image(
                 text_icon, f"text-{case}-{darkmode}", dark=(darkmode == "Dark")
@@ -133,8 +133,7 @@ class TestIconImages:
 
 
 class TestIconSameState:
-    @pytest.mark.parametrize("testfunction", [status_dot_icon])
-    # @pytest.mark.parametrize("testfunction", [status_dot_icon, status_text_icon])
+    @pytest.mark.parametrize("testfunction", [status_dot_icon, status_text_icon])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_icon_same_state(self, testfunction, case, latency, loss):
         icon1, state1 = testfunction(
