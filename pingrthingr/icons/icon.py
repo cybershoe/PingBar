@@ -17,7 +17,20 @@ from AppKit import (
     NSImageSymbolConfiguration,  # type: ignore[import]
 )
 from Foundation import NSUserDefaults  # type: ignore[import]
-from typing import Tuple
+from typing import Tuple, Literal
+
+
+class StatusIcon:
+    def __init__(
+        self,
+        style: Literal["dot", "text"] = "dot",
+        latency: float | None = None,
+        loss: float | None = None,
+    ):
+        self.style = style
+        self.last_state = None
+        self.latency = latency
+        self.loss = loss
 
 
 def status_dot_icon(
