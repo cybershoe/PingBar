@@ -35,6 +35,7 @@ def validate_ip_address(value):
 
 
 IPAddress = Annotated[str, AfterValidator(validate_ip_address)]
+IconStyle = Literal["Dot", "Text"]
 
 class ThresholdModel(BaseModel):
     warn: float = Field(description="Threshold for warning state")
@@ -54,8 +55,8 @@ class SettingsModel(BaseModel):
     """
     model_config = ConfigDict(validate_assignment=True)
 
-    display_mode: Literal["Dot", "Text"] = Field(
-        default="Dot", description="Display mode for status icon (Dot or Text)"
+    display_mode: IconStyle = Field(
+        default="Dot", description=f"Display mode for status icon (one of {', '.join(IconStyle.__args__)})"
     )
     paused: bool = Field(default=False, description="Whether the application is paused")
     targets: list[IPAddress] = Field(

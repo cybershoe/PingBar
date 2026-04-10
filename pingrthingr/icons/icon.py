@@ -19,9 +19,7 @@ from AppKit import (
 )
 from Foundation import NSUserDefaults  # type: ignore[import]
 from typing import Tuple, Literal
-from ..settings import ThresholdModel
-
-IconStyle = Literal["Dot", "Text"]
+from ..settings import ThresholdModel, IconStyle
 
 def _criticality(
     self,
@@ -57,7 +55,13 @@ def _criticality(
 
     return criticality
 
-def generate_status_icon(style: IconStyle, latency: float | None, loss: float | None, last_state: str | None = None) -> NSImage | NSView | None:
+
+def generate_status_icon(
+    style: IconStyle,
+    latency: float | None,
+    loss: float | None,
+    last_state: str | None = None,
+) -> Tuple[NSImage | NSView | None, str]:
 
     match style:
         case "Dot":
@@ -65,8 +69,9 @@ def generate_status_icon(style: IconStyle, latency: float | None, loss: float | 
         case "Text":
             icon, state = status_text_icon(latency, loss, last_state)
         case _:
-            raise ValueError(f"Invalid icon style: {style}")
+            raise NotImplemented(f"No implementation for icon style: {style}")
     return icon, state
+
 
 def status_dot_icon(
     latency: float | None,

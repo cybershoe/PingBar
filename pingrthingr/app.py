@@ -12,7 +12,7 @@ from rumps import App, clicked, MenuItem, timer, application_support
 from os.path import join as path_join
 from json import dump as json_dump, load as json_load
 from .pinger import Pinger
-from .icons import status_text_icon, status_dot_icon, symbol_icon
+from .icons import status_text_icon, status_dot_icon, symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
@@ -219,16 +219,18 @@ class PingrThingrApp(App):
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status(): Current display_mode: {display}")
 
-            match display:
-                case "Dot":
-                    icon, new_state = status_dot_icon(latency, loss, self._last_state)
+            # match display:
+            #     case "Dot":
+                    # icon, new_state = status_dot_icon(latency, loss, self._last_state)
+            icon, new_state = generate_status_icon(display, latency, loss, self._last_state)  # type: ignore
 
-                case "Text":
-                    icon, new_state = status_text_icon(latency, loss, self._last_state)
-                case _:  # pragma: no cover
-                    raise ValueError(
-                        f"Invalid display_mode setting: {self._settings.get('display_mode')}"
-                    )
+                # case "Text":
+                #     icon, new_state = generate_status_icon("Text", latency, loss, self._last_state)
+
+                # case _:  # pragma: no cover
+                #     raise ValueError(
+                #         f"Invalid display_mode setting: {self._settings.get('display_mode')}"
+                #     )
 
             logger.debug(
                 f"In refresh_status(): Last state: {self._last_state}, new state: {new_state}"
