@@ -10,8 +10,8 @@ from AppKit import (
 )
 from Quartz import CGColorCreate, CGColorSpaceCreateDeviceRGB  # type: ignore[import]
 from pathlib import Path
-from typing import Literal
-from unittest.mock import Mock
+# from typing import Literal
+# from unittest.mock import Mock
 import pytest
 from pingrthingr.settings import ThresholdModel
 from pingrthingr.icons import (
