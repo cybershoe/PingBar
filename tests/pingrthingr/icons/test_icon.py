@@ -1,18 +1,12 @@
 from AppKit import (
-    NSBitmapImageRep,  # type: ignore[import]
-    NSCalibratedRGBColorSpace,  # type: ignore[import]
     NSAppearance,  # type: ignore[import]
     NSAppearanceNameDarkAqua, # type: ignore[import]
     NSAppearanceNameAqua, # type: ignore[import]
-    NSColor,  # type: ignore[import]
-    NSDeviceRGBColorSpace,  # type: ignore[import]
-    NSGraphicsContext,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSImageView,  # type: ignore[import]
     NSView,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
     NSPNGFileType,  # type: ignore[import]
-    NSRectFill,  # type: ignore[import]
 )
 from Quartz import CGColorCreate, CGColorSpaceCreateDeviceRGB  # type: ignore[import]
 from pathlib import Path
@@ -47,17 +41,6 @@ black = CGColorCreate(colorspace, (0, 0, 0, 1))
 latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
 loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 
-def nsview_to_nsimage(nsview: NSView, path: str) -> NSImage:
-    viewbounds = nsview.bounds()
-    newbounds = NSMakeRect(0, -viewbounds.size.height/2, viewbounds.size.width, viewbounds.size.height)
-    bitmap_rep = nsview.bitmapImageRepForCachingDisplayInRect_(newbounds)
-    nsview.cacheDisplayInRect_toBitmapImageRep_(newbounds, bitmap_rep)
-    
-    image = NSImage.alloc().initWithSize_(viewbounds.size)
-    image.addRepresentation_(bitmap_rep)
-    
-    return image
-
 def nsimage_to_nsview(ns_image: NSImage) -> NSView:
     size = ns_image.size()
     image_view = NSImageView.alloc().initWithFrame_(NSMakeRect(0, -size.height/2, size.width, size.height))
@@ -67,15 +50,6 @@ def nsimage_to_nsview(ns_image: NSImage) -> NSView:
     return outview
 
 def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
-    """Write an NSView to a PNG file without requiring a display context.
-
-    Renders the view into an explicit off-screen NSBitmapImageRep at the target pixel dimensions via NSGraphicsContext, which works headlessly.
-
-    Args:
-        ns_view: The NSView to convert.
-
-    """
-
     if isinstance(ns_view, NSImage):
         ns_view = nsimage_to_nsview(ns_view)
 
@@ -94,49 +68,6 @@ def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
     png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
     png_data.writeToFile_atomically_(path, True)
 
-def test_foo():
-    text_icon, _ = status_text_icon(
-        latency=10,
-        loss=0.0,
-        latency_thresholds=latency_thresholds,
-        loss_thresholds=loss_thresholds,
-    )
-    nsview_to_png(text_icon, "output.png", False)
-
-
-def nsimage_to_png(ns_image: NSImage | NSView, path: str) -> None:
-    """Write an NSImage to a PNG file without requiring a display context.
-
-    For "retina" and "low", renders into an explicit off-screen NSBitmapImageRep
-    at the target pixel dimensions via NSGraphicsContext, which works headlessly.
-    For None, falls back to TIFFRepresentation() (highest resolution available).
-
-    Args:
-        ns_image: The NSImage to convert.
-        path: Destination file path for the PNG.
-    """
-
-    if isinstance(ns_image, NSView):
-        ns_image = nsimage_to_nsview(ns_image)
-
-    logical_size = ns_image.size()
-    pixel_w = int(logical_size.width * 2)
-    pixel_h = int(logical_size.height * 2)
-
-    bitmap_rep = NSBitmapImageRep.alloc().initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bytesPerRow_bitsPerPixel_(
-        None, pixel_w, pixel_h, 8, 4, True, False, NSCalibratedRGBColorSpace, 0, 0
-    )
-    ctx = NSGraphicsContext.graphicsContextWithBitmapImageRep_(bitmap_rep)
-    NSGraphicsContext.saveGraphicsState()
-    NSGraphicsContext.setCurrentContext_(ctx)
-
-    ns_image.drawInRect_(NSMakeRect(0, 0, pixel_w, pixel_h))
-    NSGraphicsContext.restoreGraphicsState()
-
-    png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
-    png_data.writeToFile_atomically_(path, True)
-
-
 @pytest.fixture
 def compare_image(image_diff, tmp_path):
     def _test_image_diff(image: NSImage | NSView, test_name: str, dark: bool) -> float:
@@ -149,16 +80,6 @@ def compare_image(image_diff, tmp_path):
         return image_diff(str(output_path), str(exemplar_image))
 
     return _test_image_diff
-
-
-@pytest.fixture
-def mock_darkmode(request, mocker):
-    mock_defaults = mocker.MagicMock()
-    mock_defaults.stringForKey_.return_value = request.param
-    mock_ns_user_defaults = mocker.MagicMock()
-    mock_ns_user_defaults.standardUserDefaults.return_value = mock_defaults
-    mock = mocker.patch("pingrthingr.icons.icon.NSUserDefaults", mock_ns_user_defaults)
-    return mock
 
 
 class TestIconImages:
