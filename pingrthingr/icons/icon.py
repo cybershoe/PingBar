@@ -265,12 +265,12 @@ def status_text_icon(
     latency_view = _value_view(
         latency_text,
         latency_criticality,
-        NSMakeRect(0, 0, size.width, size.height / 2),
+        NSMakeRect(0, size.height / 2, size.width, size.height / 2),
     )
     loss_view = _value_view(
         loss_text,
         loss_criticality,
-        NSMakeRect(0, -size.height / 2, size.width, size.height / 2),
+        NSMakeRect(0, 0, size.width, size.height / 2),
     )
 
     view.addSubview_(latency_view)
