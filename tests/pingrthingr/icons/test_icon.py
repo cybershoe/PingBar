@@ -56,12 +56,15 @@ def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
     viewbounds = ns_view.bounds()
     dark_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
     light_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+   
     outview = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, viewbounds.size.width, viewbounds.size.height))
     outview.setWantsLayer_(True)
     outview.layer().setBackgroundColor_((black if dark else white))
     ns_view.setAppearance_(dark_aqua if dark else light_aqua)
+    
     outview.addSubview_(ns_view)
     ns_view.setFrameOrigin_((0, viewbounds.size.height/2))
+    
     bitmap_rep = outview.bitmapImageRepForCachingDisplayInRect_(viewbounds)
     outview.cacheDisplayInRect_toBitmapImageRep_(viewbounds, bitmap_rep)
     
@@ -84,30 +87,18 @@ def compare_image(image_diff, tmp_path):
 
 class TestIconImages:
     @pytest.mark.parametrize("dark", [True, False])
+    @pytest.mark.parametrize("display", ["Text", "Dot"])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_text_icon(
-        self, compare_image, case, latency, loss, dark
+        self, compare_image, case, latency, loss, display, dark
     ):
         # Skip visual testing for headless environments        
-        text_icon, _ = status_text_icon(latency=latency, loss=loss, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
+        icon, _ = generate_status_icon(display, latency=latency, loss=loss, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
         assert (
             compare_image(
-                text_icon, f"text-{case}-{'dark' if dark else 'light'}"
+                icon, f"{display.lower()}-{case}-{'dark' if dark else 'light'}"
             , dark=dark)
             < 0.01
-        ), "Generated icon should match reference image"
-
-    @pytest.mark.parametrize("dark", [True, False])
-    @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
-    def test_status_dot_icon(self, compare_image, case, latency, loss, dark):
-        dot_icon, _ = status_dot_icon(
-            latency=latency,
-            loss=loss,
-            latency_thresholds=latency_thresholds,
-            loss_thresholds=loss_thresholds,
-        )
-        assert (
-            compare_image(dot_icon, f"dot-{case}-{'dark' if dark else 'light'}", dark=dark) < 0.01
         ), "Generated icon should match reference image"
 
     @pytest.mark.parametrize("dark", [True, False])
