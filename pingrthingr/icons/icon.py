@@ -12,20 +12,15 @@ logger = logging.getLogger(__name__)
 from AppKit import (
     CGRect,  # type: ignore[import]
     NSImage,  # type: ignore[import]
-    NSImageView,  # type: ignore[import]
     NSView,  # type: ignore[import]
     NSColor,  # type: ignore[import]
     NSTextField,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
     NSSize,  # type: ignore[import]
-    NSString,  # type: ignore[import]
     NSFont,  # type: ignore[import]
-    NSForegroundColorAttributeName,  # type: ignore[import]
-    NSFontAttributeName,  # type: ignore[import]
     NSImageSymbolConfiguration,  # type: ignore[import]
 )
-from Foundation import NSUserDefaults  # type: ignore[import]
-from typing import Tuple, Literal
+from typing import Tuple
 from ..settings import ThresholdModel, IconStyle
 
 
