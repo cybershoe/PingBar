@@ -89,7 +89,7 @@ class TestIconImages:
     @pytest.mark.parametrize("dark", [True, False])
     @pytest.mark.parametrize("display", ["Text", "Dot"])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
-    def test_status_text_icon(
+    def test_status_icon(
         self, compare_image, case, latency, loss, display, dark
     ):
         # Skip visual testing for headless environments        
