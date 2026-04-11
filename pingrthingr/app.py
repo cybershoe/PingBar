@@ -155,7 +155,7 @@ class PingrThingrApp(App):
         elif icon is not None and isinstance(icon, NSView):
             blank_image = NSImage.alloc().initWithSize_(icon.frame().size)
             self._icon_nsimage = blank_image
-        else:
+        else:  # pragma: no cover
             raise TypeError(
                 f"Invalid icon type: {type(icon)}. Expected NSImage or NSView."
             )
