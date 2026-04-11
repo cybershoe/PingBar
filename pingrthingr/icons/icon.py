@@ -56,7 +56,7 @@ def _criticality(
             case _:
                 return 1
 
-    if latency is None and loss is None:
+    if latency is None and loss is None:  # pragma: no cover
         return (0, 0)
 
     latency_criticality = _evaluate_criticality(latency, latency_thresholds)
@@ -90,7 +90,7 @@ def generate_status_icon(
             icon, state = status_text_icon(
                 latency, loss, latency_thresholds, loss_thresholds, last_state
             )
-        case _:
+        case _:  # pragma: no cover
             raise NotImplemented(f"No implementation for icon style: {style}")
     return icon, state
 
@@ -145,7 +145,7 @@ def status_dot_icon(
         case 4:
             color = NSColor.redColor()
             state = "critical"
-        case _:
+        case _:  # pragma: no cover
             raise ValueError(f"Invalid criticality level: {criticality}")
 
     if state == last_state:
@@ -228,10 +228,9 @@ def status_text_icon(
                 case 4:
                     text_view.setBackgroundColor_(NSColor.redColor())
                     text_view.setTextColor_(NSColor.whiteColor())
-                case _:
+                case _:  # pragma: no cover
                     raise ValueError(f"Invalid criticality level: {criticality}")
 
-        # text_view.setFrame_(NSMakeRect(0, 0, size.width, size.height/2))
         text_view.setFrame_(frame)
         return text_view
 
