@@ -5,7 +5,6 @@ from pingrthingr.icons import generate_status_icon
 from pingrthingr.settings.models import ThresholdModel
 from pathlib import Path
 from json import load as json_load
-from time import sleep
 
 
 @pytest.fixture(autouse=True)
