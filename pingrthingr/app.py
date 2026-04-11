@@ -130,7 +130,7 @@ class PingrThingrApp(App):
         )
         NSOperationQueue.mainQueue().addOperation_(operation)
 
-    def _draw_icon(self, icon: NSImage | NSView | None = None):
+    def _draw_icon(self, icon: NSImage | NSView):
         """Draw the menu bar icon.
 
         Accepts either an NSImage or NSView to use as the menu bar icon, or returns
@@ -140,11 +140,8 @@ class PingrThingrApp(App):
         the superview.
 
         Args:
-            icon: NSImage | NSView | None - The icon to set.
+            icon: NSImage | NSView - The icon to set.
         """
-
-        if icon is None:
-            return
 
         # Remove existing subview(s) if present
         if len(self._nsapp.nsstatusitem.button().subviews()) > 0:

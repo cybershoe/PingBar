@@ -234,8 +234,6 @@ def status_text_icon(
         text_view.setFrame_(frame)
         return text_view
 
-
-
     latency_view = _value_view(
         latency_text,
         latency_criticality,
