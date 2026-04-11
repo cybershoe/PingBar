@@ -26,8 +26,8 @@ def ping_target_window(targets: List[str]) -> List[str] | None:  # pragma: no co
                            as default values in the dialog.
 
     Returns:
-        List[str] | None: Updated list of valid target IP addresses if user 
-                         clicked Save and all entries are valid, or None if user 
+        List[str] | None: Updated list of valid target IP addresses if user
+                         clicked Save and all entries are valid, or None if user
                          clicked Cancel, closed the dialog, or entered invalid data.
     """
     while True:  # pragma: no cover. not feasible to test headless

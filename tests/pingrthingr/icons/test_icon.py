@@ -1,7 +1,7 @@
 from AppKit import (
     NSAppearance,  # type: ignore[import]
-    NSAppearanceNameDarkAqua, # type: ignore[import]
-    NSAppearanceNameAqua, # type: ignore[import]
+    NSAppearanceNameDarkAqua,  # type: ignore[import]
+    NSAppearanceNameAqua,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSImageView,  # type: ignore[import]
     NSView,  # type: ignore[import]
@@ -45,13 +45,17 @@ black = CGColorCreate(colorspace, (0, 0, 0, 1))
 latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
 loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 
+
 def nsimage_to_nsview(ns_image: NSImage) -> NSView:
     size = ns_image.size()
-    image_view = NSImageView.alloc().initWithFrame_(NSMakeRect(0, -size.height/2, size.width, size.height))
+    image_view = NSImageView.alloc().initWithFrame_(
+        NSMakeRect(0, -size.height / 2, size.width, size.height)
+    )
     image_view.setImage_(ns_image)
     outview = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
     outview.addSubview_(image_view)
     return outview
+
 
 def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
     if isinstance(ns_view, NSImage):
@@ -60,20 +64,23 @@ def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
     viewbounds = ns_view.bounds()
     dark_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
     light_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
-   
-    outview = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, viewbounds.size.width, viewbounds.size.height))
+
+    outview = NSView.alloc().initWithFrame_(
+        NSMakeRect(0, 0, viewbounds.size.width, viewbounds.size.height)
+    )
     outview.setWantsLayer_(True)
     outview.layer().setBackgroundColor_((black if dark else white))
     ns_view.setAppearance_(dark_aqua if dark else light_aqua)
-    
+
     outview.addSubview_(ns_view)
-    ns_view.setFrameOrigin_((0, viewbounds.size.height/2))
-    
+    ns_view.setFrameOrigin_((0, viewbounds.size.height / 2))
+
     bitmap_rep = outview.bitmapImageRepForCachingDisplayInRect_(viewbounds)
     outview.cacheDisplayInRect_toBitmapImageRep_(viewbounds, bitmap_rep)
-    
+
     png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
     png_data.writeToFile_atomically_(path, True)
+
 
 @pytest.fixture
 def compare_image(image_diff, tmp_path):
@@ -93,15 +100,21 @@ class TestIconImages:
     @pytest.mark.parametrize("dark", [True, False])
     @pytest.mark.parametrize("display", ["Text", "Dot"])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
-    def test_status_icon(
-        self, compare_image, case, latency, loss, display, dark
-    ):
-        # Skip visual testing for headless environments        
-        icon, _ = generate_status_icon(display, latency=latency, loss=loss, latency_thresholds=latency_thresholds, loss_thresholds=loss_thresholds)
+    def test_status_icon(self, compare_image, case, latency, loss, display, dark):
+        # Skip visual testing for headless environments
+        icon, _ = generate_status_icon(
+            display,
+            latency=latency,
+            loss=loss,
+            latency_thresholds=latency_thresholds,
+            loss_thresholds=loss_thresholds,
+        )
         assert (
             compare_image(
-                icon, f"{display.lower()}-{case}-{'dark' if dark else 'light'}"
-            , dark=dark)
+                icon,
+                f"{display.lower()}-{case}-{'dark' if dark else 'light'}",
+                dark=dark,
+            )
             < 0.01
         ), "Generated icon should match reference image"
 
@@ -109,7 +122,8 @@ class TestIconImages:
     def test_pause_icon(self, compare_image, dark):
         pause_icon = symbol_icon("pause.circle", "Paused")
         assert (
-            compare_image(pause_icon, f"pause-{'dark' if dark else 'light'}", dark=dark) < 0.01
+            compare_image(pause_icon, f"pause-{'dark' if dark else 'light'}", dark=dark)
+            < 0.01
         ), "Generated pause icon should match reference image"
 
 

@@ -19,7 +19,7 @@ class SettingsManager:
     Provides functionality for loading, saving, and updating application settings
     with automatic persistence and callback notification system. Settings are
     validated using Pydantic models and stored in JSON format.
-    
+
     Attributes:
         _settings_file (str | None): Path to the JSON settings file.
         _settings (SettingsModel): Current application settings.
@@ -28,11 +28,11 @@ class SettingsManager:
 
     def __init__(self, settings_file: str | None = None) -> None:
         """Initialize the SettingsManager.
-        
+
         Loads settings from the specified file or uses defaults if the file
         doesn't exist or contains invalid data. Initializes the callback
         system for setting change notifications.
-        
+
         Args:
             settings_file (str | None): Path to the JSON settings file.
                                        If None, no file persistence is used.
@@ -46,7 +46,7 @@ class SettingsManager:
 
         If the file does not exist or contains invalid data, default settings
         will be used. Logs appropriate messages for different failure conditions.
-        
+
         Raises:
             No exceptions are raised - all errors are logged and defaults used.
         """
@@ -76,10 +76,10 @@ class SettingsManager:
 
     def save(self) -> None:
         """Save current settings to the JSON file specified by self._settings_file.
-        
+
         Serializes the current settings model to JSON format and writes to disk.
         Logs errors if the file cannot be written but does not raise exceptions.
-        
+
         Raises:
             No exceptions are raised - all errors are logged.
         """
@@ -140,7 +140,7 @@ class SettingsManager:
         Returns:
             Any | None: The current value of the specified setting, or the default
                        value if not found.
-                       
+
         Raises:
             AttributeError: If the setting name is not valid.
         """
@@ -150,14 +150,14 @@ class SettingsManager:
 
     def set(self, name: str, value: Any) -> None:
         """Set the value of a specific setting and trigger callbacks.
-        
+
         Updates the specified setting with the new value, saves the settings
         to disk, and calls any registered callbacks for that setting.
-        
+
         Args:
             name (str): The name of the setting to update.
             value (Any): The new value to set for the setting.
-            
+
         Raises:
             AttributeError: If the setting name is not valid.
         """

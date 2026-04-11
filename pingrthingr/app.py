@@ -142,7 +142,7 @@ class PingrThingrApp(App):
         Args:
             icon (NSImage | NSView): The icon to display in the menu bar.
                                    Can be either an NSImage or NSView instance.
-                                   
+
         Raises:
             TypeError: If icon is not an NSImage or NSView instance.
         """
@@ -171,7 +171,10 @@ class PingrThingrApp(App):
             self._nsapp.nsstatusitem.button().addSubview_(icon)
 
             # Center the view within the button
-            offset_x = (self._nsapp.nsstatusitem.button().frame().size.width - icon.frame().size.width) / 2
+            offset_x = (
+                self._nsapp.nsstatusitem.button().frame().size.width
+                - icon.frame().size.width
+            ) / 2
             offset_y = (icon.frame().size.height) / 2
             icon.setFrameOrigin_((offset_x, 0 - offset_y))
 
@@ -190,12 +193,12 @@ class PingrThingrApp(App):
         can be called from background threads.
 
         Args:
-            latency (float | None, optional): Current latency in milliseconds. 
+            latency (float | None, optional): Current latency in milliseconds.
                                             Defaults to None.
-            loss (float | None, optional): Current packet loss ratio (0.0-1.0). 
+            loss (float | None, optional): Current packet loss ratio (0.0-1.0).
                                          Defaults to None.
             use_saved (bool, optional): Whether to use previously stored values
-                                      instead of the provided parameters. 
+                                      instead of the provided parameters.
                                       Defaults to False.
         """
         if use_saved:
@@ -222,14 +225,14 @@ class PingrThingrApp(App):
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status(): Current display_mode: {display}")
 
-            icon, new_state = generate_status_icon( # type: ignore
+            icon, new_state = generate_status_icon(  # type: ignore
                 display,  # type: ignore
                 latency,
                 loss,
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
-                self._last_state
-            )  
+                self._last_state,
+            )
 
             logger.debug(
                 f"In refresh_status(): Last state: {self._last_state}, new state: {new_state}"

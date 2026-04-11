@@ -166,11 +166,17 @@ class TestIconRendering:
             "Text",
             latency=100,
             loss=0,
-            latency_thresholds=ThresholdModel(warn=80, alert= 500, critical= 1000),
-            loss_thresholds=ThresholdModel(warn=0.0, alert=0.01, critical=0.25)
+            latency_thresholds=ThresholdModel(warn=80, alert=500, critical=1000),
+            loss_thresholds=ThresholdModel(warn=0.0, alert=0.01, critical=0.25),
         )
 
-        mock_nsapp.nsstatusitem.button().subviews.return_value = [mocker.Mock()]  # Simulate existing subviews
+        mock_nsapp.nsstatusitem.button().subviews.return_value = [
+            mocker.Mock()
+        ]  # Simulate existing subviews
         app._draw_icon(icon)
-        assert mock_nsapp.nsstatusitem.button().subviews()[0].removeFromSuperview.call_count == 1, "Existing subviews should be removed when drawing a new icon"
-        
+        assert (
+            mock_nsapp.nsstatusitem.button()
+            .subviews()[0]
+            .removeFromSuperview.call_count
+            == 1
+        ), "Existing subviews should be removed when drawing a new icon"

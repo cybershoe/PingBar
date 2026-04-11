@@ -71,11 +71,10 @@ class TestSettingsLoadAndSave:
         settings_manager.save()
         saved_settings = json_load(open(settings_file))
         changed_settings = default_settings.copy()
-        changed_settings['display_mode'] = "Text"
-        changed_settings['paused'] = True
-        changed_settings['targets'] = ["1.2.3.4"]
+        changed_settings["display_mode"] = "Text"
+        changed_settings["paused"] = True
+        changed_settings["targets"] = ["1.2.3.4"]
         assert saved_settings == changed_settings
-
 
     def test_save_no_permissions(self, caplog):
         # Test saving settings when file is not writable
