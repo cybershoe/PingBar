@@ -8,14 +8,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from rumps import App, clicked, MenuItem, timer, application_support
+from rumps import App, clicked, MenuItem, application_support
 from os.path import join as path_join
-from json import dump as json_dump, load as json_load
 from .pinger import Pinger
-from .icons import status_text_icon, status_dot_icon, symbol_icon
+from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from objc import selector as objc_selector  # type: ignore
-from Foundation import NSOperationQueue, NSBlockOperation  # type: ignore
+from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
+from AppKit import NSImage, NSView  # type: ignore
 
 
 class PingrThingrApp(App):
@@ -45,7 +45,6 @@ class PingrThingrApp(App):
         self._settings_path = path_join(application_support(self.name), "settings.json")
         logger.debug(f"Settings file path: {self._settings_path}")
         self._settings = SettingsManager(self._settings_path)
-        # self._load_settings()
         self.latency = None
         self.loss = None
         self.title = None
@@ -64,11 +63,9 @@ class PingrThingrApp(App):
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
             cb=lambda x: self._settings.set("display_mode", x),
-            # cb=self.set_display_mode,
         )
         self.pause_menu.state = self._settings.get("paused", False)
         self.menu = [self.statistics_menu, self.pause_menu, self.display_menu]
-        # self._changed = False
         self._last_state = None
 
         self.pinger = Pinger(
@@ -85,8 +82,11 @@ class PingrThingrApp(App):
 
         logger.info(f"Initialized PingrThingr")
 
-    def pause_cb(self, paused: bool):
-        """Pause or resume the pinger.
+    def pause_cb(self, paused: bool) -> None:
+        """Callback for pause setting changes.
+
+        Updates the pinger's running state and menu display when the pause
+        setting is changed through the settings manager.
 
         Args:
             paused (bool): True to pause the pinger, False to resume.
@@ -99,8 +99,11 @@ class PingrThingrApp(App):
             self.loss = None
         self.refresh_status_(use_saved=True)
 
-    def ping_targets_cb(self, targets: list[str]):
-        """Set the list of ping target IP addresses.
+    def ping_targets_cb(self, targets: list[str]) -> None:
+        """Callback for ping targets setting changes.
+
+        Updates the pinger's target list when the targets setting is changed
+        through the settings manager.
 
         Args:
             targets (list[str]): List of IP addresses to ping.
@@ -129,23 +132,74 @@ class PingrThingrApp(App):
         )
         NSOperationQueue.mainQueue().addOperation_(operation)
 
+    def _draw_icon(self, icon: NSImage | NSView) -> None:
+        """Draw the menu bar icon.
+
+        Updates the macOS menu bar status item with either an NSImage or NSView icon.
+        For NSView icons, adds the view as a subview to the status bar button and
+        positions it appropriately within the button bounds.
+
+        Args:
+            icon (NSImage | NSView): The icon to display in the menu bar.
+                                   Can be either an NSImage or NSView instance.
+
+        Raises:
+            TypeError: If icon is not an NSImage or NSView instance.
+        """
+
+        # Remove existing subview(s) if present
+        if len(self._nsapp.nsstatusitem.button().subviews()) > 0:
+            for i in range(len(self._nsapp.nsstatusitem.button().subviews())):
+                self._nsapp.nsstatusitem.button().subviews()[i].removeFromSuperview()
+
+        # Set icon to image if provided, otherwise blank backgrop for view
+        if icon is not None and isinstance(icon, NSImage):
+            logger.debug(f"Drawing icon from NSImage")
+            self._icon_nsimage = icon
+        elif icon is not None and isinstance(icon, NSView):
+            blank_image = NSImage.alloc().initWithSize_(icon.frame().size)
+            self._icon_nsimage = blank_image
+        else:  # pragma: no cover
+            raise TypeError(
+                f"Invalid icon type: {type(icon)}. Expected NSImage or NSView."
+            )
+
+        self._nsapp.setStatusBarIcon()
+
+        if isinstance(icon, NSView):
+            logger.debug(f"Adding NSView as subview to status bar button")
+            self._nsapp.nsstatusitem.button().addSubview_(icon)
+
+            # Center the view within the button
+            offset_x = (
+                self._nsapp.nsstatusitem.button().frame().size.width
+                - icon.frame().size.width
+            ) / 2
+            offset_y = (icon.frame().size.height) / 2
+            icon.setFrameOrigin_((offset_x, 0 - offset_y))
+
     @objc_selector
     def refresh_status_(
         self,
         latency: float | None = None,
         loss: float | None = None,
         use_saved: bool = False,
-    ):
+    ) -> None:
         """Refresh the status icon and dynamic menu text.
-        
-        Updates the menu item text with current network statistics and 
+
+        Updates the menu item text with current network statistics and
         refreshes the menu bar icon based on the current display mode
-        and network connectivity status.
-        
+        and network connectivity status. This method is thread-safe and
+        can be called from background threads.
+
         Args:
-            latency (float, optional): Current latency in milliseconds. Defaults to None.
-            loss (float, optional): Current packet loss ratio (0.0-1.0). Defaults to None.
-            use_saved (bool, optional): Whether to use previously stored values. Defaults to False.
+            latency (float | None, optional): Current latency in milliseconds.
+                                            Defaults to None.
+            loss (float | None, optional): Current packet loss ratio (0.0-1.0).
+                                         Defaults to None.
+            use_saved (bool, optional): Whether to use previously stored values
+                                      instead of the provided parameters.
+                                      Defaults to False.
         """
         if use_saved:
             latency = self.latency
@@ -171,16 +225,14 @@ class PingrThingrApp(App):
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status(): Current display_mode: {display}")
 
-            match display:
-                case "Dot":
-                    icon, new_state = status_dot_icon(latency, loss, self._last_state)
-
-                case "Text":
-                    icon, new_state = status_text_icon(latency, loss, self._last_state)
-                case _:  # pragma: no cover
-                    raise ValueError(
-                        f"Invalid display_mode setting: {self._settings.get('display_mode')}"
-                    )
+            icon, new_state = generate_status_icon(  # type: ignore
+                display,  # type: ignore
+                latency,
+                loss,
+                self._settings.get("latency_thresholds"),  # type: ignore
+                self._settings.get("loss_thresholds"),  # type: ignore
+                self._last_state,
+            )
 
             logger.debug(
                 f"In refresh_status(): Last state: {self._last_state}, new state: {new_state}"
@@ -191,18 +243,18 @@ class PingrThingrApp(App):
                 logger.debug(
                     f"In refresh_status(): Updating icon for new state: {new_state}"
                 )
-                self._icon_nsimage = icon
-                self._nsapp.setStatusBarIcon()
+                self._draw_icon(icon)
 
     @clicked("Ping targets")
-    def ping_targets(self, _):
+    def ping_targets(self, _) -> None:
         """Handle ping targets menu item click.
 
-        Displays the preferences dialog for configuring ping target IP addresses
-        and updates settings if the user saves changes.
+        Displays the preferences dialog for configuring ping target IP addresses.
+        If the user saves changes, updates the application settings with the new
+        target list.
 
         Args:
-            _: Unused menu item parameter.
+            _ (MenuItem): Unused menu item parameter (required by rumps framework).
         """
         new_targets = ping_target_window(self._settings.get("targets", []))  # type: ignore
         if new_targets is not None:
@@ -212,13 +264,14 @@ class PingrThingrApp(App):
             logger.debug(f"ping_target_window() returned None, no changes to targets")
 
     @clicked("Pause")
-    def pause_toggle(self, sender):
-        """Toggle the pinger on/off state.
+    def pause_toggle(self, sender) -> None:
+        """Toggle the pinger pause state.
 
-        Toggles the menu item state and starts/stops the pinger accordingly.
+        Toggles between paused and running states for the network pinger.
+        Updates the menu item state and persists the change to settings.
 
         Args:
-            sender: The menu item that was clicked.
+            sender (MenuItem): The pause menu item that was clicked.
         """
         logger.debug(f"Toggling pause state from {sender.state} to {not sender.state}")
 

@@ -1,9 +1,10 @@
 import pytest
 
 from pingrthingr import PingrThingrApp
+from pingrthingr.icons import generate_status_icon
+from pingrthingr.settings.models import ThresholdModel
 from pathlib import Path
 from json import load as json_load
-from time import sleep
 
 
 @pytest.fixture(autouse=True)
@@ -154,3 +155,28 @@ class TestSettingsChanges:
         assert (
             not settings_file.is_file()
         ), "Settings file should not be created when update is cancelled"
+
+
+class TestIconRendering:
+    def test_nsview_clearance(self, mocked_app, mocker):
+
+        app, _, mock_nsapp = mocked_app
+
+        icon, _ = generate_status_icon(
+            "Text",
+            latency=100,
+            loss=0,
+            latency_thresholds=ThresholdModel(warn=80, alert=500, critical=1000),
+            loss_thresholds=ThresholdModel(warn=0.0, alert=0.01, critical=0.25),
+        )
+
+        mock_nsapp.nsstatusitem.button().subviews.return_value = [
+            mocker.Mock()
+        ]  # Simulate existing subviews
+        app._draw_icon(icon)
+        assert (
+            mock_nsapp.nsstatusitem.button()
+            .subviews()[0]
+            .removeFromSuperview.call_count
+            == 1
+        ), "Existing subviews should be removed when drawing a new icon"
