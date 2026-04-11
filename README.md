@@ -32,6 +32,10 @@ PingrThingr is macOS menu bar application for monitoring network connectivity th
 
 - **Outlier Filtering**: Discards anomalous results for more accurate measurements; you care about your connection quality, not a brief outage of one of the ping targets.
 
+## AI Disclosure
+
+This app is not vibe-coded, but I did make use of Copilot code completion, and Claude Sonnet 4.6 for debugging and docstring generation. No AI-generated code suggestions have been incorporated without human review and, in most cases, revision.
+
 ## Installation
 
 1. Go to the [latest release](https://github.com/cybershoe/PingrThingr/releases/latest)
