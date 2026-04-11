@@ -1,6 +1,6 @@
 # Project requires MacOS to build - run pytest pre-commit
 
-name: Pytest and Codecov
+name: tests
 
 on:
   push:
