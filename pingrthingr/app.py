@@ -171,12 +171,11 @@ class PingrThingrApp(App):
             self._nsapp.nsstatusitem.button().addSubview_(icon)
 
             # Center the view within the button
-            offset_x = (
-                self._nsapp.nsstatusitem.button().frame().size.width
-                - icon.frame().size.width
-            ) / 2
-            offset_y = (icon.frame().size.height) / 2
-            icon.setFrameOrigin_((offset_x, 0 - offset_y))
+            button_frame = self._nsapp.nsstatusitem.button().frame()
+            icon_frame = icon.frame()
+            offset_x = (button_frame.size.width - icon_frame.size.width) / 2
+            offset_y = (button_frame.size.height - icon_frame.size.height) / 2
+            icon.setFrameOrigin_((offset_x, offset_y))
 
     @objc_selector
     def refresh_status_(

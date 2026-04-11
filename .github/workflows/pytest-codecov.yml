@@ -1,11 +1,17 @@
 # Project requires MacOS to build - run pytest pre-commit
 
-name: Pytest and Codecov
+name: tests
 
 on:
   push:
+    paths:
+      - "pingrthingr/**"
+      - "tests/**"
   pull_request:
     types: [opened]
+    paths:
+      - "pingrthingr/**"
+      - "tests/**"
 
 jobs:
   pytest:
@@ -29,10 +35,10 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Run tests with pytest
         run: |
-          pytest --cov --cov-branch --cov-report=xml 
-      - name: Zip Test Artifacts
-        if: always() # Ensures reports are zipped even if tests fail
-        run: zip -qq -r tests.zip .tests
+          pytest --cov --cov-branch --cov-report=xml
+      # - name: Zip Test Artifacts
+      #   if: always() # Ensures reports are zipped even if tests fail
+      #   run: zip -qq -r tests.zip .tests
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
         if: ${{ matrix.python-version == '3.13' && matrix.os == 'macos-26' && always() }} # Only upload once, after the last Python version runs
