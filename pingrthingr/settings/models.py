@@ -16,13 +16,14 @@ from typing import Annotated, Literal
 def validate_ip_address(value):
     """Validate that a string represents a valid IPv4 address.
     
-    Uses socket.inet_aton to verify the IP address format.
+    Uses socket.inet_aton to verify the IP address format. This function
+    is used as a Pydantic validator for IP address fields.
     
     Args:
         value (str): The IP address string to validate.
         
     Returns:
-        str: The validated IP address string.
+        str: The validated IP address string if valid.
         
     Raises:
         ValueError: If the IP address format is invalid.
@@ -38,6 +39,16 @@ IPAddress = Annotated[str, AfterValidator(validate_ip_address)]
 IconStyle = Literal["Dot", "Text"]
 
 class ThresholdModel(BaseModel):
+    """Pydantic model for threshold configuration values.
+    
+    Defines threshold values for warning, alert, and critical states
+    used in network status evaluation.
+    
+    Attributes:
+        warn (float): Threshold value for warning state.
+        alert (float): Threshold value for alert state.
+        critical (float): Threshold value for critical state.
+    """
     warn: float = Field(description="Threshold for warning state")
     alert: float = Field(description="Threshold for error state ")
     critical: float = Field(description="Threshold for critical state")
@@ -79,13 +90,13 @@ class SettingsModel(BaseModel):
         
         This validator runs before field validation to log informational
         messages when configuration fields are not provided and defaults
-        will be used instead.
+        will be used instead. Helps with debugging configuration issues.
         
         Args:
-            data (dict): The input configuration data.
+            data (dict): The input configuration data dictionary.
             
         Returns:
-            dict: The unmodified input data.
+            dict: The unmodified input data dictionary.
         """
         if isinstance(data, dict):  # pragma: no branch
             # Check fields that have defaults defined in the model

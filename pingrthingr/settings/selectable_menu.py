@@ -100,6 +100,9 @@ class SelectableMenu(MenuItem):
     def set_selected(self, option: str) -> None:
         """Set the selected option programmatically.
 
+        Updates the menu selection state and title to reflect the new selection.
+        If the option is not found, clears the current selection.
+
         Args:
             option (str): The option to select. Must match one of the
                          options provided during initialization.

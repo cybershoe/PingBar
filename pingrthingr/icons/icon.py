@@ -35,6 +35,21 @@ def _criticality(
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
 ) -> Tuple[int, int]:
+    """Evaluate the criticality level of latency and loss values.
+
+    Compares latency and loss values against threshold models to determine
+    criticality levels from 0 (unknown) to 4 (critical).
+
+    Args:
+        latency (float | None): Network latency in milliseconds, or None if unavailable.
+        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
+        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
+        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
+
+    Returns:
+        Tuple[int, int]: A tuple of (latency_criticality, loss_criticality) levels.
+                        Each level is 0-4 where 0=unknown, 1=normal, 2=warn, 3=alert, 4=critical.
+    """
 
     def _evaluate_criticality(value: float | None, thresholds: ThresholdModel) -> int:
 
@@ -76,6 +91,28 @@ def generate_status_icon(
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
 ) -> Tuple[NSImage | NSView | None, str]:
+    """Generate a status icon based on the specified style and network metrics.
+
+    Creates either a dot or text icon representing network status based on latency
+    and packet loss values. Returns None if the state hasn't changed to avoid
+    unnecessary updates.
+
+    Args:
+        style (IconStyle): The icon style to generate ('Dot' or 'Text').
+        latency (float | None): Network latency in milliseconds, or None if unavailable.
+        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
+        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
+        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
+        last_state (str | None): The previous state to compare against. Defaults to None.
+
+    Returns:
+        Tuple[NSImage | NSView | None, str]: A tuple containing the icon (NSImage for dot,
+                                            NSView for text, or None if unchanged) and
+                                            the current state string.
+
+    Raises:
+        NotImplementedError: If an unsupported icon style is requested.
+    """
 
     match style:
         case "Dot":
@@ -112,13 +149,9 @@ def status_dot_icon(
     Args:
         latency (float | None): Network latency in milliseconds, or None if unavailable.
         loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
-        last_state (str | None): The previous state of the network status ("normal", "warn", "alert", "critical", or "unknown"). Used to determine if the icon needs to be updated. Defaults to None.
-        latency_warn_threshold (float): Warning threshold for latency in ms. Defaults to 80.0.
-        latency_alert_threshold (float): Alert threshold for latency in ms. Defaults to 500.0.
-        latency_critical_threshold (float): Critical threshold for latency in ms. Defaults to 1000.0.
-        loss_warn_threshold (float): Warning threshold for loss as decimal. Defaults to 0.00.
-        loss_alert_threshold (float): Alert threshold for loss as decimal. Defaults to 0.05.
-        loss_critical_threshold (float): Critical threshold for loss as decimal. Defaults to 0.25.
+        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
+        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
+        last_state (str | None): The previous state string returned by the last call to avoid unnecessary updates. Defaults to None.
 
     Returns:
         Tuple[NSImage | None, str]: A tuple with a 20x20 pixel icon with a colored dot representing network status, or None
@@ -160,34 +193,24 @@ def status_text_icon(
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
-    latency_warn_threshold: float = 80.0,
-    latency_alert_threshold: float = 500.0,
-    latency_critical_threshold: float = 1000.0,
-    loss_warn_threshold: float = 0.00,
-    loss_alert_threshold: float = 0.05,
-    loss_critical_threshold: float = 0.25,
 ) -> Tuple[NSView | None, str]:
     """Create a status text icon showing latency and loss with color-coded thresholds.
 
-    This function generates a two-line NSImage icon displaying network latency
-    and packet loss values. The background color changes based on configurable
+    This function generates a two-line NSView icon (50x22 pixels) displaying network latency
+    and packet loss values. Each line's background color changes based on configurable
     thresholds: normal (no background), warning (yellow), alert (orange), and
     critical (red).
 
     Args:
         latency (float | None): Network latency in milliseconds, or None if unavailable.
         loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
-        last_state (str | None): The previous state of the network status (concatenation of latency and loss states). Used to determine if the icon needs to be updated. Defaults to None.
-        latency_warn_threshold (float): Warning threshold for latency in ms. Defaults to 80.0.
-        latency_alert_threshold (float): Alert threshold for latency in ms. Defaults to 500.0.
-        latency_critical_threshold (float): Critical threshold for latency in ms. Defaults to 1000.0.
-        loss_warn_threshold (float): Warning threshold for loss as decimal. Defaults to 0.00.
-        loss_alert_threshold (float): Alert threshold for loss as decimal. Defaults to 0.05.
-        loss_critical_threshold (float): Critical threshold for loss as decimal. Defaults to 0.25.
+        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
+        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
+        last_state (str | None): The previous state string returned by the last call to avoid unnecessary updates. Defaults to None.
+
 
     Returns:
-        Tuple[NSImage | None, str]: A tuple with a 50x20 pixel icon with right-aligned text showing latency and loss values, or None
-        if the new state equals the previous state, and a string describing the current state.
+        Tuple[NSView | None, str]: A tuple with a 50x22 pixel NSView or None, and a string describing the current state.
     """
 
     latency_text = f"{latency:.1f} ms" if latency is not None else "---"
@@ -209,6 +232,16 @@ def status_text_icon(
     view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
 
     def _value_view(text: str, criticality: int, frame: CGRect) -> NSView:
+        """Create an NSTextField view for displaying status text with appropriate styling.
+
+        Args:
+            text (str): The text to display in the field.
+            criticality (int): Criticality level (1-4) determining background color and font weight.
+            frame (CGRect): The frame rectangle for positioning the text field.
+
+        Returns:
+            NSView: An NSTextField configured with appropriate text, colors, and positioning.
+        """
 
         text_view = NSTextField.labelWithString_(text)
         text_view.setAlignment_(2)  # right align
