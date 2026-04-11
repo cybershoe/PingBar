@@ -27,11 +27,16 @@ ping_thresholds = [
     ("unknown", None, None),
     ("no_loss", 0.0, 0.0),
     ("warn_loss", 0.0, 0.02),
-    ("warn_latency", 100.0, 0.0),
-    ("alert_loss", 0.0, 0.06),
-    ("alert_latency", 600.0, 0.0),
-    ("critical_loss", 0.0, 0.3),
-    ("critical_latency", 1001.0, 0.0),
+    ("warn_edge_latency", 80.0, 0.0),
+    ("warn_clear_latency", 100.0, 0.0),
+    ("alert_edge_loss", 0.0, 0.05),
+    ("alert_clear_loss", 0.0, 0.06),
+    ("alert_edge_latency", 500.0, 0.0),
+    ("alert_clear_latency", 600.0, 0.0),
+    ("critical_edge_loss", 0.0, 0.25),
+    ("critical_clear_loss", 0.0, 0.3),
+    ("critical_edge_latency", 1000.0, 0.0),
+    ("critical_clear_latency", 1001.0, 0.0),
 ]
 
 colorspace = CGColorSpaceCreateDeviceRGB()
