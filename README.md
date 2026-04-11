@@ -26,6 +26,14 @@ PingrThingr is macOS menu bar application for monitoring network connectivity th
 
 - **Outlier Filtering**: Discards anomalous results for more accurate measurements; you care about your connection quality, not a brief outage of one of the ping targets.
 
+## Installation
+
+1. Go to the [latest release](https://github.com/cybershoe/PingrThingr/releases/latest)
+2. Scroll down to "Assets" and download the latest .dmg disk image
+3. Mount the image and drag "PingrThingr" into your Applications folder
+
+Or, see [Building from Source](#building-from-source) below
+
 ## Usage
 
 1. **Starting**: Launch PingrThingr and it will appear in your menu bar
@@ -52,7 +60,7 @@ PingrThingr is macOS menu bar application for monitoring network connectivity th
 
 **Note**: Only IPv4 addresses are currently supported.
 
-## Build from source
+## Building from Source
 
 ### Requirements
 
