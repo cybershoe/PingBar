@@ -1,7 +1,9 @@
 [![tests](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml/badge.svg)](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml)
 [![codecov](https://codecov.io/gh/cybershoe/PingrThingr/branch/dev/graph/badge.svg?token=DdM0wsZqpJ)](https://codecov.io/gh/cybershoe/PingrThingr)
 
-# <img src="images/PingrThingr.png" width=128/> PingrThingr
+<img src="images/PingrThingr.png" width=128/> 
+
+# PingrThingr
 
 PingrThingr is macOS menu bar application for monitoring network c  onnectivity through continuous ping monitoring. PingrThingr provides at-a-glance visibility into your connection quality with color-coded status indicators and customizable ping targets. Useful for rail or air commuters who regularly pass through coverage dead zones; see with a glance whether your connection has recovered, without constantly hitting refresh and hoping for the best.
 
