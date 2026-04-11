@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 from rumps import Window, alert
 from socket import inet_aton
-from json import load as json_load, dump as json_dump, dumps as json_dumps
 from typing import List
 
 

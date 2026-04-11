@@ -8,12 +8,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from rumps import App, clicked, MenuItem, timer, application_support
+from rumps import App, clicked, MenuItem, application_support
 from os.path import join as path_join
-from json import dump as json_dump, load as json_load
 from .pinger import Pinger
-from .icons import status_text_icon, status_dot_icon, symbol_icon, generate_status_icon
-from .settings import SelectableMenu, ping_target_window, SettingsManager, ThresholdModel
+from .icons import symbol_icon, generate_status_icon
+from .settings import SelectableMenu, ping_target_window, SettingsManager
 from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
@@ -46,7 +45,6 @@ class PingrThingrApp(App):
         self._settings_path = path_join(application_support(self.name), "settings.json")
         logger.debug(f"Settings file path: {self._settings_path}")
         self._settings = SettingsManager(self._settings_path)
-        # self._load_settings()
         self.latency = None
         self.loss = None
         self.title = None
@@ -65,11 +63,9 @@ class PingrThingrApp(App):
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
             cb=lambda x: self._settings.set("display_mode", x),
-            # cb=self.set_display_mode,
         )
         self.pause_menu.state = self._settings.get("paused", False)
         self.menu = [self.statistics_menu, self.pause_menu, self.display_menu]
-        # self._changed = False
         self._last_state = None
 
         self.pinger = Pinger(
@@ -179,18 +175,6 @@ class PingrThingrApp(App):
             offset_y = (icon.frame().size.height) / 2
             icon.setFrameOrigin_((offset_x, 0 - offset_y))
 
-            # icon.setTranslatesAutoresizingMaskIntoConstraints_(False)
-            # NSLayoutConstraint.activateConstraints_(
-            #     [
-            #         icon.centerYAnchor().constraintEqualToAnchor_(
-            #             self._nsapp.nsstatusitem.button().centerYAnchor()
-            #         ),
-            #         icon.centerXAnchor().constraintEqualToAnchor_(
-            #             self._nsapp.nsstatusitem.button().centerXAnchor()
-            #         ),
-            #     ]
-            # )
-
     @objc_selector
     def refresh_status_(
         self,
@@ -238,9 +222,6 @@ class PingrThingrApp(App):
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status(): Current display_mode: {display}")
 
-            # match display:
-            #     case "Dot":
-            # icon, new_state = status_dot_icon(latency, loss, self._last_state)
             icon, new_state = generate_status_icon( # type: ignore
                 display,  # type: ignore
                 latency,
@@ -249,14 +230,6 @@ class PingrThingrApp(App):
                 self._settings.get("loss_thresholds"),  # type: ignore
                 self._last_state
             )  
-
-            # case "Text":
-            #     icon, new_state = generate_status_icon("Text", latency, loss, self._last_state)
-
-            # case _:  # pragma: no cover
-            #     raise ValueError(
-            #         f"Invalid display_mode setting: {self._settings.get('display_mode')}"
-            #     )
 
             logger.debug(
                 f"In refresh_status(): Last state: {self._last_state}, new state: {new_state}"
