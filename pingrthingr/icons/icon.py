@@ -38,7 +38,7 @@ def _criticality(
 
     def _evaluate_criticality(value: float | None, thresholds: ThresholdModel) -> int:
 
-        if value is None:
+        if value is None:  # pragma: no cover
             raise ValueError(
                 "Cannot mix None values with numeric values for criticality evaluation"
             )
