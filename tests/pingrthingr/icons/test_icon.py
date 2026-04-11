@@ -49,7 +49,7 @@ loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 def nsimage_to_nsview(ns_image: NSImage) -> NSView:
     size = ns_image.size()
     image_view = NSImageView.alloc().initWithFrame_(
-        NSMakeRect(0, -size.height / 2, size.width, size.height)
+        NSMakeRect(0, 0, size.width, size.height)
     )
     image_view.setImage_(ns_image)
     outview = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
@@ -73,7 +73,6 @@ def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
     ns_view.setAppearance_(dark_aqua if dark else light_aqua)
 
     outview.addSubview_(ns_view)
-    ns_view.setFrameOrigin_((0, viewbounds.size.height / 2))
 
     bitmap_rep = outview.bitmapImageRepForCachingDisplayInRect_(viewbounds)
     outview.cacheDisplayInRect_toBitmapImageRep_(viewbounds, bitmap_rep)
