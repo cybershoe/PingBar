@@ -98,6 +98,10 @@ Enable debug output by setting the `LOGLEVEL` environment variable to `INFO` or 
 LOGLEVEL=DEBUG python main.py
 ```
 
+### Testing Notes
+
+The unit tests will render NSView and NSImages objects for varios icon styles and values, and compare those to the exemplar images at tests/pingrthingr/icons/resources. Since there are subtle rendering differences between platforms, these examples are not committed to git. The first time you run pytest, it will generate new examples if they are not already present, and you should visually check them to ensure they are rendering correctly before making any changes that could potentially affect rendering.
+
 ---
 Copyright (c) 2026 Adam Schumacher
 
