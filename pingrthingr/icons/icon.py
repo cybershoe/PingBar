@@ -216,7 +216,7 @@ def status_text_icon(
 
     size = NSSize(50, 22)
 
-    # Set up font and attributes
+    # Set up fonts
     normalFont = NSFont.systemFontOfSize_(9)
     boldFont = NSFont.boldSystemFontOfSize_(9)
 
