@@ -9,10 +9,10 @@ PingrThingr is macOS menu bar application for monitoring network connectivity th
 - **Multiple Display Modes**: Choose between different visual representations
   - **Dot Mode**: Simple colored circle indicator (default)
   
-    <img src="images/dots.png" style="height: 3rem"/>
+    <img src="images/dots-dark.png" style="width: 14rem"/><img src="images/dots-light.png" style="width: 14rem"/>
   - **Text Mode**: Detailed latency and packet loss statistics
   
-    <img src="images/text.png" style="height: 3rem"/>
+    <img src="images/text-dark.png" style="width: 14rem"/><img src="images/text-light.png" style="width: 14rem"/>
 
 
 - **Color-coded Status Indicators**: Visual feedback with different colors based on latency and packet loss thresholds
