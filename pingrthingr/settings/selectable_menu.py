@@ -11,8 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from rumps import MenuItem, Window, alert
-from socket import inet_aton
+from rumps import MenuItem
 from typing import List, Callable
 
 
