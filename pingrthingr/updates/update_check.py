@@ -11,12 +11,11 @@ logger = logging.getLogger(__name__)
 REPO = "cybershoe/PingrThingr"
 
 from httpx import AsyncClient, HTTPStatusError
-from pingrthingr import __VERSION__
 from typing import Tuple
 from semver import Version
 
 
-async def get_latest_release() -> Tuple[str, str, str]:
+async def get_latest_release(current_version_name: str) -> Tuple[str, str, str]:
     """Check for the latest release of PingrThingr on GitHub.
     
     Queries the GitHub API to fetch information about the latest release,
@@ -55,7 +54,7 @@ async def get_latest_release() -> Tuple[str, str, str]:
                 latest_version = Version.parse(
                     latest_version_name.removeprefix("v")
                 )
-                current_version = Version.parse(__VERSION__.removeprefix("v"))
+                current_version = Version.parse(current_version_name.removeprefix("v"))
                 if latest_version > current_version:
                     logger.info(
                         f"New version available: {latest_version} (current: {current_version})"

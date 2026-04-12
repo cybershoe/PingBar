@@ -8,11 +8,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from .version import __VERSION__
 from rumps import App, clicked, MenuItem, separator, application_support
 from os.path import join as path_join
 from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
+from .updates import update_dialog
 from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
@@ -65,7 +67,7 @@ class PingrThingrApp(App):
             cb=lambda x: self._settings.set("display_mode", x),
         )
         self.ping_targets_menu = MenuItem("Set ping targets...", callback=self.ping_targets)        
-        self.check_for_updates_menu = MenuItem("Check for updates...", callback=lambda _: None)  # Placeholder for future update checking functionality
+        self.check_for_updates_menu = MenuItem("Check for updates...", callback=lambda _: update_dialog())  # Placeholder for future update checking functionality
         self.check_for_updates_on_startup = MenuItem("Check on startup", callback=lambda _: None)  # Placeholder for future update checking functionality
         self.pause_menu.state = self._settings.get("paused", False)
 
