@@ -18,17 +18,17 @@ from threading import Thread
 from semver import Version
 
 
-def run_update_check(current_version_name: str, callback: Callable) -> None:
+def run_update_check(current_version_name: str, callback: Callable, quiet: bool = False) -> None:
     """Run the update check in a separate thread to avoid blocking the UI.
     """
 
 
-    thread = Thread(target=lambda: asyncio.run(_check_for_updates(current_version_name, callback)))
+    thread = Thread(target=lambda: asyncio.run(_check_for_updates(current_version_name, callback, quiet)))
     thread.start()
 
 
 
-async def _check_for_updates(current_version_name: str, callback: Callable) -> None:
+async def _check_for_updates(current_version_name: str, callback: Callable, quiet: bool = False) -> None:
     """Check for the latest release of PingrThingr on GitHub.
     
     Queries the GitHub API to fetch information about the latest release,
@@ -50,7 +50,8 @@ async def _check_for_updates(current_version_name: str, callback: Callable) -> N
             response.raise_for_status()
     except HTTPStatusError as e:
         logger.error(f"HTTP error occurred fetching latest release: {e}")
-        callback("", "", f"HTTP error occurred: {e}")
+        if not quiet:
+            callback("", "", f"HTTP error occurred: {e}")
         return
 
     if response is not None:
@@ -72,16 +73,19 @@ async def _check_for_updates(current_version_name: str, callback: Callable) -> N
                     return
                 else:
                     logger.debug("No new version available.")
-                    callback("", "", f"{current_version} is the latest version.")
+                    if not quiet:
+                        callback("", "", f"{current_version} is the latest version.")
                     return
             except TypeError as e:
                 logger.error(
                     f"Error parsing version from tag '{latest_version_tag}': {e}"
                 )
-                callback("", "", f"Error parsing version: {e}")
+                if not quiet:
+                    callback("", "", f"Error parsing version: {e}")
                 return
 
         else:
             logger.debug(f"Failed to fetch latest release: {response.status_code}")
 
-    callback("", "", "Unknown error")
+    if not quiet:
+        callback("", "", "Unknown error")

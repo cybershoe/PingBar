@@ -317,7 +317,7 @@ class PingrThingrApp(App):
 
         sender.set_callback(None)  # Disable the menu item while checking for updates
         sender.title = "Checking for updates..."
-        run_update_check(__VERSION__, self.check_for_updates_return)
+        run_update_check(__VERSION__, self.check_for_updates_return, False)
 
     def check_for_updates_return(self, new_version: str, release_url: str, error: str) -> None:
         self.check_for_updates_menu.set_callback(self.check_for_updates)
