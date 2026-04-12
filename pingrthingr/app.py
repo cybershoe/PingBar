@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from rumps import App, clicked, MenuItem, application_support
+from rumps import App, clicked, MenuItem, separator, application_support
 from os.path import join as path_join
 from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
@@ -56,16 +56,30 @@ class PingrThingrApp(App):
             ),
             "PingrThingr",
         )
-        self.statistics_menu = MenuItem("waiting...")
-        self.pause_menu = MenuItem("Pause")
+        self.statistics_menu = MenuItem("---")
+        self.pause_menu = MenuItem("Pause", callback=self.pause_toggle)
         self.display_menu = SelectableMenu(
             "Display Mode",
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
             cb=lambda x: self._settings.set("display_mode", x),
         )
+        self.ping_targets_menu = MenuItem("Set ping targets...", callback=self.ping_targets)        
+        self.check_for_updates_menu = MenuItem("Check for updates...", callback=lambda _: None)  # Placeholder for future update checking functionality
+        self.check_for_updates_on_startup = MenuItem("Check on startup", callback=lambda _: None)  # Placeholder for future update checking functionality
         self.pause_menu.state = self._settings.get("paused", False)
-        self.menu = [self.statistics_menu, self.pause_menu, self.display_menu]
+
+        self.menu = [
+            self.statistics_menu,
+            separator,
+            self.pause_menu,
+            separator,
+            self.display_menu,
+            self.ping_targets_menu,
+            separator,
+            self.check_for_updates_menu,
+            self.check_for_updates_on_startup,
+        ]
         self._last_state = None
 
         self.pinger = Pinger(
@@ -244,7 +258,6 @@ class PingrThingrApp(App):
                 )
                 self._draw_icon(icon)
 
-    @clicked("Ping targets")
     def ping_targets(self, _) -> None:
         """Handle ping targets menu item click.
 
@@ -262,7 +275,6 @@ class PingrThingrApp(App):
         else:
             logger.debug(f"ping_target_window() returned None, no changes to targets")
 
-    @clicked("Pause")
     def pause_toggle(self, sender) -> None:
         """Toggle the pinger pause state.
 
