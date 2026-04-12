@@ -32,12 +32,6 @@ def run_update_check(
         callback (Callable): Function to call with results (new_version, url, error)
         quiet (bool, optional): Passed to callback to indicate whether to suppress dialogs
         for "up to date" status. Defaults to False.
-
-    Note:
-        The callback will be called with three string parameters:
-        - new_version: Version string if update available, empty if not
-        - url: Release URL if update available, empty otherwise
-        - error: Error message if check failed, empty on success
     """
 
     thread = Thread(
@@ -101,7 +95,9 @@ async def _check_for_updates(
                     return
                 else:
                     logger.debug("No new version available.")
-                    callback("", "", f"{current_version_name} is the latest version.", quiet)
+                    callback(
+                        "", "", f"{current_version_name} is the latest version.", quiet
+                    )
                     return
             except ValueError as e:
                 logger.error(

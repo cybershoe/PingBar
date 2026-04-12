@@ -181,6 +181,7 @@ class TestIconRendering:
             == 1
         ), "Existing subviews should be removed when drawing a new icon"
 
+
 class TestCheckForUpdates:
     def test_check_for_updates(self, mocked_app, mocker):
         app, _, _ = mocked_app
@@ -191,24 +192,30 @@ class TestCheckForUpdates:
         mocked_runner = mocker.MagicMock()
         mocker.patch.object(app, "_run_in_app_thread", mocked_runner)
         mocker.patch("pingrthingr.app.__VERSION__", "v0.2.0")
-        
+
         # Check update invocation via menu
         app.check_for_updates(app.check_for_updates_menu)
-        mocked_update.assert_called_once_with("v0.2.0", app.check_for_updates_return, False)
+        mocked_update.assert_called_once_with(
+            "v0.2.0", app.check_for_updates_return, False
+        )
         assert app.check_for_updates_menu.callback == None
         assert app.check_for_updates_menu.title == "Checking for updates..."
-        
+
         # Check callback handling
         app.check_for_updates_return("v1.0.0", "https://example.com/release", "", True)
         assert app.check_for_updates_menu.callback == app.check_for_updates
         assert app.check_for_updates_menu.title == "Check for updates..."
         assert mocked_runner.called
-        mocked_runner.assert_called_once_with(mocked_dialog, "v1.0.0", "v0.2.0", "https://example.com/release", "")
+        mocked_runner.assert_called_once_with(
+            mocked_dialog, "v1.0.0", "v0.2.0", "https://example.com/release", ""
+        )
 
         # Check update invocation via timer
         mocked_update.reset_mock()
         app.update_timer(app._update_timer)
-        mocked_update.assert_called_once_with("v0.2.0", app.check_for_updates_return, True)
+        mocked_update.assert_called_once_with(
+            "v0.2.0", app.check_for_updates_return, True
+        )
         assert app.check_for_updates_menu.callback == None
         assert app.check_for_updates_menu.title == "Checking for updates..."
 
@@ -221,9 +228,13 @@ class TestCheckForUpdates:
 
         # Not quiet, should call runner to display results
         app.check_for_updates_return("", "", "v0.4.0 is the latest version.", False)
-        mocked_runner.assert_called_once_with(mocked_dialog, "", "v0.4.0", "", "v0.4.0 is the latest version.")
+        mocked_runner.assert_called_once_with(
+            mocked_dialog, "", "v0.4.0", "", "v0.4.0 is the latest version."
+        )
 
         # Quiet, should not call runner
         mocked_runner.reset_mock()
         app.check_for_updates_return("", "", "v0.4.0 is the latest version.", True)
-        assert not mocked_runner.called, "Runner should not be called when quiet is True and no new version"
+        assert (
+            not mocked_runner.called
+        ), "Runner should not be called when quiet is True and no new version"
