@@ -11,11 +11,24 @@ logger = logging.getLogger(__name__)
 REPO = "cybershoe/PingrThingr"
 
 from httpx import AsyncClient, HTTPStatusError
-from typing import Tuple
+from typing import Tuple, Callable
+import asyncio
+from threading import Thread
+
 from semver import Version
 
 
-async def get_latest_release(current_version_name: str) -> Tuple[str, str, str]:
+def run_update_check(current_version_name: str, callback: Callable) -> None:
+    """Run the update check in a separate thread to avoid blocking the UI.
+    """
+
+
+    thread = Thread(target=lambda: asyncio.run(_check_for_updates(current_version_name, callback)))
+    thread.start()
+
+
+
+async def _check_for_updates(current_version_name: str, callback: Callable) -> None:
     """Check for the latest release of PingrThingr on GitHub.
     
     Queries the GitHub API to fetch information about the latest release,
@@ -24,12 +37,7 @@ async def get_latest_release(current_version_name: str) -> Tuple[str, str, str]:
     
     The function handles version tag parsing by removing common prefixes/suffixes
     like 'v' and '-release' to ensure proper semantic version comparison.
-    
-    Returns:
-        Tuple[bool, str]: A tuple containing:
-            - str: The new version number if an update is available, empty string otherwise
-            - str: URL to the release page if update available, empty string otherwise
-            - str: Error message if an error occurs, empty string otherwise
+
 
     """
 
@@ -42,7 +50,7 @@ async def get_latest_release(current_version_name: str) -> Tuple[str, str, str]:
             response.raise_for_status()
     except HTTPStatusError as e:
         logger.error(f"HTTP error occurred fetching latest release: {e}")
-        return "", "", f"HTTP error occurred: {e}"
+        callback("", "", f"HTTP error occurred: {e}")
 
     if response is not None:
         if response.status_code == 200:
@@ -59,14 +67,14 @@ async def get_latest_release(current_version_name: str) -> Tuple[str, str, str]:
                     logger.info(
                         f"New version available: {latest_version} (current: {current_version})"
                     )
-                    return str(latest_version), data.get("html_url", ""), ""
+                    callback(latest_version_name, data.get("html_url", ""), "")
             except TypeError as e:
                 logger.error(
                     f"Error parsing version from tag '{latest_version_tag}': {e}"
                 )
-                return "", "", f"Error parsing version: {e}"
+                callback("", "", f"Error parsing version: {e}")
 
         else:
             logger.debug(f"Failed to fetch latest release: {response.status_code}")
 
-    return "", "", "Unknown error"
+    callback("", "", "Unknown error")

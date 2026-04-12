@@ -5,5 +5,5 @@ This package handles version comparison using semantic versioning to determine
 when newer versions of the application are available.
 """
 
-from .update_check import get_latest_release
+from .update_check import run_update_check
 from .update_dialog import update_dialog

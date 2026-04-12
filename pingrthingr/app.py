@@ -14,7 +14,7 @@ from os.path import join as path_join
 from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
-from .updates import update_dialog
+from .updates import update_dialog, run_update_check
 from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
@@ -317,8 +317,9 @@ class PingrThingrApp(App):
 
         sender.set_callback(None)  # Disable the menu item while checking for updates
         sender.title = "Checking for updates..."
-        update_dialog(__VERSION__)  # Placeholder for future update checking functionality
+        run_update_check(__VERSION__, self.check_for_updates_return)
 
-    def check_for_updates_return(self):
+    def check_for_updates_return(self, new_version: str, release_url: str, error: str) -> None:
         self.check_for_updates_menu.set_callback(self.check_for_updates)
         self.check_for_updates_menu.title = "Check for updates..."
+        logging.debug(f"Update check returned: new_version={new_version}, release_url={release_url}, error={error}")
