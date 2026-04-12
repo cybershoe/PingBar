@@ -83,7 +83,7 @@ async def _check_for_updates(
         callback("", "", f"HTTP error occurred: {e}", quiet)
         return
 
-    if response is not None:  # pragma: branch
+    if response is not None:  # pragma: no branch
         if response.status_code == 200:
             data = response.json()
             latest_version_tag = data.get("tag_name")
