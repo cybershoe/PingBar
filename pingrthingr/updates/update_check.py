@@ -51,6 +51,7 @@ async def _check_for_updates(current_version_name: str, callback: Callable) -> N
     except HTTPStatusError as e:
         logger.error(f"HTTP error occurred fetching latest release: {e}")
         callback("", "", f"HTTP error occurred: {e}")
+        return
 
     if response is not None:
         if response.status_code == 200:
@@ -68,11 +69,17 @@ async def _check_for_updates(current_version_name: str, callback: Callable) -> N
                         f"New version available: {latest_version} (current: {current_version})"
                     )
                     callback(latest_version_name, data.get("html_url", ""), "")
+                    return
+                else:
+                    logger.debug("No new version available.")
+                    callback("", "", f"{current_version} is the latest version.")
+                    return
             except TypeError as e:
                 logger.error(
                     f"Error parsing version from tag '{latest_version_tag}': {e}"
                 )
                 callback("", "", f"Error parsing version: {e}")
+                return
 
         else:
             logger.debug(f"Failed to fetch latest release: {response.status_code}")
