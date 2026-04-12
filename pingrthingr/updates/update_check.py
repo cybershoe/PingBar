@@ -30,10 +30,8 @@ def run_update_check(
     Args:
         current_version_name (str): The current version string to compare against
         callback (Callable): Function to call with results (new_version, url, error)
-        quiet (bool, optional): If True, suppresses callback calls unless an update
-                            is available or an error occurs. If False, callback is
-                            called for "up to date" and error status as well.
-                            Defaults to False.
+        quiet (bool, optional): Passed to callback to indicate whether to suppress dialogs
+        for "up to date" status. Defaults to False.
 
     Note:
         The callback will be called with three string parameters:
@@ -64,14 +62,13 @@ async def _check_for_updates(
 
     Args:
         current_version_name (str): Current version string (e.g., "1.2.3" or "v1.2.3")
-        callback (Callable): Function to call with results (new_version, url, error)
-        quiet (bool, optional): If True, only calls callback if an update is available.
-                               If False, calls callback for "up to date" and error status too.
-                               Defaults to False.
+        callback (Callable): Function to call with results (new_version, url, error, quiet)
+        quiet (bool, optional): Passed to callback to indicate whether to suppress dialogs
+        for "up to date" status. Defaults to False.
 
     Note:
         This is an internal async function called by run_update_check().
-        The callback signature is: callback(new_version: str, url: str, error: str)
+        The callback signature is: callback(new_version: str, url: str, error: str, quiet: bool)
     """
 
     response = None
@@ -83,8 +80,7 @@ async def _check_for_updates(
             response.raise_for_status()
     except HTTPStatusError as e:
         logger.error(f"HTTP error occurred fetching latest release: {e}")
-        if not quiet:
-            callback("", "", f"HTTP error occurred: {e}")
+        callback("", "", f"HTTP error occurred: {e}", quiet)
         return
 
     if response is not None:
@@ -100,23 +96,20 @@ async def _check_for_updates(
                     logger.info(
                         f"New version available: {latest_version} (current: {current_version})"
                     )
-                    callback(latest_version_name, data.get("html_url", ""), "")
+                    callback(latest_version_name, data.get("html_url", ""), "", quiet)
                     return
                 else:
                     logger.debug("No new version available.")
-                    if not quiet:
-                        callback("", "", f"{current_version} is the latest version.")
+                    callback("", "", f"{current_version} is the latest version.", quiet)
                     return
             except TypeError as e:
                 logger.error(
                     f"Error parsing version from tag '{latest_version_tag}': {e}"
                 )
-                if not quiet:
-                    callback("", "", f"Error parsing version: {e}")
+                callback("", "", f"Error parsing version: {e}", quiet)
                 return
 
         else:
             logger.debug(f"Failed to fetch latest release: {response.status_code}")
 
-    if not quiet:
-        callback("", "", "Unknown error")
+    callback("", "", "Unknown error", quiet)

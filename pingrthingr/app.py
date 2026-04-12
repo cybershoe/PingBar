@@ -334,7 +334,7 @@ class PingrThingrApp(App):
         run_update_check(__VERSION__, self.check_for_updates_return, False)
 
     def check_for_updates_return(
-        self, new_version: str, release_url: str, error: str
+        self, new_version: str, release_url: str, error: str, quiet: bool = False
     ) -> None:
         """Handle the callback from update checking process.
 
@@ -346,15 +346,19 @@ class PingrThingrApp(App):
             new_version (str): New version string if available, empty string otherwise
             release_url (str): URL to the GitHub release page if update available
             error (str): Error message if update check failed, empty string on success
+            quiet (bool, optional): If True, suppresses update dialog if no update is available.
+                                    Defaults to False.
         """
         self.check_for_updates_menu.set_callback(self.check_for_updates)
         self.check_for_updates_menu.title = "Check for updates..."
-        logging.debug(
+        logger.debug(
             f"Update check returned: new_version={new_version}, release_url={release_url}, error={error}"
         )
-        self._run_in_app_thread(
-            update_dialog, new_version, __VERSION__, release_url, error
-        )
+
+        if new_version or not quiet:
+            self._run_in_app_thread(
+                update_dialog, new_version, __VERSION__, release_url, error
+            )
 
     def update_timer(self, sender) -> None:
         """Handle startup update check timer expiration.
