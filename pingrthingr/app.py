@@ -67,7 +67,7 @@ class PingrThingrApp(App):
             cb=lambda x: self._settings.set("display_mode", x),
         )
         self.ping_targets_menu = MenuItem("Set ping targets...", callback=self.ping_targets)        
-        self.check_for_updates_menu = MenuItem("Check for updates...", callback=lambda _: update_dialog(__VERSION__))  # Placeholder for future update checking functionality
+        self.check_for_updates_menu = MenuItem("Check for updates...", callback=self.check_for_updates)  # Placeholder for future update checking functionality
         self.check_for_updates_on_startup = MenuItem("Check on startup", callback=lambda _: None)  # Placeholder for future update checking functionality
         self.pause_menu.state = self._settings.get("paused", False)
 
@@ -304,3 +304,21 @@ class PingrThingrApp(App):
         logger.debug(f"Toggling pause state from {sender.state} to {not sender.state}")
 
         self._settings.set("paused", not sender.state)
+
+    def check_for_updates(self, sender) -> None:
+        """Check for application updates.
+
+        Placeholder method for future implementation of update checking functionality.
+        Currently displays a dialog with the latest version information.
+
+        Args:
+            sender (MenuItem): The menu item that was clicked to trigger the update check.
+        """
+
+        sender.set_callback(None)  # Disable the menu item while checking for updates
+        sender.title = "Checking for updates..."
+        update_dialog(__VERSION__)  # Placeholder for future update checking functionality
+
+    def check_for_updates_return(self):
+        self.check_for_updates_menu.set_callback(self.check_for_updates)
+        self.check_for_updates_menu.title = "Check for updates..."
