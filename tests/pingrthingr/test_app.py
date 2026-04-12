@@ -4,16 +4,24 @@ from pingrthingr import PingrThingrApp
 from pingrthingr.icons import generate_status_icon
 from pingrthingr.settings.models import ThresholdModel
 from pathlib import Path
-from json import load as json_load
+from json import load as json_load, dump as json_dump
 
+base_path = Path(__file__).parent
 
 @pytest.fixture(autouse=True)
 def mocked_app(mocker, tmp_path):
-    def _mocked_app():
+    def _mocked_app(settings: dict | None = None):
         # Create an instance of the app for testing
         mock_pinger = mocker.MagicMock()
         mocker.patch("pingrthingr.app.Pinger", return_value=mock_pinger)
         mocker.patch("pingrthingr.app.application_support", return_value=str(tmp_path))
+        if settings is not None:
+            with open(base_path / "settings/resources/default_settings.json") as f:
+                default_settings = json_load(f)
+            default_settings.update(settings)
+            settings_file = tmp_path / "settings.json"
+            with open(settings_file, "w") as f:
+                json_dump(default_settings, f)
         app = PingrThingrApp("testapp")
         mock_nsapp = mocker.MagicMock()
         mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
@@ -240,3 +248,15 @@ class TestCheckForUpdates:
         assert (
             not mocked_runner.called
         ), "Runner should not be called when quiet is True and no new version"
+
+    def test_check_for_updates_on_startup_enabled(self, mocked_app):
+        # Test that the update timer starts on app initialization when setting is enabled
+        settings = {"check_for_updates": True}
+        app, _, _ = mocked_app(settings)
+        assert app._update_timer.is_alive(), "Update timer should be started when check_for_updates is True"
+
+    def test_check_for_updates_on_startup_disabled(self, mocked_app):
+        # Test that the update timer does not start on app initialization when setting is disabled
+        settings = {"check_for_updates": False}
+        app, _, _ = mocked_app(settings)
+        assert not app._update_timer.is_alive(), "Update timer should not be started when check_for_updates is False"
