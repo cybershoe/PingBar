@@ -8,6 +8,7 @@ from threading import enumerate as threading_enumerate
 from pingrthingr.updates.update_check import run_update_check
 from httpx import HTTPError
 
+
 @pytest.fixture
 def mock_request(mocker):
     def _mock_request(status_code=200, json_data=None, raise_for_status=None):
@@ -23,6 +24,7 @@ def mock_request(mocker):
             return_value=mock_response,
         )
         return mock_response
+
     return _mock_request
 
 
@@ -42,12 +44,39 @@ class TestUpdateCheck:
     @pytest.mark.parametrize(
         "current_version_name, latest_version_tag, expected_new_version, expected_url, expected_error",
         [
-            ("v0.1.0", "v1.0.0-release", "v1.0.0", "https://example.com/release", ""), # new version available
-            ("v1.0.0", "v1.0.0-release", "", "", "v1.0.0 is the latest version."),  # up to date
-            ("v1.2.3-beta", "v1.2.2-release", "", "", "v1.2.3-beta is the latest version."), # newer than latest
+            (
+                "v0.1.0",
+                "v1.0.0-release",
+                "v1.0.0",
+                "https://example.com/release",
+                "",
+            ),  # new version available
+            (
+                "v1.0.0",
+                "v1.0.0-release",
+                "",
+                "",
+                "v1.0.0 is the latest version.",
+            ),  # up to date
+            (
+                "v1.2.3-beta",
+                "v1.2.2-release",
+                "",
+                "",
+                "v1.2.3-beta is the latest version.",
+            ),  # newer than latest
         ],
     )
-    async def test_update_check_updates(self, mocker, mock_request, current_version_name, latest_version_tag, expected_new_version, expected_url, expected_error):
+    async def test_update_check_updates(
+        self,
+        mocker,
+        mock_request,
+        current_version_name,
+        latest_version_tag,
+        expected_new_version,
+        expected_url,
+        expected_error,
+    ):
         # Mock the GitHub API response to return the same version as current
         mock_request(
             status_code=200,
@@ -61,7 +90,7 @@ class TestUpdateCheck:
         run_update_check(current_version_name, callback, quiet=True)
         await asyncio.sleep(0.1)  # Wait for the thread to complete
         assert callback.called
-        new_tag, repo_url, error, quiet = callback.call_args[0] 
+        new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == expected_new_version
         assert repo_url == expected_url
         assert error == expected_error
@@ -74,8 +103,44 @@ class TestUpdateCheck:
         run_update_check("v1.0.0", callback, quiet=True)
         await asyncio.sleep(0.1)  # Wait for the thread to complete
         assert callback.called
-        new_tag, repo_url, error, quiet = callback.call_args[0] 
+        new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
         assert repo_url == ""
         assert "HTTP error occurred" in error
+        assert quiet is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "current_version_name, latest_version_tag",
+        [
+            ("v1.0.0", "v-not-a-semver-release"),  # invalid semver tag
+            ("not-a-version", "v1.0.0-beta"),  # pre-release tag
+        ],
+    )
+    async def test_update_check_parse_error(
+        self, mocker, mock_request, current_version_name, latest_version_tag
+    ):
+        mock_request(
+            status_code=200,
+            json_data={
+                "tag_name": latest_version_tag,
+                "html_url": "https://example.com/release",
+            },
+        )
+        callback = mocker.MagicMock()
+
+        run_update_check(current_version_name, callback, quiet=True)
+        await asyncio.sleep(0.1)  # Wait for the thread to complete
+        assert callback.called
+        new_tag, repo_url, error, quiet = callback.call_args[0]
+        assert new_tag == ""
+        assert repo_url == ""
+        parsed_latest_version_tag = latest_version_tag.removesuffix(
+            "-release"
+        ).removeprefix("v")
+        parsed_current_version_name = current_version_name.removeprefix("v")
+        assert error in [
+            f"Error parsing version: {x} is not valid SemVer string"
+            for x in [parsed_latest_version_tag, parsed_current_version_name]
+        ]
         assert quiet is True
