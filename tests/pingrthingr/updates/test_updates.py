@@ -144,3 +144,16 @@ class TestUpdateCheck:
             for x in [parsed_latest_version_tag, parsed_current_version_name]
         ]
         assert quiet is True
+
+    @pytest.mark.asyncio
+    async def test_update_check_non_200(self, mocker, mock_request):
+        mock_request(status_code=201)
+        callback = mocker.MagicMock()
+        run_update_check("v1.0.0", callback, quiet=True)
+        await asyncio.sleep(0.1)  # Wait for the thread to complete
+        assert callback.called
+        new_tag, repo_url, error, quiet = callback.call_args[0]
+        assert new_tag == ""
+        assert repo_url == ""
+        assert error == "Unknown error foo"
+        assert quiet is True
