@@ -337,11 +337,11 @@ class PingrThingrApp(App):
         self, new_version: str, release_url: str, error: str
     ) -> None:
         """Handle the callback from update checking process.
-        
+
         This method is called when the update check completes (successfully or with error).
         It restores the update menu item to its normal state and displays the appropriate
         update dialog with the results.
-        
+
         Args:
             new_version (str): New version string if available, empty string otherwise
             release_url (str): URL to the GitHub release page if update available
@@ -358,11 +358,11 @@ class PingrThingrApp(App):
 
     def update_timer(self, sender) -> None:
         """Handle startup update check timer expiration.
-        
+
         Called by the Timer when the application starts up to perform an automatic
         update check if enabled in settings. This provides a delayed, non-blocking
         way to check for updates after the application is fully initialized.
-        
+
         Args:
             sender (Timer): The Timer object that triggered this callback
         """

@@ -22,21 +22,23 @@ def run_update_check(
     current_version_name: str, callback: Callable, quiet: bool = False
 ) -> None:
     """Run the update check in a separate thread to avoid blocking the UI.
-    
+
     Initiates an asynchronous update check that queries GitHub for the latest
     release and compares it with the current version. The check runs in a
     separate thread to prevent blocking the main UI thread.
-    
+
     Args:
         current_version_name (str): The current version string to compare against
         callback (Callable): Function to call with results (new_version, url, error)
-        quiet (bool, optional): If True, suppresses callback calls unless an update is available or an error occurs. If False, callback is called for "up to date" and error status as well.
-                               Defaults to False.
-                               
+        quiet (bool, optional): If True, suppresses callback calls unless an update
+                            is available or an error occurs. If False, callback is
+                            called for "up to date" and error status as well.
+                            Defaults to False.
+
     Note:
         The callback will be called with three string parameters:
         - new_version: Version string if update available, empty if not
-        - url: Release URL if update available, empty otherwise  
+        - url: Release URL if update available, empty otherwise
         - error: Error message if check failed, empty on success
     """
 
@@ -59,14 +61,14 @@ async def _check_for_updates(
 
     The function handles version tag parsing by removing common prefixes/suffixes
     like 'v' and '-release' to ensure proper semantic version comparison.
-    
+
     Args:
         current_version_name (str): Current version string (e.g., "1.2.3" or "v1.2.3")
         callback (Callable): Function to call with results (new_version, url, error)
         quiet (bool, optional): If True, only calls callback if an update is available.
                                If False, calls callback for "up to date" and error status too.
                                Defaults to False.
-        
+
     Note:
         This is an internal async function called by run_update_check().
         The callback signature is: callback(new_version: str, url: str, error: str)
