@@ -52,7 +52,7 @@ OPTIONS = {
         "CFBundleShortVersionString": VERSION,
         "NSHumanReadableCopyright": "Copyright \u00a9 2026, Adam Schumacher, Released under the MIT License",
     },
-    "packages": ["rumps"],
+    "packages": ["rumps",'anyio'],
     "iconfile": "PingrThingr.icns",
 }
 
