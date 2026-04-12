@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from .version import __VERSION__
-from rumps import App, clicked, MenuItem, separator, application_support
+from rumps import App, clicked, MenuItem, Timer, separator, application_support
 from os.path import join as path_join
 from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
@@ -68,8 +68,9 @@ class PingrThingrApp(App):
         )
         self.ping_targets_menu = MenuItem("Set ping targets...", callback=self.ping_targets)        
         self.check_for_updates_menu = MenuItem("Check for updates...", callback=self.check_for_updates)  # Placeholder for future update checking functionality
-        self.check_for_updates_on_startup = MenuItem("Check on startup", callback=lambda _: None)  # Placeholder for future update checking functionality
+        self.check_for_updates_on_startup_menu = MenuItem("Check on startup", callback=lambda _: None)  # Placeholder for future update checking functionality
         self.pause_menu.state = self._settings.get("paused", False)
+        self.check_for_updates_on_startup_menu.state = self._settings.get("check_for_updates", False)
 
         self.menu = [
             self.statistics_menu,
@@ -80,7 +81,8 @@ class PingrThingrApp(App):
             self.ping_targets_menu,
             separator,
             self.check_for_updates_menu,
-            self.check_for_updates_on_startup,
+            self.check_for_updates_on_startup_menu,
+            separator,
         ]
         self._last_state = None
 
@@ -95,6 +97,9 @@ class PingrThingrApp(App):
         self._settings.register_callback(
             "display_mode", lambda _: self.refresh_status_(use_saved=True)
         )
+
+        self._update_timer = Timer(self.update_timer, 2)  # Update every 2 seconds
+        self._update_timer.start()
 
         logger.info(f"Initialized PingrThingr")
 
@@ -324,3 +329,7 @@ class PingrThingrApp(App):
         self.check_for_updates_menu.title = "Check for updates..."
         logging.debug(f"Update check returned: new_version={new_version}, release_url={release_url}, error={error}")
         self._run_in_app_thread(update_dialog, new_version, __VERSION__, release_url, error)
+
+    def update_timer(self, sender) -> None:
+        sender.stop()
+        run_update_check("__VERSION__", self.check_for_updates_return, True)
