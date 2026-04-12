@@ -103,7 +103,7 @@ async def _check_for_updates(
                     logger.debug("No new version available.")
                     callback("", "", f"{current_version_name} is the latest version.", quiet)
                     return
-            except TypeError as e:
+            except ValueError as e:
                 logger.error(
                     f"Error parsing version from tag '{latest_version_tag}': {e}"
                 )
