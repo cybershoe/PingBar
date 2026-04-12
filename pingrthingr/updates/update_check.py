@@ -18,23 +18,28 @@ from threading import Thread
 from semver import Version
 
 
-def run_update_check(current_version_name: str, callback: Callable, quiet: bool = False) -> None:
-    """Run the update check in a separate thread to avoid blocking the UI.
-    """
+def run_update_check(
+    current_version_name: str, callback: Callable, quiet: bool = False
+) -> None:
+    """Run the update check in a separate thread to avoid blocking the UI."""
 
-
-    thread = Thread(target=lambda: asyncio.run(_check_for_updates(current_version_name, callback, quiet)))
+    thread = Thread(
+        target=lambda: asyncio.run(
+            _check_for_updates(current_version_name, callback, quiet)
+        )
+    )
     thread.start()
 
 
-
-async def _check_for_updates(current_version_name: str, callback: Callable, quiet: bool = False) -> None:
+async def _check_for_updates(
+    current_version_name: str, callback: Callable, quiet: bool = False
+) -> None:
     """Check for the latest release of PingrThingr on GitHub.
-    
+
     Queries the GitHub API to fetch information about the latest release,
     compares it with the current version using semantic versioning, and
     determines if an update is available.
-    
+
     The function handles version tag parsing by removing common prefixes/suffixes
     like 'v' and '-release' to ensure proper semantic version comparison.
 
@@ -61,9 +66,7 @@ async def _check_for_updates(current_version_name: str, callback: Callable, quie
             latest_version_name = latest_version_tag.removesuffix("-release")
             logger.debug(f"Latest release version: {latest_version_tag}")
             try:
-                latest_version = Version.parse(
-                    latest_version_name.removeprefix("v")
-                )
+                latest_version = Version.parse(latest_version_name.removeprefix("v"))
                 current_version = Version.parse(current_version_name.removeprefix("v"))
                 if latest_version > current_version:
                     logger.info(

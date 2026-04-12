@@ -18,7 +18,7 @@ def update_dialog(
     release_url: str = "https://github.com/cybershoe/PingrThingr/releases/latest",
     error: str = "",
 ) -> None:
-    
+
     if not error and new_version:
         message = (
             f"New version: {new_version}\n\n"
@@ -30,7 +30,11 @@ def update_dialog(
     else:
         message = f"Error checking for updates: {error}\n\nPlease try again later."
     response = Window(
-        title="A new version of PingrThingr is available" if new_version else "PingrThingr is up to date",
+        title=(
+            "A new version of PingrThingr is available"
+            if new_version
+            else "PingrThingr is up to date"
+        ),
         message=message,
         dimensions=(0, 0),
         cancel="Not now" if new_version else None,
