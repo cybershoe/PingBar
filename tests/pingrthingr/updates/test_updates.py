@@ -155,5 +155,5 @@ class TestUpdateCheck:
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
         assert repo_url == ""
-        assert error == "Unknown error foo"
+        assert error == "Unknown error"
         assert quiet is True
