@@ -34,10 +34,10 @@ def get_branch_name():
             return "unknown"
     return ""
 
-
+exec(open("pingrthingr/version.py").read())
 APP = ["main.py"]
-NAME = f"PingrThingr{get_branch_name()}"
-VERSION = "0.4.0-beta"
+NAME = f"PingrThingr{get_branch_name().replace('/', '-')}"
+VERSION = __VERSION__   # type: ignore
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": True,
