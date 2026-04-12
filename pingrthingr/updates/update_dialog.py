@@ -17,7 +17,7 @@ def update_dialog(
     current_version: str = "v0.4.0",
     release_url: str = "https://github.com/cybershoe/PingrThingr/releases/latest",
     error: str = "",
-) -> None:
+) -> None:  # pragma no cover
 
     if not error and new_version:
         message = (
