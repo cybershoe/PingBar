@@ -87,6 +87,7 @@ class SettingsModel(BaseModel):
         default=ThresholdModel(warn=0.0, alert=0.05, critical=0.25),
         description="Packet loss thresholds for warning, alert, and critical states",
     )
+    check_for_updates: bool = Field(default=True, description="Whether to check for application updates on startup")
 
     @model_validator(mode="before")
     @classmethod
