@@ -194,8 +194,7 @@ class TestCheckForUpdates:
         
         # Check update invocation via menu
         app.check_for_updates(app.check_for_updates_menu)
-        assert mocked_update.called
-        assert len(mocked_update.call_args[0]) == 3
+        mocked_update.assert_called_once_with("v0.2.0", app.check_for_updates_return, False)
         assert app.check_for_updates_menu.callback == None
         assert app.check_for_updates_menu.title == "Checking for updates..."
         
@@ -205,6 +204,13 @@ class TestCheckForUpdates:
         assert app.check_for_updates_menu.title == "Check for updates..."
         assert mocked_runner.called
         mocked_runner.assert_called_once_with(mocked_dialog, "v1.0.0", "v0.2.0", "https://example.com/release", "")
+
+        # Check update invocation via timer
+        mocked_update.reset_mock()
+        app.update_timer(app._update_timer)
+        mocked_update.assert_called_once_with("v0.2.0", app.check_for_updates_return, True)
+        assert app.check_for_updates_menu.callback == None
+        assert app.check_for_updates_menu.title == "Checking for updates..."
 
     def test_check_for_updates_no_new_version(self, mocked_app, mocker):
         app, _, _ = mocked_app
