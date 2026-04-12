@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 REPO = "cybershoe/PingrThingr"
 
-from httpx import AsyncClient, HTTPStatusError
+from httpx import AsyncClient, HTTPError
 from typing import Tuple, Callable
 import asyncio
 from threading import Thread
@@ -78,7 +78,7 @@ async def _check_for_updates(
         async with AsyncClient() as client:
             response = await client.get(url)
             response.raise_for_status()
-    except HTTPStatusError as e:
+    except HTTPError as e:
         logger.error(f"HTTP error occurred fetching latest release: {e}")
         callback("", "", f"HTTP error occurred: {e}", quiet)
         return
