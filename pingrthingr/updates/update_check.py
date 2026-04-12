@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 REPO = "cybershoe/PingrThingr"
 
-from httpx import AsyncClient, HTTPStatusError
+from httpx import AsyncClient, HTTPError
 from typing import Tuple, Callable
 import asyncio
 from threading import Thread
@@ -32,12 +32,6 @@ def run_update_check(
         callback (Callable): Function to call with results (new_version, url, error)
         quiet (bool, optional): Passed to callback to indicate whether to suppress dialogs
         for "up to date" status. Defaults to False.
-
-    Note:
-        The callback will be called with three string parameters:
-        - new_version: Version string if update available, empty if not
-        - url: Release URL if update available, empty otherwise
-        - error: Error message if check failed, empty on success
     """
 
     thread = Thread(
@@ -78,17 +72,18 @@ async def _check_for_updates(
         async with AsyncClient() as client:
             response = await client.get(url)
             response.raise_for_status()
-    except HTTPStatusError as e:
+    except HTTPError as e:
         logger.error(f"HTTP error occurred fetching latest release: {e}")
         callback("", "", f"HTTP error occurred: {e}", quiet)
         return
 
-    if response is not None:
+    if response is not None:  # pragma: no branch
         if response.status_code == 200:
             data = response.json()
             latest_version_tag = data.get("tag_name")
             latest_version_name = latest_version_tag.removesuffix("-release")
-            logger.debug(f"Latest release version: {latest_version_tag}")
+            logger.debug(f"Latest release version tag: {latest_version_tag}")
+            logger.debug(f"Latest release version name: {latest_version_name}")
             try:
                 latest_version = Version.parse(latest_version_name.removeprefix("v"))
                 current_version = Version.parse(current_version_name.removeprefix("v"))
@@ -100,9 +95,11 @@ async def _check_for_updates(
                     return
                 else:
                     logger.debug("No new version available.")
-                    callback("", "", f"{current_version} is the latest version.", quiet)
+                    callback(
+                        "", "", f"{current_version_name} is the latest version.", quiet
+                    )
                     return
-            except TypeError as e:
+            except ValueError as e:
                 logger.error(
                     f"Error parsing version from tag '{latest_version_tag}': {e}"
                 )

@@ -9,14 +9,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 from .version import __VERSION__
-from rumps import App, clicked, MenuItem, Timer, separator, application_support
+from rumps import App, MenuItem, Timer, separator, application_support
 from os.path import join as path_join
 from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
 from objc import selector as objc_selector  # type: ignore
-from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
+from Foundation import NSOperationQueue, NSBlockOperation  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
 
 
@@ -138,7 +138,7 @@ class PingrThingrApp(App):
         Args:
             paused (bool): True to pause the pinger, False to resume.
         """
-        logging.debug(f"In pause_cb(): Setting pinger running state to {not paused}")
+        logger.debug(f"In pause_cb(): Setting pinger running state to {not paused}")
         self.pinger.run(not paused)
         self.pause_menu.state = paused
         if paused:  # pragma: no cover

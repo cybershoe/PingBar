@@ -70,6 +70,12 @@ Or, see [Building from Source](#building-from-source) below
 
 **Note**: Only IPv4 addresses are currently supported.
 
+### Checking for updates
+
+PingrThingr will check at startup to see if there is a newer release available. You can also check at any time with the "Check for updates..." menu item.
+
+You can disable automatic update checking by deselecting the "check on startup" menu item.
+
 ## Building from Source
 
 ### Requirements
