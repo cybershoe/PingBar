@@ -67,7 +67,7 @@ class PingrThingrApp(App):
             cb=lambda x: self._settings.set("display_mode", x),
         )
         self.ping_targets_menu = MenuItem("Set ping targets...", callback=self.ping_targets)        
-        self.check_for_updates_menu = MenuItem("Check for updates...", callback=lambda _: update_dialog())  # Placeholder for future update checking functionality
+        self.check_for_updates_menu = MenuItem("Check for updates...", callback=lambda _: update_dialog(__VERSION__))  # Placeholder for future update checking functionality
         self.check_for_updates_on_startup = MenuItem("Check on startup", callback=lambda _: None)  # Placeholder for future update checking functionality
         self.pause_menu.state = self._settings.get("paused", False)
 
