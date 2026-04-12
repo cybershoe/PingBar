@@ -8,11 +8,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from rumps import App, clicked, MenuItem, application_support
+from .version import __VERSION__
+from rumps import App, clicked, MenuItem, Timer, separator, application_support
 from os.path import join as path_join
 from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
+from .updates import update_dialog, run_update_check
 from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
@@ -56,16 +58,40 @@ class PingrThingrApp(App):
             ),
             "PingrThingr",
         )
-        self.statistics_menu = MenuItem("waiting...")
-        self.pause_menu = MenuItem("Pause")
+        self.statistics_menu = MenuItem("---")
+        self.pause_menu = MenuItem("Pause", callback=self.pause_toggle)
         self.display_menu = SelectableMenu(
             "Display Mode",
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
             cb=lambda x: self._settings.set("display_mode", x),
         )
+        self.ping_targets_menu = MenuItem(
+            "Set ping targets...", callback=self.ping_targets
+        )
+        self.check_for_updates_menu = MenuItem(
+            "Check for updates...", callback=self.check_for_updates
+        )  # Placeholder for future update checking functionality
+        self.check_for_updates_on_startup_menu = MenuItem(
+            "Check on startup", callback=lambda _: None
+        )  # Placeholder for future update checking functionality
         self.pause_menu.state = self._settings.get("paused", False)
-        self.menu = [self.statistics_menu, self.pause_menu, self.display_menu]
+        self.check_for_updates_on_startup_menu.state = self._settings.get(
+            "check_for_updates", False
+        )
+
+        self.menu = [
+            self.statistics_menu,
+            separator,
+            self.pause_menu,
+            separator,
+            self.display_menu,
+            self.ping_targets_menu,
+            separator,
+            self.check_for_updates_menu,
+            self.check_for_updates_on_startup_menu,
+            separator,
+        ]
         self._last_state = None
 
         self.pinger = Pinger(
@@ -80,7 +106,28 @@ class PingrThingrApp(App):
             "display_mode", lambda _: self.refresh_status_(use_saved=True)
         )
 
+        self._update_timer = Timer(self.update_timer, 2)  # Update every 2 seconds
+        self._update_timer.start()
+
         logger.info(f"Initialized PingrThingr")
+
+    def _run_in_app_thread(self, func, *args, **kwargs):
+        """Run a function in the main application thread.
+
+        Utility method to execute a given function with arguments on the main
+        thread of the application. Useful for ensuring that UI updates and
+        other main-thread-only operations are performed safely from background
+        threads.
+
+        Args:
+            func (callable): The function to execute on the main thread.
+            *args: Variable length argument list to pass to the function.
+            **kwargs: Arbitrary keyword arguments to pass to the function.
+        """
+        operation = NSBlockOperation.blockOperationWithBlock_(
+            lambda: func(*args, **kwargs)
+        )
+        NSOperationQueue.mainQueue().addOperation_(operation)
 
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
@@ -127,10 +174,7 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        operation = NSBlockOperation.blockOperationWithBlock_(
-            lambda: self.refresh_status_(latency, loss)
-        )
-        NSOperationQueue.mainQueue().addOperation_(operation)
+        self._run_in_app_thread(self.refresh_status_, latency, loss)
 
     def _draw_icon(self, icon: NSImage | NSView) -> None:
         """Draw the menu bar icon.
@@ -244,7 +288,6 @@ class PingrThingrApp(App):
                 )
                 self._draw_icon(icon)
 
-    @clicked("Ping targets")
     def ping_targets(self, _) -> None:
         """Handle ping targets menu item click.
 
@@ -262,7 +305,6 @@ class PingrThingrApp(App):
         else:
             logger.debug(f"ping_target_window() returned None, no changes to targets")
 
-    @clicked("Pause")
     def pause_toggle(self, sender) -> None:
         """Toggle the pinger pause state.
 
@@ -275,3 +317,60 @@ class PingrThingrApp(App):
         logger.debug(f"Toggling pause state from {sender.state} to {not sender.state}")
 
         self._settings.set("paused", not sender.state)
+
+    def check_for_updates(self, sender) -> None:
+        """Initiate a manual check for application updates.
+
+        Temporarily disables the menu item and starts an asynchronous update check
+        process. The menu item is re-enabled when the check completes via the
+        check_for_updates_return callback method.
+
+        Args:
+            sender (MenuItem): The "Check for updates..." menu item that was clicked
+        """
+
+        sender.set_callback(None)  # Disable the menu item while checking for updates
+        sender.title = "Checking for updates..."
+        run_update_check(__VERSION__, self.check_for_updates_return, False)
+
+    def check_for_updates_return(
+        self, new_version: str, release_url: str, error: str, quiet: bool = False
+    ) -> None:
+        """Handle the callback from update checking process.
+
+        This method is called when the update check completes (successfully or with error).
+        It restores the update menu item to its normal state and displays the appropriate
+        update dialog with the results.
+
+        Args:
+            new_version (str): New version string if available, empty string otherwise
+            release_url (str): URL to the GitHub release page if update available
+            error (str): Error message if update check failed, empty string on success
+            quiet (bool, optional): If True, suppresses update dialog if no update is available.
+                                    Defaults to False.
+        """
+        self.check_for_updates_menu.set_callback(self.check_for_updates)
+        self.check_for_updates_menu.title = "Check for updates..."
+        logger.debug(
+            f"Update check returned: new_version={new_version}, release_url={release_url}, error={error}"
+        )
+
+        if new_version or not quiet:
+            self._run_in_app_thread(
+                update_dialog, new_version, __VERSION__, release_url, error
+            )
+
+    def update_timer(self, sender) -> None:
+        """Handle startup update check timer expiration.
+
+        Called by the Timer when the application starts up to perform an automatic
+        update check if enabled in settings. This provides a delayed, non-blocking
+        way to check for updates after the application is fully initialized.
+
+        Args:
+            sender (Timer): The Timer object that triggered this callback
+        """
+        self.check_for_updates_menu.set_callback(None)
+        self.check_for_updates_menu.title = "Checking for updates..."
+        sender.stop()
+        run_update_check(__VERSION__, self.check_for_updates_return, True)

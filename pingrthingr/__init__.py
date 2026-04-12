@@ -5,3 +5,4 @@ connectivity by pinging specified targets and displays status icons.
 """
 
 from .app import PingrThingrApp
+from .version import __VERSION__
