@@ -12,12 +12,12 @@ from rumps import Window, alert
 from webbrowser import open as open_in_browser
 
 
-def update_dialog(
+def update_dialog(  # pragma: no cover
     new_version: str = "v0.5.0",
     current_version: str = "v0.4.0",
     release_url: str = "https://github.com/cybershoe/PingrThingr/releases/latest",
     error: str = "",
-) -> None:  # pragma no cover
+) -> None: 
 
     if not error and new_version:
         message = (
