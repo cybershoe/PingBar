@@ -4,20 +4,30 @@ from pingrthingr import PingrThingrApp
 from pingrthingr.icons import generate_status_icon
 from pingrthingr.settings.models import ThresholdModel
 from pathlib import Path
-from json import load as json_load
+from json import load as json_load, dump as json_dump
 
+base_path = Path(__file__).parent
 
 @pytest.fixture(autouse=True)
 def mocked_app(mocker, tmp_path):
-    # Create an instance of the app for testing
-    mock_pinger = mocker.MagicMock()
-    mocker.patch("pingrthingr.app.Pinger", return_value=mock_pinger)
-    mocker.patch("pingrthingr.app.application_support", return_value=str(tmp_path))
-    app = PingrThingrApp("testapp")
-    mock_nsapp = mocker.MagicMock()
-    mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
+    def _mocked_app(settings: dict | None = None):
+        # Create an instance of the app for testing
+        mock_pinger = mocker.MagicMock()
+        mocker.patch("pingrthingr.app.Pinger", return_value=mock_pinger)
+        mocker.patch("pingrthingr.app.application_support", return_value=str(tmp_path))
+        if settings is not None:
+            with open(base_path / "settings/resources/default_settings.json") as f:
+                default_settings = json_load(f)
+            default_settings.update(settings)
+            settings_file = tmp_path / "settings.json"
+            with open(settings_file, "w") as f:
+                json_dump(default_settings, f)
+        app = PingrThingrApp("testapp")
+        mock_nsapp = mocker.MagicMock()
+        mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
+        return app, mock_pinger, mock_nsapp
 
-    yield app, mock_pinger, mock_nsapp
+    yield _mocked_app
 
 
 @pytest.fixture(autouse=True)
@@ -31,7 +41,7 @@ def mocked_ns_block_operation(mocker):
 
 class TestPingrThingrAppInitialization:
     def test_initialization(self, mocked_app, tmp_path):
-        app, _, _ = mocked_app
+        app, _, _ = mocked_app()
         assert app._settings is not None, "SettingsManager should be initialized"
         assert app.pinger is not None, "Pinger should be initialized"
         assert app.menu is not None, "Menu should be initialized"
@@ -48,7 +58,7 @@ class TestPingrThingrAppInitialization:
 
 class TestPingUpdates:
     def test_ping_response_updates(self, mocked_app, mocked_ns_block_operation):
-        app, _, mocked_nsapp = mocked_app
+        app, _, mocked_nsapp = mocked_app()
 
         # Simulate a ping response and check if statistics are updated
         app.update_statistics(latency=100, loss=0)
@@ -68,7 +78,7 @@ class TestPingUpdates:
         ), "NSApp.setMenuBarIcon should be called to update the icon"
 
     def test_no_update_when_same(self, mocked_app, mocked_ns_block_operation):
-        app, _, mocked_nsapp = mocked_app
+        app, _, mocked_nsapp = mocked_app()
         mocked_nsapp.setStatusBarIcon.reset_mock()  # Reset mock call count
         app.update_statistics(latency=100, loss=0)
         assert (
@@ -95,7 +105,7 @@ class TestPingUpdates:
 
 class TestSettingsChanges:
     def test_pause(self, mocked_app, tmp_path, mocker):
-        app, mock_pinger, mock_nsapp = mocked_app
+        app, mock_pinger, mock_nsapp = mocked_app()
         mock_sender = mocker.MagicMock(state=False)
         app.pause_toggle(mock_sender)
         mock_pinger.run.assert_called_with(False)
@@ -116,7 +126,7 @@ class TestSettingsChanges:
         ), "Settings file should reflect paused state"
 
     def test_display_mode_change(self, mocked_app, tmp_path):
-        app, _, mock_nsapp = mocked_app
+        app, _, mock_nsapp = mocked_app()
         app._settings.set("display_mode", "Text")
         assert (
             mock_nsapp.setStatusBarIcon.called
@@ -133,7 +143,7 @@ class TestSettingsChanges:
         ), "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
 
     def test_ping_target_window(self, mocked_app, mocker, tmp_path):
-        app, _, _ = mocked_app
+        app, _, _ = mocked_app()
         new_targets = ["3.4.5.6", "7.8.9.10"]
         mocker.patch("pingrthingr.app.ping_target_window", return_value=new_targets)
         app.ping_targets(None)
@@ -144,7 +154,7 @@ class TestSettingsChanges:
         ), "Settings file should reflect updated ping targets"
 
     def test_cancelled_ping_targets(self, mocked_app, mocker, tmp_path):
-        app, _, _ = mocked_app
+        app, _, _ = mocked_app()
         mocker.patch("pingrthingr.app.ping_target_window", return_value=None)
         settings_file = tmp_path / "settings.json"
         pre_app_targets = app._settings.get("targets")
@@ -160,7 +170,7 @@ class TestSettingsChanges:
 class TestIconRendering:
     def test_nsview_clearance(self, mocked_app, mocker):
 
-        app, _, mock_nsapp = mocked_app
+        app, _, mock_nsapp = mocked_app()
 
         icon, _ = generate_status_icon(
             "Text",
@@ -184,7 +194,7 @@ class TestIconRendering:
 
 class TestCheckForUpdates:
     def test_check_for_updates(self, mocked_app, mocker):
-        app, _, _ = mocked_app
+        app, _, _ = mocked_app()
         mocked_update = mocker.MagicMock()
         mocker.patch("pingrthingr.app.run_update_check", mocked_update)
         mocked_dialog = mocker.MagicMock()
@@ -220,7 +230,7 @@ class TestCheckForUpdates:
         assert app.check_for_updates_menu.title == "Checking for updates..."
 
     def test_check_for_updates_no_new_version(self, mocked_app, mocker):
-        app, _, _ = mocked_app
+        app, _, _ = mocked_app()
         mocked_dialog = mocker.MagicMock()
         mocker.patch("pingrthingr.app.update_dialog", mocked_dialog)
         mocked_runner = mocker.MagicMock()
@@ -238,3 +248,25 @@ class TestCheckForUpdates:
         assert (
             not mocked_runner.called
         ), "Runner should not be called when quiet is True and no new version"
+
+    def test_check_for_updates_on_startup_enabled(self, mocked_app):
+        # Test that the update timer starts on app initialization when setting is enabled
+        settings = {"check_for_updates": True}
+        app, _, _ = mocked_app(settings)
+        assert app._update_timer.is_alive(), "Update timer should be started when check_for_updates is True"
+
+    def test_check_for_updates_on_startup_disabled(self, mocked_app):
+        # Test that the update timer does not start on app initialization when setting is disabled
+        settings = {"check_for_updates": False}
+        app, _, _ = mocked_app(settings)
+        assert not app._update_timer.is_alive(), "Update timer should not be started when check_for_updates is False"
+
+    def test_check_for_updates_on_startup_toggle(self, mocked_app):
+        # Test that toggling the check_for_updates setting starts/stops the update timer
+        settings = {"check_for_updates": False}
+        app, _, _ = mocked_app(settings)
+        assert app._settings.get("check_for_updates") == False, "Initial setting should be False"
+        assert app.check_for_updates_on_startup_menu.state == False, "Menu state should reflect initial setting"
+        app.check_for_updates_on_startup_menu.callback(app.check_for_updates_on_startup_menu)  # Toggle the setting
+        assert app._settings.get("check_for_updates") == True, "Setting should be toggled to True"
+        assert app.check_for_updates_on_startup_menu.state == True, "Menu state should reflect toggled setting"
