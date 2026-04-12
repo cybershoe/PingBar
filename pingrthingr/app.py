@@ -369,4 +369,4 @@ class PingrThingrApp(App):
         self.check_for_updates_menu.set_callback(None)
         self.check_for_updates_menu.title = "Checking for updates..."
         sender.stop()
-        run_update_check("__VERSION__", self.check_for_updates_return, True)
+        run_update_check(__VERSION__, self.check_for_updates_return, True)
