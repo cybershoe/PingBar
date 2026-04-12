@@ -190,13 +190,34 @@ class TestCheckForUpdates:
         mocker.patch("pingrthingr.app.update_dialog", mocked_dialog)
         mocked_runner = mocker.MagicMock()
         mocker.patch.object(app, "_run_in_app_thread", mocked_runner)
+        mocker.patch("pingrthingr.app.__VERSION__", "v0.2.0")
+        
+        # Check update invocation via menu
         app.check_for_updates(app.check_for_updates_menu)
         assert mocked_update.called
         assert len(mocked_update.call_args[0]) == 3
         assert app.check_for_updates_menu.callback == None
         assert app.check_for_updates_menu.title == "Checking for updates..."
+        
+        # Check callback handling
         app.check_for_updates_return("v1.0.0", "https://example.com/release", "", True)
         assert app.check_for_updates_menu.callback == app.check_for_updates
         assert app.check_for_updates_menu.title == "Check for updates..."
         assert mocked_runner.called
-        mocked_runner.assert_called_once_with(mocked_dialog, "v1.0.0", "v0.4.0", "https://example.com/release", "")
+        mocked_runner.assert_called_once_with(mocked_dialog, "v1.0.0", "v0.2.0", "https://example.com/release", "")
+
+    def test_check_for_updates_no_new_version(self, mocked_app, mocker):
+        app, _, _ = mocked_app
+        mocked_dialog = mocker.MagicMock()
+        mocker.patch("pingrthingr.app.update_dialog", mocked_dialog)
+        mocked_runner = mocker.MagicMock()
+        mocker.patch.object(app, "_run_in_app_thread", mocked_runner)
+
+        # Not quiet, should call runner to display results
+        app.check_for_updates_return("", "", "v0.4.0 is the latest version.", False)
+        mocked_runner.assert_called_once_with(mocked_dialog, "", "v0.4.0", "", "v0.4.0 is the latest version.")
+
+        # Quiet, should not call runner
+        mocked_runner.reset_mock()
+        app.check_for_updates_return("", "", "v0.4.0 is the latest version.", True)
+        assert not mocked_runner.called, "Runner should not be called when quiet is True and no new version"
