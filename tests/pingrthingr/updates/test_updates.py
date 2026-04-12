@@ -4,7 +4,6 @@ LOGGER = logging.getLogger(__name__)
 
 import pytest
 import asyncio
-from threading import enumerate as threading_enumerate
 from pingrthingr.updates.update_check import run_update_check
 from httpx import HTTPError
 

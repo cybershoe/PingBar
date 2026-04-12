@@ -72,7 +72,7 @@ def _criticality(
     latency_criticality = _evaluate_criticality(latency, latency_thresholds)
     loss_criticality = _evaluate_criticality(loss, loss_thresholds)
 
-    logging.debug(
+    logger.debug(
         f"Latency: {latency}, Loss: {loss}, Latency Criticality: {latency_criticality}, Loss Criticality: {loss_criticality}"
     )
     return latency_criticality, loss_criticality
