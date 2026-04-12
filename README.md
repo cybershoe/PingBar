@@ -1,4 +1,4 @@
-[![tests](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml/badge.svg)](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml)
+[![tests](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml/badge.svg?branch=dev)](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml)
 [![codecov](https://codecov.io/gh/cybershoe/PingrThingr/branch/dev/graph/badge.svg?token=DdM0wsZqpJ)](https://codecov.io/gh/cybershoe/PingrThingr)
 [![Ko-Fi](https://img.shields.io/badge/ko--fi-buy_me_a_coffee-blue?logo=buymeacoffee)](https://ko-fi.com/J3J5GIGDO)
 
