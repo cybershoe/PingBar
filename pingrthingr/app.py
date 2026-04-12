@@ -319,13 +319,14 @@ class PingrThingrApp(App):
         self._settings.set("paused", not sender.state)
 
     def check_for_updates(self, sender) -> None:
-        """Check for application updates.
+        """Initiate a manual check for application updates.
 
-        Placeholder method for future implementation of update checking functionality.
-        Currently displays a dialog with the latest version information.
+        Temporarily disables the menu item and starts an asynchronous update check
+        process. The menu item is re-enabled when the check completes via the
+        check_for_updates_return callback method.
 
         Args:
-            sender (MenuItem): The menu item that was clicked to trigger the update check.
+            sender (MenuItem): The "Check for updates..." menu item that was clicked
         """
 
         sender.set_callback(None)  # Disable the menu item while checking for updates
@@ -335,6 +336,17 @@ class PingrThingrApp(App):
     def check_for_updates_return(
         self, new_version: str, release_url: str, error: str
     ) -> None:
+        """Handle the callback from update checking process.
+        
+        This method is called when the update check completes (successfully or with error).
+        It restores the update menu item to its normal state and displays the appropriate
+        update dialog with the results.
+        
+        Args:
+            new_version (str): New version string if available, empty string otherwise
+            release_url (str): URL to the GitHub release page if update available
+            error (str): Error message if update check failed, empty string on success
+        """
         self.check_for_updates_menu.set_callback(self.check_for_updates)
         self.check_for_updates_menu.title = "Check for updates..."
         logging.debug(
@@ -345,5 +357,14 @@ class PingrThingrApp(App):
         )
 
     def update_timer(self, sender) -> None:
+        """Handle startup update check timer expiration.
+        
+        Called by the Timer when the application starts up to perform an automatic
+        update check if enabled in settings. This provides a delayed, non-blocking
+        way to check for updates after the application is fully initialized.
+        
+        Args:
+            sender (Timer): The Timer object that triggered this callback
+        """
         sender.stop()
         run_update_check("__VERSION__", self.check_for_updates_return, True)
