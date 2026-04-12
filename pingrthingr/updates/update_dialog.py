@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from rumps import Window, alert
+from rumps import Window
 from webbrowser import open as open_in_browser
 
 
