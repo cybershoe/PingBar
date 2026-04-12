@@ -260,3 +260,13 @@ class TestCheckForUpdates:
         settings = {"check_for_updates": False}
         app, _, _ = mocked_app(settings)
         assert not app._update_timer.is_alive(), "Update timer should not be started when check_for_updates is False"
+
+    def test_check_for_updates_on_startup_toggle(self, mocked_app):
+        # Test that toggling the check_for_updates setting starts/stops the update timer
+        settings = {"check_for_updates": False}
+        app, _, _ = mocked_app(settings)
+        assert app._settings.get("check_for_updates") == False, "Initial setting should be False"
+        assert app.check_for_updates_on_startup_menu.state == False, "Menu state should reflect initial setting"
+        app.check_for_updates_on_startup_menu.callback(app.check_for_updates_on_startup_menu)  # Toggle the setting
+        assert app._settings.get("check_for_updates") == True, "Setting should be toggled to True"
+        assert app.check_for_updates_on_startup_menu.state == True, "Menu state should reflect toggled setting"
