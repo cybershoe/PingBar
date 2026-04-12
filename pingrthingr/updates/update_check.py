@@ -88,7 +88,8 @@ async def _check_for_updates(
             data = response.json()
             latest_version_tag = data.get("tag_name")
             latest_version_name = latest_version_tag.removesuffix("-release")
-            logger.debug(f"Latest release version: {latest_version_tag}")
+            logger.debug(f"Latest release version tag: {latest_version_tag}")
+            logger.debug(f"Latest release version name: {latest_version_name}")
             try:
                 latest_version = Version.parse(latest_version_name.removeprefix("v"))
                 current_version = Version.parse(current_version_name.removeprefix("v"))
@@ -100,7 +101,7 @@ async def _check_for_updates(
                     return
                 else:
                     logger.debug("No new version available.")
-                    callback("", "", f"{current_version} is the latest version.", quiet)
+                    callback("", "", f"{current_version_name} is the latest version.", quiet)
                     return
             except TypeError as e:
                 logger.error(
