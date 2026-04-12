@@ -98,6 +98,24 @@ class PingrThingrApp(App):
 
         logger.info(f"Initialized PingrThingr")
 
+    def _run_in_app_thread(self, func, *args, **kwargs):
+        """Run a function in the main application thread.
+
+        Utility method to execute a given function with arguments on the main
+        thread of the application. Useful for ensuring that UI updates and
+        other main-thread-only operations are performed safely from background
+        threads.
+
+        Args:
+            func (callable): The function to execute on the main thread.
+            *args: Variable length argument list to pass to the function.
+            **kwargs: Arbitrary keyword arguments to pass to the function.
+        """
+        operation = NSBlockOperation.blockOperationWithBlock_(
+            lambda: func(*args, **kwargs)
+        )
+        NSOperationQueue.mainQueue().addOperation_(operation)
+
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
 
@@ -143,10 +161,7 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        operation = NSBlockOperation.blockOperationWithBlock_(
-            lambda: self.refresh_status_(latency, loss)
-        )
-        NSOperationQueue.mainQueue().addOperation_(operation)
+        self._run_in_app_thread(self.refresh_status_, latency, loss)
 
     def _draw_icon(self, icon: NSImage | NSView) -> None:
         """Draw the menu bar icon.
