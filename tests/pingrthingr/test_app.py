@@ -180,3 +180,23 @@ class TestIconRendering:
             .removeFromSuperview.call_count
             == 1
         ), "Existing subviews should be removed when drawing a new icon"
+
+class TestCheckForUpdates:
+    def test_check_for_updates(self, mocked_app, mocker):
+        app, _, _ = mocked_app
+        mocked_update = mocker.MagicMock()
+        mocker.patch("pingrthingr.app.run_update_check", mocked_update)
+        mocked_dialog = mocker.MagicMock()
+        mocker.patch("pingrthingr.app.update_dialog", mocked_dialog)
+        mocked_runner = mocker.MagicMock()
+        mocker.patch.object(app, "_run_in_app_thread", mocked_runner)
+        app.check_for_updates(app.check_for_updates_menu)
+        assert mocked_update.called
+        assert len(mocked_update.call_args[0]) == 3
+        assert app.check_for_updates_menu.callback == None
+        assert app.check_for_updates_menu.title == "Checking for updates..."
+        app.check_for_updates_return("v1.0.0", "https://example.com/release", "", True)
+        assert app.check_for_updates_menu.callback == app.check_for_updates
+        assert app.check_for_updates_menu.title == "Check for updates..."
+        assert mocked_runner.called
+        mocked_runner.assert_called_once_with(mocked_dialog, "v1.0.0", "v0.4.0", "https://example.com/release", "")
