@@ -323,3 +323,4 @@ class PingrThingrApp(App):
         self.check_for_updates_menu.set_callback(self.check_for_updates)
         self.check_for_updates_menu.title = "Check for updates..."
         logging.debug(f"Update check returned: new_version={new_version}, release_url={release_url}, error={error}")
+        self._run_in_app_thread(update_dialog, new_version, __VERSION__, release_url, error)
