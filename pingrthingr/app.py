@@ -73,7 +73,7 @@ class PingrThingrApp(App):
             "Check for updates...", callback=self.check_for_updates
         )  # Placeholder for future update checking functionality
         self.check_for_updates_on_startup_menu = MenuItem(
-            "Check on startup", callback=lambda _: None
+            "Check on startup", callback=self.check_for_updates_on_startup
         )  # Placeholder for future update checking functionality
         self.pause_menu.state = self._settings.get("paused", False)
         self.check_for_updates_on_startup_menu.state = self._settings.get(
@@ -107,7 +107,11 @@ class PingrThingrApp(App):
         )
 
         self._update_timer = Timer(self.update_timer, 2)  # Update every 2 seconds
-        self._update_timer.start()
+        if self._settings.get("check_for_updates", False):
+            logger.debug(f"Check for updates on startup is enabled, starting update timer")
+            self._update_timer.start()
+        else:
+            logger.debug(f"Check for updates on startup is disabled, not starting update timer")
 
         logger.info(f"Initialized PingrThingr")
 
@@ -374,3 +378,15 @@ class PingrThingrApp(App):
         self.check_for_updates_menu.title = "Checking for updates..."
         sender.stop()
         run_update_check(__VERSION__, self.check_for_updates_return, True)
+
+    def check_for_updates_on_startup(self, sender) -> None:
+        """Toggle the "Check on startup" setting.
+
+        Updates the application settings to enable or disable automatic update checks
+        on application startup based on the menu item state.
+
+        Args:
+            sender (MenuItem): The "Check on startup" menu item that was clicked
+        """
+        sender.state = not sender.state
+        self._settings.set("check_for_updates", sender.state)
