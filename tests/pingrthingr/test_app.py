@@ -20,13 +20,21 @@ def mocked_app(mocker, tmp_path):
     yield app, mock_pinger, mock_nsapp
 
 
+# @pytest.fixture(autouse=True)
+# def mocked_ns_block_operation(mocker):
+#     mock_ns_block_operation = mocker.MagicMock()
+#     mock_ns_operation_queue = mocker.MagicMock()
+#     mocker.patch("pingrthingr.app.NSBlockOperation", mock_ns_block_operation)
+#     mocker.patch("pingrthingr.app.NSOperationQueue", mock_ns_operation_queue)
+#     yield mock_ns_block_operation
+
 @pytest.fixture(autouse=True)
-def mocked_ns_block_operation(mocker):
-    mock_ns_block_operation = mocker.MagicMock()
-    mock_ns_operation_queue = mocker.MagicMock()
-    mocker.patch("pingrthingr.app.NSBlockOperation", mock_ns_block_operation)
-    mocker.patch("pingrthingr.app.NSOperationQueue", mock_ns_operation_queue)
-    yield mock_ns_block_operation
+def mocked_ns_timer(mocker):
+    mock_ns_timer = mocker.MagicMock()
+    mock_ns_runloop = mocker.MagicMock()
+    mocker.patch("pingrthingr.app.NSTimer", mock_ns_timer)
+    mocker.patch("pingrthingr.app.NSRunLoop", mock_ns_runloop)
+    yield mock_ns_timer, mock_ns_runloop
 
 
 class TestPingrThingrAppInitialization:
@@ -47,17 +55,26 @@ class TestPingrThingrAppInitialization:
 
 
 class TestPingUpdates:
-    def test_ping_response_updates(self, mocked_app, mocked_ns_block_operation):
+    def test_ping_response_updates(self, mocked_app, mocked_ns_timer, mocker):
         app, _, mocked_nsapp = mocked_app
 
+        NSTimer, NSRunloop = mocked_ns_timer
+        NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_.return_value = mocker.MagicMock() 
         # Simulate a ping response and check if statistics are updated
         app.update_statistics(latency=100, loss=0)
         assert (
-            mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1
+            NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_.call_count == 1
         ), "NSBlockOperation should be created to update statistics"
-        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][
-            0
-        ]()  # Call the block to execute the statistics update
+
+        print(NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_.call_args)
+        args = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_.call_args[0]
+        
+        # Call the block to execute the statistics update
+        NSTimer.userInfo.returns = args[3]  # Simulate userInfo being passed to the selector
+        getattr(args[1], args[2].replace(":", "_"))(NSTimer)
+        # print(args[3])  # time interval
+        return
+
         assert app.latency == 100, "Latency should be updated to 100"
         assert app.loss == 0, "Loss should be updated to 0"
         assert (

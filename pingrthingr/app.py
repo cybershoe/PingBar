@@ -14,7 +14,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from objc import selector as objc_selector  # type: ignore
-from Foundation import NSOperationQueue, NSBlockOperation, NSLayoutConstraint  # type: ignore
+from Foundation import NSOperationQueue, NSLayoutConstraint, NSTimer, NSRunLoop  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
 
 
@@ -82,6 +82,21 @@ class PingrThingrApp(App):
 
         logger.info(f"Initialized PingrThingr")
 
+    def _timerUpdateUI_(self, timer) -> None:
+        """Timer callback to update UI on main thread.
+        
+        This method is called by NSTimer when it fires, providing thread-safe
+        UI updates using the same mechanism as rumps.Timer.
+        
+        Args:
+            timer: NSTimer object containing userInfo with latency/loss data
+        """
+        user_info = timer.userInfo()
+        if user_info:
+            latency = user_info.get("latency")
+            loss = user_info.get("loss")
+            self.refresh_status_(latency, loss)
+
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
 
@@ -127,10 +142,16 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        operation = NSBlockOperation.blockOperationWithBlock_(
-            lambda: self.refresh_status_(latency, loss)
+        # Use NSTimer with immediate firing - same mechanism as rumps.Timer which doesn't leak
+        # Store values in a transient way for the timer callback
+        timer_info = {"latency": latency, "loss": loss}
+        
+        # Create one-time timer that fires immediately on main run loop
+        # This leverages the same non-leaking timer mechanism that rumps uses
+        timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
+            0.0, self, "_timerUpdateUI:", timer_info, False
         )
-        NSOperationQueue.mainQueue().addOperation_(operation)
+        NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
 
     def _draw_icon(self, icon: NSImage | NSView) -> None:
         """Draw the menu bar icon.
