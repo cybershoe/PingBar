@@ -117,24 +117,6 @@ class PingrThingrApp(App):
 
         logger.info(f"Initialized PingrThingr")
 
-    def _run_in_app_thread(self, func, *args, **kwargs):
-        """Run a function in the main application thread.
-
-        Utility method to execute a given function with arguments on the main
-        thread of the application. Useful for ensuring that UI updates and
-        other main-thread-only operations are performed safely from background
-        threads.
-
-        Args:
-            func (callable): The function to execute on the main thread.
-            *args: Variable length argument list to pass to the function.
-            **kwargs: Arbitrary keyword arguments to pass to the function.
-        """
-        operation = NSBlockOperation.blockOperationWithBlock_(
-            lambda: func(*args, **kwargs)
-        )
-        NSOperationQueue.mainQueue().addOperation_(operation)
-
     def run_in_timer(self, func: str, *args, **kwargs):
         """Run a function in the main application thread using a Timer.
 
@@ -229,17 +211,7 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        # self._run_in_app_thread(self.refresh_status_, latency, loss)
-
         self.run_in_timer("refresh_status_", latency, loss)
-
-        # userdata = {"latency": latency, "loss": loss, "func": "refresh_status_"}
-        # logger.debug(f"Scheduling refresh to run in app thread ")
-
-        # timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
-        #     0.0, self, "_run_from_timer:", userdata, False
-        # )        
-        # NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
 
     def _draw_icon(self, icon: NSImage | NSView) -> None:
         """Draw the menu bar icon.
@@ -286,7 +258,6 @@ class PingrThingrApp(App):
             offset_y = (button_frame.size.height - icon_frame.size.height) / 2
             icon.setFrameOrigin_((offset_x, offset_y))
 
-    # @objc_selector
     def refresh_status_(
         self,
         latency: float | None = None,
