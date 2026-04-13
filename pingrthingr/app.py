@@ -15,9 +15,10 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from objc import selector as objc_selector  # type: ignore
-from Foundation import NSOperationQueue, NSBlockOperation  # type: ignore
+from Foundation import NSTimer, NSRunLoop  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
+import gc
+from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
 class PingrThingrApp(App):
@@ -115,23 +116,54 @@ class PingrThingrApp(App):
 
         logger.info(f"Initialized PingrThingr")
 
-    def _run_in_app_thread(self, func, *args, **kwargs):
-        """Run a function in the main application thread.
+    def run_in_timer(self, func: str, *args, **kwargs):
+        """Run a function in the main application thread using a Timer.
 
-        Utility method to execute a given function with arguments on the main
-        thread of the application. Useful for ensuring that UI updates and
-        other main-thread-only operations are performed safely from background
-        threads.
+        Schedules a function to be executed on the main thread using a one-shot
+        Timer, to allow arguments to be passed between threads without orphaned
+        references causing a emory leak.
 
         Args:
             func (callable): The function to execute on the main thread.
             *args: Variable length argument list to pass to the function.
             **kwargs: Arbitrary keyword arguments to pass to the function.
         """
-        operation = NSBlockOperation.blockOperationWithBlock_(
-            lambda: func(*args, **kwargs)
-        )
-        NSOperationQueue.mainQueue().addOperation_(operation)
+        logger.debug(f"Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}")
+
+        # non-scalar values in userdata seem to cause memory leaks between python and objc
+        userdata = pickle_dumps({"func": func, "args": args, "kwargs": kwargs})
+
+        timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
+            0.0, self, "_run_from_timer:", userdata, False
+        )        
+        NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
+
+    def _run_from_timer_(self, timer):
+
+        logger.debug(f"Running function from timer with userInfo: {timer.userInfo()}")
+
+        try:
+            user_info = pickle_loads(timer.userInfo())
+        except Exception as e:
+            logger.error(f"Error unpickling userInfo from timer: {e}")
+            return
+        else:
+            logger.debug(f"Successfully unpickled userInfo: {user_info}")
+
+        func=getattr(self, user_info.get('func', None))
+
+        if func is None:
+            raise KeyError(f"Function name not found in timer userInfo: {user_info}")
+        else:
+            logger.debug(f"Retrieved function '{func.__name__}' from timer userInfo")
+        
+        args=user_info.get('args', ())
+        kwargs=user_info.get('kwargs', {})
+        
+        logger.debug(f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}")
+        func(*args, **kwargs)
+
+        logger.debug(f"Total objects after running function: {len(gc.get_objects())}")
 
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
@@ -178,7 +210,7 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        self._run_in_app_thread(self.refresh_status_, latency, loss)
+        self.run_in_timer("refresh_status_", latency, loss)
 
     def _draw_icon(self, icon: NSImage | NSView) -> None:
         """Draw the menu bar icon.
@@ -225,7 +257,6 @@ class PingrThingrApp(App):
             offset_y = (button_frame.size.height - icon_frame.size.height) / 2
             icon.setFrameOrigin_((offset_x, offset_y))
 
-    @objc_selector
     def refresh_status_(
         self,
         latency: float | None = None,
@@ -360,9 +391,13 @@ class PingrThingrApp(App):
         )
 
         if new_version or not quiet:
-            self._run_in_app_thread(
-                update_dialog, new_version, __VERSION__, release_url, error
+            self.run_in_timer(
+                "_update_dialog_return", new_version, __VERSION__, release_url, error
             )
+
+    def _update_dialog_return(self, new_version: str, current_version, release_url: str, error: str) -> None:
+        update_dialog(new_version, current_version, release_url, error)
+
 
     def update_timer(self, sender) -> None:
         """Handle startup update check timer expiration.

@@ -24,19 +24,29 @@ def mocked_app(mocker, tmp_path):
                 json_dump(default_settings, f)
         app = PingrThingrApp("testapp")
         mock_nsapp = mocker.MagicMock()
+        mock_run_in_timer = mocker.MagicMock()
+        def _mocked_run_in_timer(func, *args, **kwargs):
+            func = getattr(app, func)
+            func(*args, **kwargs)
+        mock_run_in_timer.side_effect = _mocked_run_in_timer
         mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
+        mocker.patch.object(app, "run_in_timer", mock_run_in_timer)
         return app, mock_pinger, mock_nsapp
 
     yield _mocked_app
 
 
-@pytest.fixture(autouse=True)
-def mocked_ns_block_operation(mocker):
-    mock_ns_block_operation = mocker.MagicMock()
-    mock_ns_operation_queue = mocker.MagicMock()
-    mocker.patch("pingrthingr.app.NSBlockOperation", mock_ns_block_operation)
-    mocker.patch("pingrthingr.app.NSOperationQueue", mock_ns_operation_queue)
-    yield mock_ns_block_operation
+# # @pytest.fixture(autouse=True)
+# # def mocked_ns_block_operation(mocker):
+# #     mock_ns_block_operation = mocker.MagicMock()
+# #     mock_ns_operation_queue = mocker.MagicMock()
+# #     mocker.patch("pingrthingr.app.NSBlockOperation", mock_ns_block_operation)
+# #     mocker.patch("pingrthingr.app.NSOperationQueue", mock_ns_operation_queue)
+# #     yield mock_ns_block_operation
+
+
+#     mocker.patch.object(PingrThingrApp, "run_in_timer", _mocked_run_in_timer)
+#     yield
 
 
 class TestPingrThingrAppInitialization:
@@ -57,17 +67,11 @@ class TestPingrThingrAppInitialization:
 
 
 class TestPingUpdates:
-    def test_ping_response_updates(self, mocked_app, mocked_ns_block_operation):
+    def test_ping_response_updates(self, mocked_app):
         app, _, mocked_nsapp = mocked_app()
 
         # Simulate a ping response and check if statistics are updated
         app.update_statistics(latency=100, loss=0)
-        assert (
-            mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1
-        ), "NSBlockOperation should be created to update statistics"
-        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][
-            0
-        ]()  # Call the block to execute the statistics update
         assert app.latency == 100, "Latency should be updated to 100"
         assert app.loss == 0, "Loss should be updated to 0"
         assert (
@@ -77,27 +81,15 @@ class TestPingUpdates:
             mocked_nsapp.setStatusBarIcon.called
         ), "NSApp.setMenuBarIcon should be called to update the icon"
 
-    def test_no_update_when_same(self, mocked_app, mocked_ns_block_operation):
+    def test_ping_response_no_update_when_same(self, mocked_app):
         app, _, mocked_nsapp = mocked_app()
         mocked_nsapp.setStatusBarIcon.reset_mock()  # Reset mock call count
         app.update_statistics(latency=100, loss=0)
-        assert (
-            mocked_ns_block_operation.blockOperationWithBlock_.call_count == 1
-        ), "NSBlockOperation should be created to update statistics"
-        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][
-            0
-        ]()  # Call the block to execute the statistics update
         assert (
             mocked_nsapp.setStatusBarIcon.call_count == 1
         ), "NSApp.setMenuBarIcon should be called to update the icon"
 
         app.update_statistics(latency=100, loss=0)
-        assert (
-            mocked_ns_block_operation.blockOperationWithBlock_.call_count == 2
-        ), "NSBlockOperation should be created to update statistics"
-        mocked_ns_block_operation.blockOperationWithBlock_.call_args[0][
-            0
-        ]()  # Call the block to execute the statistics update
         assert (
             mocked_nsapp.setStatusBarIcon.call_count == 1
         ), "NSApp.setMenuBarIcon should not have been called again"
@@ -199,8 +191,6 @@ class TestCheckForUpdates:
         mocker.patch("pingrthingr.app.run_update_check", mocked_update)
         mocked_dialog = mocker.MagicMock()
         mocker.patch("pingrthingr.app.update_dialog", mocked_dialog)
-        mocked_runner = mocker.MagicMock()
-        mocker.patch.object(app, "_run_in_app_thread", mocked_runner)
         mocker.patch("pingrthingr.app.__VERSION__", "v0.2.0")
 
         # Check update invocation via menu
@@ -215,9 +205,9 @@ class TestCheckForUpdates:
         app.check_for_updates_return("v1.0.0", "https://example.com/release", "", True)
         assert app.check_for_updates_menu.callback == app.check_for_updates
         assert app.check_for_updates_menu.title == "Check for updates..."
-        assert mocked_runner.called
-        mocked_runner.assert_called_once_with(
-            mocked_dialog, "v1.0.0", "v0.2.0", "https://example.com/release", ""
+        assert mocked_dialog.called
+        mocked_dialog.assert_called_once_with(
+            "v1.0.0", "v0.2.0", "https://example.com/release", ""
         )
 
         # Check update invocation via timer
@@ -233,20 +223,18 @@ class TestCheckForUpdates:
         app, _, _ = mocked_app()
         mocked_dialog = mocker.MagicMock()
         mocker.patch("pingrthingr.app.update_dialog", mocked_dialog)
-        mocked_runner = mocker.MagicMock()
-        mocker.patch.object(app, "_run_in_app_thread", mocked_runner)
 
         # Not quiet, should call runner to display results
         app.check_for_updates_return("", "", "v0.4.0 is the latest version.", False)
-        mocked_runner.assert_called_once_with(
-            mocked_dialog, "", "v0.4.0", "", "v0.4.0 is the latest version."
+        mocked_dialog.assert_called_once_with(
+            "", "v0.4.0", "", "v0.4.0 is the latest version."
         )
 
         # Quiet, should not call runner
-        mocked_runner.reset_mock()
+        mocked_dialog.reset_mock()
         app.check_for_updates_return("", "", "v0.4.0 is the latest version.", True)
         assert (
-            not mocked_runner.called
+            not mocked_dialog.called
         ), "Runner should not be called when quiet is True and no new version"
 
     def test_check_for_updates_on_startup_enabled(self, mocked_app):
