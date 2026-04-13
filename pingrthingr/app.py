@@ -421,9 +421,13 @@ class PingrThingrApp(App):
         )
 
         if new_version or not quiet:
-            self._run_in_app_thread(
-                update_dialog, new_version, __VERSION__, release_url, error
+            self.run_in_timer(
+                "_update_dialog_return", new_version, __VERSION__, release_url, error
             )
+
+    def _update_dialog_return(self, new_version: str, current_version, release_url: str, error: str) -> None:
+        update_dialog(new_version, current_version, release_url, error)
+
 
     def update_timer(self, sender) -> None:
         """Handle startup update check timer expiration.
