@@ -286,7 +286,7 @@ class PingrThingrApp(App):
             offset_y = (button_frame.size.height - icon_frame.size.height) / 2
             icon.setFrameOrigin_((offset_x, offset_y))
 
-    @objc_selector
+    # @objc_selector
     def refresh_status_(
         self,
         latency: float | None = None,
