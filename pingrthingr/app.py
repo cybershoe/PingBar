@@ -18,6 +18,7 @@ from .updates import update_dialog, run_update_check
 from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation, NSTimer, NSRunLoop  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
+import gc
 
 
 class PingrThingrApp(App):
@@ -159,6 +160,8 @@ class PingrThingrApp(App):
 
         logger.debug(f"Running function {user_info['func']} from timer with args: {user_info['args']} and kwargs: {user_info['kwargs']}")
         getattr(self, user_info["func"])(*user_info["args"], **user_info["kwargs"])
+
+        logger.debug(f"Total objects after running function: {len(gc.get_objects())}")
 
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
