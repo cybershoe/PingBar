@@ -19,6 +19,7 @@ from objc import selector as objc_selector  # type: ignore
 from Foundation import NSOperationQueue, NSBlockOperation, NSTimer, NSRunLoop  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
 import gc
+from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
 class PingrThingrApp(App):
@@ -146,9 +147,10 @@ class PingrThingrApp(App):
             *args: Variable length argument list to pass to the function.
             **kwargs: Arbitrary keyword arguments to pass to the function.
         """
+        logger.debug(f"Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}")
 
-        userdata = {"func": func, "args": args, "kwargs": kwargs}
-        logger.debug(f"Scheduling function {func} to run in app thread with args: {args} and kwargs: {kwargs}")
+        # non-scalar values in userdata seem to cause memory leaks between python and objc
+        userdata = pickle_dumps({"func": func, "args": args, "kwargs": kwargs})
 
         timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
             0.0, self, "_run_from_timer:", userdata, False
@@ -156,10 +158,29 @@ class PingrThingrApp(App):
         NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
 
     def _run_from_timer_(self, timer):
-        user_info = timer.userInfo()
 
-        logger.debug(f"Running function {user_info['func']} from timer with args: {user_info['args']} and kwargs: {user_info['kwargs']}")
-        getattr(self, user_info["func"])(*user_info["args"], **user_info["kwargs"])
+        logger.debug(f"Running function from timer with userInfo: {timer.userInfo()}")
+
+        try:
+            user_info = pickle_loads(timer.userInfo())
+        except Exception as e:
+            logger.error(f"Error unpickling userInfo from timer: {e}")
+            return
+        else:
+            logger.debug(f"Successfully unpickled userInfo: {user_info}")
+
+        func=getattr(self, user_info.get('func', None))
+
+        if func is None:
+            raise KeyError(f"Function name not found in timer userInfo: {user_info}")
+        else:
+            logger.debug(f"Retrieved function '{func.__name__}' from timer userInfo")
+        
+        args=user_info.get('args', ())
+        kwargs=user_info.get('kwargs', {})
+        
+        logger.debug(f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}")
+        func(*args, **kwargs)
 
         logger.debug(f"Total objects after running function: {len(gc.get_objects())}")
 
@@ -211,6 +232,14 @@ class PingrThingrApp(App):
         # self._run_in_app_thread(self.refresh_status_, latency, loss)
 
         self.run_in_timer("refresh_status_", latency, loss)
+
+        # userdata = {"latency": latency, "loss": loss, "func": "refresh_status_"}
+        # logger.debug(f"Scheduling refresh to run in app thread ")
+
+        # timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
+        #     0.0, self, "_run_from_timer:", userdata, False
+        # )        
+        # NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
 
     def _draw_icon(self, icon: NSImage | NSView) -> None:
         """Draw the menu bar icon.
