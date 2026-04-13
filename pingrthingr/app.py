@@ -15,8 +15,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from objc import selector as objc_selector  # type: ignore
-from Foundation import NSOperationQueue, NSBlockOperation, NSTimer, NSRunLoop  # type: ignore
+from Foundation import NSTimer, NSRunLoop  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
 import gc
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
