@@ -16,7 +16,7 @@ from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
 from objc import selector as objc_selector  # type: ignore
-from Foundation import NSOperationQueue, NSBlockOperation  # type: ignore
+from Foundation import NSOperationQueue, NSBlockOperation, NSTimer, NSRunLoop  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
 
 
@@ -133,6 +133,33 @@ class PingrThingrApp(App):
         )
         NSOperationQueue.mainQueue().addOperation_(operation)
 
+    def run_in_timer(self, func: str, *args, **kwargs):
+        """Run a function in the main application thread using a Timer.
+
+        Schedules a function to be executed on the main thread using a one-shot
+        Timer, to allow arguments to be passed between threads without orphaned
+        references causing a emory leak.
+
+        Args:
+            func (callable): The function to execute on the main thread.
+            *args: Variable length argument list to pass to the function.
+            **kwargs: Arbitrary keyword arguments to pass to the function.
+        """
+
+        userdata = {"func": func, "args": args, "kwargs": kwargs}
+        logger.debug(f"Scheduling function {func} to run in app thread with args: {args} and kwargs: {kwargs}")
+
+        timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
+            0.0, self, "_run_from_timer:", userdata, False
+        )        
+        NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
+
+    def _run_from_timer_(self, timer):
+        user_info = timer.userInfo()
+
+        logger.debug(f"Running function {user_info['func']} from timer with args: {user_info['args']} and kwargs: {user_info['kwargs']}")
+        getattr(self, user_info["func"])(*user_info["args"], **user_info["kwargs"])
+
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
 
@@ -178,7 +205,9 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        self._run_in_app_thread(self.refresh_status_, latency, loss)
+        # self._run_in_app_thread(self.refresh_status_, latency, loss)
+
+        self.run_in_timer("refresh_status_", latency, loss)
 
     def _draw_icon(self, icon: NSImage | NSView) -> None:
         """Draw the menu bar icon.
