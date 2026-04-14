@@ -9,10 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from asyncio import (
-    AbstractEventLoop,
     all_tasks,
-    gather,
-    set_event_loop,
     new_event_loop,
     run_coroutine_threadsafe,
     sleep as asyncio_sleep,
