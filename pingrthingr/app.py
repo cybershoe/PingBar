@@ -17,7 +17,6 @@ from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
 from Foundation import NSTimer, NSRunLoop  # type: ignore
 from AppKit import NSImage, NSView  # type: ignore
-import gc
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -162,8 +161,6 @@ class PingrThingrApp(App):
         
         logger.debug(f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}")
         func(*args, **kwargs)
-
-        logger.debug(f"Total objects after running function: {len(gc.get_objects())}")
 
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
