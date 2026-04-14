@@ -66,6 +66,9 @@ class SettingsModel(BaseModel):
         display_mode (Literal["Dot", "Text"]): Status icon display mode.
         paused (bool): Whether the application is currently paused.
         targets (list[IPAddress]): List of target IP addresses to ping.
+        latency_thresholds (ThresholdModel): Thresholds for latency evaluation.
+        loss_thresholds (ThresholdModel): Thresholds for packet loss evaluation.
+        check_for_updates (bool): Whether to check for application updates on startup.
     """
 
     model_config = ConfigDict(validate_assignment=True)
@@ -87,6 +90,9 @@ class SettingsModel(BaseModel):
         default=ThresholdModel(warn=0.0, alert=0.05, critical=0.25),
         description="Packet loss thresholds for warning, alert, and critical states",
     )
+    check_for_updates: bool = Field(
+        default=True, description="Whether to check for application updates on startup"
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -107,7 +113,7 @@ class SettingsModel(BaseModel):
             # Check fields that have defaults defined in the model
             for field_name, field_info in cls.model_fields.items():
                 if field_info.default is not None and field_name not in data:
-                    logging.info(
+                    logger.info(
                         f"Field '{field_name}' not provided; using default value"
                     )
         return data

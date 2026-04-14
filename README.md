@@ -1,4 +1,4 @@
-[![tests](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml/badge.svg)](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml)
+[![tests](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml/badge.svg?branch=dev)](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml)
 [![codecov](https://codecov.io/gh/cybershoe/PingrThingr/branch/dev/graph/badge.svg?token=DdM0wsZqpJ)](https://codecov.io/gh/cybershoe/PingrThingr)
 [![Ko-Fi](https://img.shields.io/badge/ko--fi-buy_me_a_coffee-blue?logo=buymeacoffee)](https://ko-fi.com/J3J5GIGDO)
 
@@ -69,6 +69,12 @@ Or, see [Building from Source](#building-from-source) below
 4. Click "Save" to apply changes
 
 **Note**: Only IPv4 addresses are currently supported.
+
+### Checking for updates
+
+PingrThingr will check at startup to see if there is a newer release available. You can also check at any time with the "Check for updates..." menu item.
+
+You can disable automatic update checking by deselecting the "check on startup" menu item.
 
 ## Building from Source
 
