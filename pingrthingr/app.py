@@ -150,7 +150,7 @@ class PingrThingrApp(App):
         else:
             logger.debug(f"Successfully unpickled userInfo: {user_info}")
 
-        func=getattr(self, user_info.get('func', None))
+        func=getattr(self, user_info.get('func', None), None)
 
         if func is None:
             raise KeyError(f"Function name not found in timer userInfo: {user_info}")
