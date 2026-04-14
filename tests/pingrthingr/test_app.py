@@ -1,16 +1,21 @@
 import pytest
+import sys
+from pathlib import Path
+from json import load as json_load, dump as json_dump
 
 from pingrthingr import PingrThingrApp
 from pingrthingr.icons import generate_status_icon
 from pingrthingr.settings.models import ThresholdModel
-from pathlib import Path
-from json import load as json_load, dump as json_dump
+
+
+
+
 
 base_path = Path(__file__).parent
 
 @pytest.fixture(autouse=True)
 def mocked_app(mocker, tmp_path):
-    def _mocked_app(settings: dict | None = None):
+    def _mocked_app(settings: dict | None = None, mock_run_in_timer: bool = True):
         # Create an instance of the app for testing
         mock_pinger = mocker.MagicMock()
         mocker.patch("pingrthingr.app.Pinger", return_value=mock_pinger)
@@ -24,29 +29,47 @@ def mocked_app(mocker, tmp_path):
                 json_dump(default_settings, f)
         app = PingrThingrApp("testapp")
         mock_nsapp = mocker.MagicMock()
-        mock_run_in_timer = mocker.MagicMock()
+        mocked_run_in_timer = mocker.MagicMock()
         def _mocked_run_in_timer(func, *args, **kwargs):
             func = getattr(app, func)
             func(*args, **kwargs)
-        mock_run_in_timer.side_effect = _mocked_run_in_timer
+        mocked_run_in_timer.side_effect = _mocked_run_in_timer
         mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
-        mocker.patch.object(app, "run_in_timer", mock_run_in_timer)
+        if mock_run_in_timer:
+            mocker.patch.object(app, "run_in_timer", mocked_run_in_timer)
         return app, mock_pinger, mock_nsapp
 
     yield _mocked_app
 
 
-# # @pytest.fixture(autouse=True)
-# # def mocked_ns_block_operation(mocker):
-# #     mock_ns_block_operation = mocker.MagicMock()
-# #     mock_ns_operation_queue = mocker.MagicMock()
-# #     mocker.patch("pingrthingr.app.NSBlockOperation", mock_ns_block_operation)
-# #     mocker.patch("pingrthingr.app.NSOperationQueue", mock_ns_operation_queue)
-# #     yield mock_ns_block_operation
+class TestCrossThreadScheduling:
+    def test_run_in_timer(self, mocked_app, mocker):
+        app, _, mock_nsapp = mocked_app(mock_run_in_timer=False)
+        
+        mock_test_function = mocker.MagicMock(__name__="mock_test_function")
+        app.test_function = mock_test_function
+        
+        # Call run_in_timer with our test function
+        app.run_in_timer('test_function', "positional", key1="key_value1")
+        # The function should not be called immediately (it's scheduled for timer)
+        assert not mock_test_function.called, "Function should not be called immediately"
+        
+        # Now simulate the timer firing by calling _run_from_timer_ directly
+        # This tests the unpickling and function execution logic
+        import pickle
+        mock_timer = mocker.MagicMock()
+        userdata = pickle.dumps({
+            "func": "test_function", 
+            "args": ("positional",), 
+            "kwargs": {"key1": "key_value1"}
+        })
+        mock_timer.userInfo.return_value = userdata
+        
+        app._run_from_timer_(mock_timer)
+        
+        assert mock_test_function.called, "Function should be called when timer fires"
+        assert mock_test_function.call_args == (("positional",), {"key1": "key_value1"}), "Function should be called with correct arguments"
 
-
-#     mocker.patch.object(PingrThingrApp, "run_in_timer", _mocked_run_in_timer)
-#     yield
 
 
 class TestPingrThingrAppInitialization:
