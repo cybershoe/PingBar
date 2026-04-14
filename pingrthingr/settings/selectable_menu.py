@@ -11,7 +11,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from rumps import MenuItem
+from rumps import MenuItem, Window, alert
+from socket import inet_aton
 from typing import List, Callable
 
 
@@ -98,9 +99,6 @@ class SelectableMenu(MenuItem):
 
     def set_selected(self, option: str) -> None:
         """Set the selected option programmatically.
-
-        Updates the menu selection state and title to reflect the new selection.
-        If the option is not found, clears the current selection.
 
         Args:
             option (str): The option to select. Must match one of the
