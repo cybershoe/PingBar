@@ -1,10 +1,4 @@
-[![tests](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml/badge.svg?branch=dev)](https://github.com/cybershoe/PingrThingr/actions/workflows/pytest-codecov.yml)
-[![codecov](https://codecov.io/gh/cybershoe/PingrThingr/branch/dev/graph/badge.svg?token=DdM0wsZqpJ)](https://codecov.io/gh/cybershoe/PingrThingr)
-[![Ko-Fi](https://img.shields.io/badge/ko--fi-buy_me_a_coffee-blue?logo=buymeacoffee)](https://ko-fi.com/J3J5GIGDO)
-
-<img src="images/PingrThingr.png" width=128/> 
-
-# PingrThingr
+# <img src="images/PingrThingr.png" width=128/> PingrThingr
 
 PingrThingr is macOS menu bar application for monitoring network connectivity through continuous ping monitoring. PingrThingr provides at-a-glance visibility into your connection quality with color-coded status indicators and customizable ping targets. Useful for rail or air commuters who regularly pass through coverage dead zones; see with a glance whether your connection has recovered, without constantly hitting refresh and hoping for the best.
 
@@ -15,10 +9,10 @@ PingrThingr is macOS menu bar application for monitoring network connectivity th
 - **Multiple Display Modes**: Choose between different visual representations
   - **Dot Mode**: Simple colored circle indicator (default)
   
-    <img src="images/dots-dark.png" style="width: 14rem"/><img src="images/dots-light.png" style="width: 14rem"/>
+    <img src="images/dots.png" style="height: 3rem"/>
   - **Text Mode**: Detailed latency and packet loss statistics
   
-    <img src="images/text-dark.png" style="width: 14rem"/><img src="images/text-light.png" style="width: 14rem"/>
+    <img src="images/text.png" style="height: 3rem"/>
 
 
 - **Color-coded Status Indicators**: Visual feedback with different colors based on latency and packet loss thresholds
@@ -31,18 +25,6 @@ PingrThingr is macOS menu bar application for monitoring network connectivity th
 - **Customizable Targets**: By default, PingrThingr checks 2 Google DNS and 2 Cloudflare DNS targets, but you can add or remove addresses as desired
 
 - **Outlier Filtering**: Discards anomalous results for more accurate measurements; you care about your connection quality, not a brief outage of one of the ping targets.
-
-## AI Disclosure
-
-This app is not vibe-coded, but I did make use of Copilot code completion, and Claude Sonnet 4.6 for debugging and docstring generation. No AI-generated code suggestions have been incorporated without human review and, in most cases, revision.
-
-## Installation
-
-1. Go to the [latest release](https://github.com/cybershoe/PingrThingr/releases/latest)
-2. Scroll down to "Assets" and download the latest .dmg disk image
-3. Mount the image and drag "PingrThingr" into your Applications folder
-
-Or, see [Building from Source](#building-from-source) below
 
 ## Usage
 
@@ -70,13 +52,7 @@ Or, see [Building from Source](#building-from-source) below
 
 **Note**: Only IPv4 addresses are currently supported.
 
-### Checking for updates
-
-PingrThingr will check at startup to see if there is a newer release available. You can also check at any time with the "Check for updates..." menu item.
-
-You can disable automatic update checking by deselecting the "check on startup" menu item.
-
-## Building from Source
+## Build from source
 
 ### Requirements
 
@@ -121,10 +97,6 @@ Enable debug output by setting the `LOGLEVEL` environment variable to `INFO` or 
 ```bash
 LOGLEVEL=DEBUG python main.py
 ```
-
-### Testing Notes
-
-The unit tests will render NSView and NSImages objects for varios icon styles and values, and compare those to the exemplar images at tests/pingrthingr/icons/resources. Since there are subtle rendering differences between platforms, these examples are not committed to git. The first time you run pytest, it will generate new examples if they are not already present, and you should visually check them to ensure they are rendering correctly before making any changes that could potentially affect rendering.
 
 ---
 Copyright (c) 2026 Adam Schumacher

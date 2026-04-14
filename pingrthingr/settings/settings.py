@@ -16,27 +16,10 @@ from .models import SettingsModel
 class SettingsManager:
     """Settings management for PingrThingr application.
 
-    Provides functionality for loading, saving, and updating application settings
-    with automatic persistence and callback notification system. Settings are
-    validated using Pydantic models and stored in JSON format.
-
-    Attributes:
-        _settings_file (str | None): Path to the JSON settings file.
-        _settings (SettingsModel): Current application settings.
-        _callbacks (dict): Registered callback functions for setting changes.
+    Provides functionality for loading, saving, and updating application settings, including callback functions for changes to particular settings.
     """
 
-    def __init__(self, settings_file: str | None = None) -> None:
-        """Initialize the SettingsManager.
-
-        Loads settings from the specified file or uses defaults if the file
-        doesn't exist or contains invalid data. Initializes the callback
-        system for setting change notifications.
-
-        Args:
-            settings_file (str | None): Path to the JSON settings file.
-                                       If None, no file persistence is used.
-        """
+    def __init__(self, settings_file: str | None = None):
         self._settings_file = settings_file
         self.load()
         self._callbacks = {}
@@ -44,11 +27,7 @@ class SettingsManager:
     def load(self) -> None:
         """Load settings from the JSON file specified by self._settings_file.
 
-        If the file does not exist or contains invalid data, default settings
-        will be used. Logs appropriate messages for different failure conditions.
-
-        Raises:
-            No exceptions are raised - all errors are logged and defaults used.
+        If the file does not exist or contains invalid data, defaults will be used.
         """
         if self._settings_file is None:
             logger.warning("No settings file specified, using default settings")
@@ -75,14 +54,7 @@ class SettingsManager:
         )
 
     def save(self) -> None:
-        """Save current settings to the JSON file specified by self._settings_file.
-
-        Serializes the current settings model to JSON format and writes to disk.
-        Logs errors if the file cannot be written but does not raise exceptions.
-
-        Raises:
-            No exceptions are raised - all errors are logged.
-        """
+        """Save current settings to the JSON file specified by self._settings_file."""
         if self._settings_file is None:
             logger.warning("No settings file specified, cannot save settings")
             return
@@ -135,14 +107,10 @@ class SettingsManager:
 
         Args:
             setting_name (str): The name of the setting to retrieve.
-            default (Any): The default value to return if the setting is not found.
+            default: The default value to return if the setting is not found.
 
         Returns:
-            Any | None: The current value of the specified setting, or the default
-                       value if not found.
-
-        Raises:
-            AttributeError: If the setting name is not valid.
+            The current value of the specified setting, or the default value if not found.
         """
         if setting_name not in SettingsModel.model_fields.keys():
             raise AttributeError(f"Attempted to get invalid setting: {setting_name}")
@@ -150,14 +118,14 @@ class SettingsManager:
 
     def set(self, name: str, value: Any) -> None:
         """Set the value of a specific setting and trigger callbacks.
-
+        
         Updates the specified setting with the new value, saves the settings
         to disk, and calls any registered callbacks for that setting.
-
+        
         Args:
             name (str): The name of the setting to update.
             value (Any): The new value to set for the setting.
-
+            
         Raises:
             AttributeError: If the setting name is not valid.
         """
