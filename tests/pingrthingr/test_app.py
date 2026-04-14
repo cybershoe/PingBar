@@ -70,7 +70,26 @@ class TestCrossThreadScheduling:
         assert mock_test_function.called, "Function should be called when timer fires"
         assert mock_test_function.call_args == (("positional",), {"key1": "key_value1"}), "Function should be called with correct arguments"
 
+    def test_bad_pickle(self, mocked_app, mocker, caplog):
+        app, _, _ = mocked_app()
+        mock_timer = mocker.MagicMock()
+        mock_timer.userInfo.return_value = b"not a pickle"
+        with caplog.at_level("ERROR"):
+            app._run_from_timer_(mock_timer)
+            assert "Error unpickling userInfo from timer" in caplog.text, "Should log an error when unpickling fails"
 
+    def test_no_function(self, mocked_app, mocker):
+        app, _, _ = mocked_app()
+        import pickle
+        mock_timer = mocker.MagicMock()
+        userdata = pickle.dumps({ 
+            "func": "non_existent_function",
+            "args": (), 
+            "kwargs": {}
+        })
+        mock_timer.userInfo.return_value = userdata
+        with pytest.raises(KeyError):
+            app._run_from_timer_(mock_timer)
 
 class TestPingrThingrAppInitialization:
     def test_initialization(self, mocked_app, tmp_path):
