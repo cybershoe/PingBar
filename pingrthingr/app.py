@@ -150,7 +150,7 @@ class PingrThingrApp(App):
         else:
             logger.debug(f"Successfully unpickled userInfo: {user_info}")
 
-        func=getattr(self, user_info.get('func', None))
+        func=getattr(self, user_info.get('func', None), None)
 
         if func is None:
             raise KeyError(f"Function name not found in timer userInfo: {user_info}")
@@ -291,8 +291,8 @@ class PingrThingrApp(App):
                 f"In refresh_status(): Application is paused, showing paused status"
             )
             self.statistics_menu.title = "Paused"
-            self._icon_nsimage = symbol_icon("pause.circle", "Paused")
-            self._nsapp.setStatusBarIcon()
+            self._draw_icon(symbol_icon("pause.circle", "Paused"))
+            
         else:
             logger.debug(
                 f"In refresh_status(): Application is running, showing latency and loss"
