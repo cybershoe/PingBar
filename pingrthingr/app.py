@@ -310,6 +310,7 @@ class PingrThingrApp(App):
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
                 self._last_state,
+                self._nsapp.nsstatusitem.button().effectiveAppearance()
             )
 
             logger.debug(

@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 from AppKit import (
     CGRect,  # type: ignore[import]
+    NSAppearance,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSView,  # type: ignore[import]
     NSColor,  # type: ignore[import]
@@ -23,6 +24,17 @@ from AppKit import (
 from typing import Tuple
 from ..settings import ThresholdModel, IconStyle
 
+def nsview_to_nsimage_with_appearance(nsview: NSView, appearance: NSAppearance) -> NSImage:
+    size = nsview.bounds().size
+    image = NSImage.alloc().initWithSize_(size) 
+    image.lockFocus()
+
+    appearance.performAsCurrentDrawingAppearance_(
+        lambda: nsview.drawRect_(nsview.bounds())
+    )
+    image.unlockFocus()
+
+    return image
 
 def _criticality(
     latency: float | None,
@@ -85,6 +97,7 @@ def generate_status_icon(
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
+    appearance: NSAppearance | None = None,
 ) -> Tuple[NSImage | NSView | None, str]:
     """Generate a status icon based on the specified style and network metrics.
 
@@ -120,7 +133,7 @@ def generate_status_icon(
             )
         case "Text":
             icon, state = status_text_icon(
-                latency, loss, latency_thresholds, loss_thresholds, last_state
+                latency, loss, latency_thresholds, loss_thresholds, last_state, appearance
             )
         case _:  # pragma: no cover
             raise NotImplemented(f"No implementation for icon style: {style}")
@@ -188,6 +201,7 @@ def status_text_icon(
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
+    appearance: NSAppearance | None = None,
 ) -> Tuple[NSView | None, str]:
     """Create a status text icon showing latency and loss with color-coded thresholds.
 
@@ -276,7 +290,11 @@ def status_text_icon(
     view.addSubview_(latency_view)
     view.addSubview_(loss_view)
 
-    return view, new_state
+
+    logger.debug(dir(appearance))
+    image = nsview_to_nsimage_with_appearance(view, appearance) if appearance else None
+
+    return image, new_state
 
 
 def symbol_icon(
