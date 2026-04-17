@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 from AppKit import (
     CGRect,  # type: ignore[import]
     NSAppearance,  # type: ignore[import]
+    NSAppearanceNameDarkAqua,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSView,  # type: ignore[import]
     NSColor,  # type: ignore[import]
@@ -24,16 +25,13 @@ from AppKit import (
 from typing import Tuple
 from ..settings import ThresholdModel, IconStyle
 
-def nsview_to_nsimage_with_appearance(nsview: NSView, appearance: NSAppearance) -> NSImage:
-    size = nsview.bounds().size
-    image = NSImage.alloc().initWithSize_(size) 
-    image.lockFocus()
-
-    appearance.performAsCurrentDrawingAppearance_(
-        lambda: nsview.drawRect_(nsview.bounds())
-    )
-    image.unlockFocus()
-
+def nsview_to_nsimage(nsview: NSView) -> NSImage:
+    
+    bounds = nsview.bounds()
+    bitmap_rep = nsview.bitmapImageRepForCachingDisplayInRect_(bounds)
+    nsview.cacheDisplayInRect_toBitmapImageRep_(bounds, bitmap_rep)
+    image = NSImage.alloc().initWithSize_(bounds.size)
+    image.addRepresentation_(bitmap_rep)
     return image
 
 def _criticality(
@@ -290,10 +288,9 @@ def status_text_icon(
     view.addSubview_(latency_view)
     view.addSubview_(loss_view)
 
+    view.setAppearance_(appearance)
 
-    logger.debug(dir(appearance))
-    image = nsview_to_nsimage_with_appearance(view, appearance) if appearance else None
-
+    image = nsview_to_nsimage(view)
     return image, new_state
 
 
