@@ -122,6 +122,7 @@ class PingrThingrApp(App):
     def ns_init_timer(self, sender):
         sender.stop()
         self.appearance_observer = self.AppearanceObserver.alloc().init()
+        self.appearance_observer._app = self
         self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
             self.appearance_observer,
             "effectiveAppearance",
@@ -134,8 +135,7 @@ class PingrThingrApp(App):
         ):
             logger.debug("in AppearanceObserver.observeValueForKeyPath_ofObject_change_context_")
             if keyPath == "effectiveAppearance":
-                # super().refresh_status_(use_saved=True, force=True)
-                # re-draw your icon or update colors here
+                self._app.run_in_timer("refresh_status_", use_saved=True, force=True)                # re-draw your icon or update colors here
                 logger.debug(f"Appearance change detected, refreshing status icon")
 
     def run_in_timer(self, func: str, *args, **kwargs):
