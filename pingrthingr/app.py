@@ -171,6 +171,8 @@ class PingrThingrApp(App):
             return
         else:
             logger.debug(f"Successfully unpickled userInfo: {user_info}")
+        finally:
+            timer.invalidate()
 
         func=getattr(self, user_info.get('func', None), None)
 
