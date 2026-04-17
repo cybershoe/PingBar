@@ -134,6 +134,7 @@ class PingrThingrApp(App):
         ):
             logger.debug("in AppearanceObserver.observeValueForKeyPath_ofObject_change_context_")
             if keyPath == "effectiveAppearance":
+                # super().refresh_status_(use_saved=True, force=True)
                 # re-draw your icon or update colors here
                 logger.debug(f"Appearance change detected, refreshing status icon")
 
@@ -283,6 +284,7 @@ class PingrThingrApp(App):
         latency: float | None = None,
         loss: float | None = None,
         use_saved: bool = False,
+        force: bool = False
     ) -> None:
         """Refresh the status icon and dynamic menu text.
 
@@ -330,7 +332,7 @@ class PingrThingrApp(App):
                 loss,
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
-                self._last_state,
+                self._last_state if not force else None,
                 self._nsapp.nsstatusitem.button().effectiveAppearance()
             )
 
