@@ -16,7 +16,7 @@ from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
 from Foundation import NSTimer, NSRunLoop  # type: ignore
-from AppKit import NSImage, NSView  # type: ignore
+from AppKit import NSImage, NSView, NSObject  # type: ignore
 import gc
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
@@ -108,13 +108,34 @@ class PingrThingrApp(App):
         )
 
         self._update_timer = Timer(self.update_timer, 2)  # Update every 2 seconds
+        self._ns_init_timer = Timer(self.ns_init_timer, 0.1)  # Short delay to ensure NSApp is initialized
+        self._ns_init_timer.start()
         if self._settings.get("check_for_updates", False):
             logger.debug(f"Check for updates on startup is enabled, starting update timer")
             self._update_timer.start()
         else:
             logger.debug(f"Check for updates on startup is disabled, not starting update timer")
 
+
         logger.info(f"Initialized PingrThingr")
+
+    def ns_init_timer(self, sender):
+        sender.stop()
+        self.appearance_observer = self.AppearanceObserver.alloc().init()
+        self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
+            self.appearance_observer,
+            "effectiveAppearance",
+            0,
+            None
+        )
+    class AppearanceObserver(NSObject):
+        def observeValueForKeyPath_ofObject_change_context_(
+            self, keyPath, obj, change, context
+        ):
+            logger.debug("in AppearanceObserver.observeValueForKeyPath_ofObject_change_context_")
+            if keyPath == "effectiveAppearance":
+                # re-draw your icon or update colors here
+                logger.debug(f"Appearance change detected, refreshing status icon")
 
     def run_in_timer(self, func: str, *args, **kwargs):
         """Run a function in the main application thread using a Timer.
