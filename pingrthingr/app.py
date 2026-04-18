@@ -165,7 +165,9 @@ class PingrThingrApp(App):
                 self._app.run_in_main_thread(
                     "refresh_status_", use_saved=True, force=True
                 )  # re-draw your icon or update colors here
-                logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Appearance change detected, refreshing status icon")
+                logger.debug(
+                    f"In observeValueForKeyPath_ofObject_change_context_(): Appearance change detected, refreshing status icon"
+                )
 
     class MainThreadDispatcher(NSObject):
         """NSObject shim used to dispatch calls onto the main run-loop thread.
@@ -192,7 +194,9 @@ class PingrThingrApp(App):
             try:
                 user_info = pickle_loads(userdata)
             except Exception as e:
-                logger.error(f"In dispatchSelector_(): Error unpickling userdata from selector: {e}")
+                logger.error(
+                    f"In dispatchSelector_(): Error unpickling userdata from selector: {e}"
+                )
                 return
             else:
                 logger.debug(f"Successfully unpickled userdata: {user_info}")
@@ -200,9 +204,7 @@ class PingrThingrApp(App):
             func = getattr(self._app, user_info.get("func", None), None)
 
             if func is None:
-                raise KeyError(
-                    f"Function name not found in userdata: {user_info}"
-                )
+                raise KeyError(f"Function name not found in userdata: {user_info}")
             else:
                 logger.debug(
                     f"In dispatchSelector_(): Retrieved function '{func.__name__}' from userdata"
@@ -388,10 +390,14 @@ class PingrThingrApp(App):
         """
         new_targets = ping_target_window(self._settings.get("targets", []))  # type: ignore
         if new_targets is not None:
-            logger.debug(f"In ping_targets(): Updating targets from ping_target_window(): {new_targets}")
+            logger.debug(
+                f"In ping_targets(): Updating targets from ping_target_window(): {new_targets}"
+            )
             self._settings.set("targets", new_targets)
         else:
-            logger.debug(f"In ping_targets(): ping_target_window() returned None, no changes to targets")
+            logger.debug(
+                f"In ping_targets(): ping_target_window() returned None, no changes to targets"
+            )
 
     def pause_toggle(self, sender) -> None:
         """Toggle the pinger pause state.
@@ -402,7 +408,9 @@ class PingrThingrApp(App):
         Args:
             sender (MenuItem): The pause menu item that was clicked.
         """
-        logger.debug(f"In pause_toggle(): Toggling pause state from {sender.state} to {not sender.state}")
+        logger.debug(
+            f"In pause_toggle(): Toggling pause state from {sender.state} to {not sender.state}"
+        )
 
         self._settings.set("paused", not sender.state)
 

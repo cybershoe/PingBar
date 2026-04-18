@@ -8,10 +8,8 @@ from pingrthingr.settings.models import ThresholdModel
 from AppKit import NSAppearance, NSAppearanceNameAqua  # type: ignore
 
 
-
-
-
 base_path = Path(__file__).parent
+
 
 @pytest.fixture(autouse=True)
 def mocked_app(mocker, tmp_path):
@@ -32,16 +30,23 @@ def mocked_app(mocker, tmp_path):
 
         mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
         mock_button = mocker.MagicMock()
-        mock_button.effectiveAppearance.return_value = NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+        mock_button.effectiveAppearance.return_value = NSAppearance.appearanceNamed_(
+            NSAppearanceNameAqua
+        )
         mock_nsapp.nsstatusitem.button.return_value = mock_button
 
         app._dispatcher = app.MainThreadDispatcher.alloc().init()
         app._dispatcher._app = app
 
-        def mock_performSelectorOnMainThread_withObject_waitUntilDone_(target, userdata, wait_until_done):
+        def mock_performSelectorOnMainThread_withObject_waitUntilDone_(
+            target, userdata, wait_until_done
+        ):
             app._dispatcher.dispatchSelector_(userdata)
-        app._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_ = mock_performSelectorOnMainThread_withObject_waitUntilDone_
-        
+
+        app._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_ = (
+            mock_performSelectorOnMainThread_withObject_waitUntilDone_
+        )
+
         return app, mock_pinger, mock_nsapp
 
     yield _mocked_app
@@ -50,33 +55,38 @@ def mocked_app(mocker, tmp_path):
 class TestCrossThreadScheduling:
     def test_run_in_main_thread(self, mocked_app, mocker):
         app, _, _ = mocked_app()
-        
+
         mock_test_function = mocker.MagicMock(__name__="mock_test_function")
         app.test_function = mock_test_function
-        
+
         # Call run_in_main_thread with our test function
-        app.run_in_main_thread('test_function', "positional", key1="key_value1")
-        
+        app.run_in_main_thread("test_function", "positional", key1="key_value1")
+
         assert mock_test_function.called
-        assert mock_test_function.call_args == (("positional",), {"key1": "key_value1"}), "Function should be called with correct arguments"
+        assert mock_test_function.call_args == (
+            ("positional",),
+            {"key1": "key_value1"},
+        ), "Function should be called with correct arguments"
 
     def test_bad_pickle(self, mocked_app, mocker, caplog):
         app, _, _ = mocked_app()
         userdata = b"not a pickle"
         with caplog.at_level("ERROR"):
             app._dispatcher.dispatchSelector_(userdata)
-            assert "Error unpickling userdata from selector" in caplog.text, "Should log an error when unpickling fails"
+            assert (
+                "Error unpickling userdata from selector" in caplog.text
+            ), "Should log an error when unpickling fails"
 
     def test_no_function(self, mocked_app, mocker):
         app, _, _ = mocked_app()
         import pickle
-        userdata = pickle.dumps({ 
-            "func": "non_existent_function",
-            "args": (), 
-            "kwargs": {}
-        })
+
+        userdata = pickle.dumps(
+            {"func": "non_existent_function", "args": (), "kwargs": {}}
+        )
         with pytest.raises(KeyError):
             app._dispatcher.dispatchSelector_(userdata)
+
 
 class TestPingrThingrAppInitialization:
     def test_initialization(self, mocked_app, tmp_path):
@@ -122,6 +132,7 @@ class TestPingUpdates:
         assert (
             mocked_nsapp.setStatusBarIcon.call_count == 1
         ), "NSApp.setMenuBarIcon should not have been called again"
+
 
 class TestSettingsChanges:
     def test_pause(self, mocked_app, tmp_path, mocker):
@@ -244,20 +255,34 @@ class TestCheckForUpdates:
         # Test that the update timer starts on app initialization when setting is enabled
         settings = {"check_for_updates": True}
         app, _, _ = mocked_app(settings)
-        assert app._update_timer.is_alive(), "Update timer should be started when check_for_updates is True"
+        assert (
+            app._update_timer.is_alive()
+        ), "Update timer should be started when check_for_updates is True"
 
     def test_check_for_updates_on_startup_disabled(self, mocked_app):
         # Test that the update timer does not start on app initialization when setting is disabled
         settings = {"check_for_updates": False}
         app, _, _ = mocked_app(settings)
-        assert not app._update_timer.is_alive(), "Update timer should not be started when check_for_updates is False"
+        assert (
+            not app._update_timer.is_alive()
+        ), "Update timer should not be started when check_for_updates is False"
 
     def test_check_for_updates_on_startup_toggle(self, mocked_app):
         # Test that toggling the check_for_updates setting starts/stops the update timer
         settings = {"check_for_updates": False}
         app, _, _ = mocked_app(settings)
-        assert app._settings.get("check_for_updates") == False, "Initial setting should be False"
-        assert app.check_for_updates_on_startup_menu.state == False, "Menu state should reflect initial setting"
-        app.check_for_updates_on_startup_menu.callback(app.check_for_updates_on_startup_menu)  # Toggle the setting
-        assert app._settings.get("check_for_updates") == True, "Setting should be toggled to True"
-        assert app.check_for_updates_on_startup_menu.state == True, "Menu state should reflect toggled setting"
+        assert (
+            app._settings.get("check_for_updates") == False
+        ), "Initial setting should be False"
+        assert (
+            app.check_for_updates_on_startup_menu.state == False
+        ), "Menu state should reflect initial setting"
+        app.check_for_updates_on_startup_menu.callback(
+            app.check_for_updates_on_startup_menu
+        )  # Toggle the setting
+        assert (
+            app._settings.get("check_for_updates") == True
+        ), "Setting should be toggled to True"
+        assert (
+            app.check_for_updates_on_startup_menu.state == True
+        ), "Menu state should reflect toggled setting"
