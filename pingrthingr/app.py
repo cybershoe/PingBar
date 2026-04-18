@@ -149,8 +149,33 @@ class PingrThingrApp(App):
 
     class MainThreadDispatcher(NSObject):
         def dispatchSelector_(self, userdata):
-            self._app._run_from_selector_(userdata)
+            logger.debug(f"in dispatchSelector_")
 
+            try:
+                user_info = pickle_loads(userdata)
+            except Exception as e:
+                logger.error(f"Error unpickling userdata from selector: {e}")
+                return
+            else:
+                logger.debug(f"Successfully unpickled userdata: {user_info}")
+
+            func = getattr(self._app, user_info.get("func", None), None)
+
+            print(func)
+
+            if func is None:
+                raise KeyError(f"Function name not found in timer userInfo: {user_info}")
+            else:
+                logger.debug(f"Retrieved function '{func.__name__}' from timer userInfo")
+
+            args = user_info.get("args", ())
+            kwargs = user_info.get("kwargs", {})
+
+            logger.debug(
+                f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}"
+            )
+            func(*args, **kwargs)
+ 
     def run_in_main_thread(self, func: str, *args, **kwargs):
         """Run a function in the main application thread using a Timer.
 
