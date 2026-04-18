@@ -39,14 +39,10 @@ def mocked_app(mocker, tmp_path):
 
         app._dispatcher = app.MainThreadDispatcher.alloc().init()
         app._dispatcher._app = app
-        def _run_in_main_thread(func_name, *args, **kwargs):
-            userdata = pickle.dumps({
-                "func": func_name,
-                "args": args,
-                "kwargs": kwargs
-            })
+
+        def mock_performSelectorOnMainThread_withObject_waitUntilDone_(target, userdata, wait_until_done):
             app._dispatcher.dispatchSelector_(userdata)
-        mocker.patch.object(app, "run_in_main_thread", _run_in_main_thread)
+        app._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_ = mock_performSelectorOnMainThread_withObject_waitUntilDone_
         
         return app, mock_pinger, mock_nsapp
 
