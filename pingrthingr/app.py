@@ -124,7 +124,7 @@ class PingrThingrApp(App):
         logger.info(f"Initialized PingrThingr")
 
     # Run a function in the main thread after a short delay to ensure NSApp is fully initialized
-    def ns_init_timer(self, sender):
+    def ns_init_timer(self, sender):  # pragma: no cover
         sender.stop()
         self._dispatcher = self.MainThreadDispatcher.alloc().init()
         self._dispatcher._app = self
