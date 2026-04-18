@@ -245,7 +245,7 @@ class PingrThingrApp(App):
 
         self.run_in_main_thread("refresh_status_", latency, loss)
 
-    def _draw_icon(self, icon: NSImage | NSView) -> None:
+    def _draw_icon(self, icon: NSImage) -> None:
         """Draw the menu bar icon.
 
         Updates the macOS menu bar status item with either an NSImage or NSView icon.
@@ -260,22 +260,22 @@ class PingrThingrApp(App):
             TypeError: If icon is not an NSImage or NSView instance.
         """
 
-        # Remove existing subview(s) if present
-        if len(self._nsapp.nsstatusitem.button().subviews()) > 0:
-            for i in range(len(self._nsapp.nsstatusitem.button().subviews())):
-                self._nsapp.nsstatusitem.button().subviews()[i].removeFromSuperview()
+        # # Remove existing subview(s) if present
+        # if len(self._nsapp.nsstatusitem.button().subviews()) > 0:
+        #     for i in range(len(self._nsapp.nsstatusitem.button().subviews())):
+        #         self._nsapp.nsstatusitem.button().subviews()[i].removeFromSuperview()
 
         # Set icon to image if provided, otherwise blank backgrop for view
-        if icon is not None and isinstance(icon, NSImage):
-            logger.debug(f"Drawing icon from NSImage")
-            self._icon_nsimage = icon
-        elif icon is not None and isinstance(icon, NSView):
-            blank_image = NSImage.alloc().initWithSize_(icon.frame().size)
-            self._icon_nsimage = blank_image
-        else:  # pragma: no cover
-            raise TypeError(
-                f"Invalid icon type: {type(icon)}. Expected NSImage or NSView."
-            )
+        # if icon is not None and isinstance(icon, NSImage):
+        logger.debug(f"Drawing icon from NSImage")
+        self._icon_nsimage = icon
+        # elif icon is not None and isinstance(icon, NSView):
+        #     blank_image = NSImage.alloc().initWithSize_(icon.frame().size)
+        #     self._icon_nsimage = blank_image
+        # else:  # pragma: no cover
+        #     raise TypeError(
+        #         f"Invalid icon type: {type(icon)}. Expected NSImage or NSView."
+        #     )
 
         self._nsapp.setStatusBarIcon()
 
