@@ -70,10 +70,10 @@ class PingrThingrApp(App):
         )
         self.check_for_updates_menu = MenuItem(
             "Check for updates...", callback=self.check_for_updates
-        ) 
+        )
         self.check_for_updates_on_startup_menu = MenuItem(
             "Check on startup", callback=self.check_for_updates_on_startup
-        ) 
+        )
         self.pause_menu.state = self._settings.get("paused", False)
         self.check_for_updates_on_startup_menu.state = self._settings.get(
             "check_for_updates", False
@@ -163,9 +163,13 @@ class PingrThingrApp(App):
             print(func)
 
             if func is None:
-                raise KeyError(f"Function name not found in timer userInfo: {user_info}")
+                raise KeyError(
+                    f"Function name not found in timer userInfo: {user_info}"
+                )
             else:
-                logger.debug(f"Retrieved function '{func.__name__}' from timer userInfo")
+                logger.debug(
+                    f"Retrieved function '{func.__name__}' from timer userInfo"
+                )
 
             args = user_info.get("args", ())
             kwargs = user_info.get("kwargs", {})
@@ -174,7 +178,7 @@ class PingrThingrApp(App):
                 f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}"
             )
             func(*args, **kwargs)
- 
+
     def run_in_main_thread(self, func: str, *args, **kwargs):
         """Run a function in the main application thread using a Timer.
 
