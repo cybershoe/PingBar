@@ -15,9 +15,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from Foundation import NSTimer, NSRunLoop  # type: ignore
-from AppKit import NSImage, NSView  # type: ignore
-import gc
+from AppKit import NSImage, NSObject  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -30,7 +28,7 @@ class PingrThingrApp(App):
 
     Attributes:
         pinger (Pinger): The network pinger instance.
-        settings (dict): Application settings dictionary.
+        _settings (SettingsManager): Persistent application settings manager.
     """
 
     def __init__(self, *args, **kwargs):
@@ -46,7 +44,7 @@ class PingrThingrApp(App):
         """
         super(PingrThingrApp, self).__init__(*args, **kwargs)
         self._settings_path = path_join(application_support(self.name), "settings.json")
-        logger.debug(f"Settings file path: {self._settings_path}")
+        logger.debug(f"In __init__(): Settings file path: {self._settings_path}")
         self._settings = SettingsManager(self._settings_path)
         self.latency = None
         self.loss = None
@@ -72,10 +70,10 @@ class PingrThingrApp(App):
         )
         self.check_for_updates_menu = MenuItem(
             "Check for updates...", callback=self.check_for_updates
-        )  # Placeholder for future update checking functionality
+        )
         self.check_for_updates_on_startup_menu = MenuItem(
             "Check on startup", callback=self.check_for_updates_on_startup
-        )  # Placeholder for future update checking functionality
+        )
         self.pause_menu.state = self._settings.get("paused", False)
         self.check_for_updates_on_startup_menu.state = self._settings.get(
             "check_for_updates", False
@@ -108,62 +106,144 @@ class PingrThingrApp(App):
         )
 
         self._update_timer = Timer(self.update_timer, 2)  # Update every 2 seconds
+        self._ns_init_timer = Timer(
+            self.ns_init_timer, 0.1
+        )  # Short delay to ensure NSApp is initialized
+        self._ns_init_timer.start()
         if self._settings.get("check_for_updates", False):
-            logger.debug(f"Check for updates on startup is enabled, starting update timer")
+            logger.debug(
+                f"In __init__(): Check for updates on startup is enabled, starting update timer"
+            )
             self._update_timer.start()
         else:
-            logger.debug(f"Check for updates on startup is disabled, not starting update timer")
+            logger.debug(
+                f"In __init__(): Check for updates on startup is disabled, not starting update timer"
+            )
 
-        logger.info(f"Initialized PingrThingr")
+        logger.info(f"In __init__(): Initialized PingrThingr")
 
-    def run_in_timer(self, func: str, *args, **kwargs):
-        """Run a function in the main application thread using a Timer.
+    def ns_init_timer(self, sender):  # pragma: no cover
+        """Perform deferred NSApp-dependent initialisation.
 
-        Schedules a function to be executed on the main thread using a one-shot
-        Timer, to allow arguments to be passed between threads without orphaned
-        references causing a emory leak.
+        Called once by a short-delay rumps Timer after the application has
+        started, ensuring NSApp and the status-bar item are fully available
+        before KVO observers and the main-thread dispatcher are set up.
 
         Args:
-            func (callable): The function to execute on the main thread.
-            *args: Variable length argument list to pass to the function.
-            **kwargs: Arbitrary keyword arguments to pass to the function.
+            sender (Timer): The one-shot Timer that fired this callback.
         """
-        logger.debug(f"Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}")
+        sender.stop()
+        self._dispatcher = self.MainThreadDispatcher.alloc().init()
+        self._dispatcher._app = self
+        self.appearance_observer = self.AppearanceObserver.alloc().init()
+        self.appearance_observer._app = self
+        self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
+            self.appearance_observer, "effectiveAppearance", 0, None
+        )
+
+    class AppearanceObserver(NSObject):
+        """KVO observer that reacts to system appearance changes.
+
+        Registered on the status-bar button's effectiveAppearance key path
+        so that the status icon is redrawn whenever the user switches between
+        light and dark mode.
+        """
+
+        def observeValueForKeyPath_ofObject_change_context_(
+            self, keyPath, obj, change, context
+        ):  # pragma: no cover
+            """Handle a KVO notification for a watched key path.
+
+            Args:
+                keyPath (str): The key path that changed.
+                obj: The object whose property changed.
+                change (dict): Dictionary describing the change.
+                context: Arbitrary context pointer passed at registration time.
+            """
+
+            if keyPath == "effectiveAppearance":
+                self._app.run_in_main_thread(
+                    "refresh_status_", use_saved=True, force=True
+                )  # re-draw your icon or update colors here
+                logger.debug(
+                    f"In observeValueForKeyPath_ofObject_change_context_(): Appearance change detected, refreshing status icon"
+                )
+
+    class MainThreadDispatcher(NSObject):
+        """NSObject shim used to dispatch calls onto the main run-loop thread.
+
+        Because PingrThingrApp is not an NSObject subclass it cannot be the
+        target of performSelectorOnMainThread. This lightweight wrapper holds
+        a back-reference (_app) and forwards pickled call descriptors to the
+        application instance.
+        """
+
+        def dispatchSelector_(self, userdata):
+            """Receive a pickled call descriptor and execute it on the main thread.
+
+            Invoked by the Objective-C runtime via
+            performSelectorOnMainThread_withObject_waitUntilDone_. Unpickles
+            the function name and arguments, looks up the method on the
+            application instance, and calls it.
+
+            Args:
+                userdata (bytes): Pickled dict with keys ``func`` (str),
+                    ``args`` (tuple), and ``kwargs`` (dict).
+            """
+
+            try:
+                user_info = pickle_loads(userdata)
+            except Exception as e:
+                logger.error(
+                    f"In dispatchSelector_(): Error unpickling userdata from selector: {e}"
+                )
+                return
+            else:
+                logger.debug(f"Successfully unpickled userdata: {user_info}")
+
+            func = getattr(self._app, user_info.get("func", None), None)
+
+            if func is None:
+                raise KeyError(f"Function name not found in userdata: {user_info}")
+            else:
+                logger.debug(
+                    f"In dispatchSelector_(): Retrieved function '{func.__name__}' from userdata"
+                )
+
+            args = user_info.get("args", ())
+            kwargs = user_info.get("kwargs", {})
+
+            logger.debug(
+                f"Running function from userdata: {func.__name__} with args {args} and kwargs {kwargs}"
+            )
+            func(*args, **kwargs)
+
+    def run_in_main_thread(self, func: str, *args, **kwargs):
+        """Schedule a method to execute on the main application thread.
+
+        Serialises the method name and arguments via pickle and dispatches
+        the call through ``MainThreadDispatcher`` using
+        ``performSelectorOnMainThread_withObject_waitUntilDone_``. This
+        avoids cross-thread PyObjC retain cycles that arise when Python
+        objects are passed directly as NSTimer userInfo.
+
+        Safe to call from any thread, including the pinger background thread.
+
+        Args:
+            func (str): Name of a method on this application instance to call.
+            *args: Positional arguments forwarded to the method.
+            **kwargs: Keyword arguments forwarded to the method.
+        """
+        logger.debug(
+            f"In run_in_main_thread(): Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}"
+        )
 
         # non-scalar values in userdata seem to cause memory leaks between python and objc
         userdata = pickle_dumps({"func": func, "args": args, "kwargs": kwargs})
 
-        timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
-            0.0, self, "_run_from_timer:", userdata, False
-        )        
-        NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
-
-    def _run_from_timer_(self, timer):
-
-        logger.debug(f"Running function from timer with userInfo: {timer.userInfo()}")
-
-        try:
-            user_info = pickle_loads(timer.userInfo())
-        except Exception as e:
-            logger.error(f"Error unpickling userInfo from timer: {e}")
-            return
-        else:
-            logger.debug(f"Successfully unpickled userInfo: {user_info}")
-
-        func=getattr(self, user_info.get('func', None), None)
-
-        if func is None:
-            raise KeyError(f"Function name not found in timer userInfo: {user_info}")
-        else:
-            logger.debug(f"Retrieved function '{func.__name__}' from timer userInfo")
-        
-        args=user_info.get('args', ())
-        kwargs=user_info.get('kwargs', {})
-        
-        logger.debug(f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}")
-        func(*args, **kwargs)
-
-        logger.debug(f"Total objects after running function: {len(gc.get_objects())}")
+        self._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_(
+            "dispatchSelector:", userdata, False
+        )
 
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
@@ -210,74 +290,48 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        self.run_in_timer("refresh_status_", latency, loss)
+        self.run_in_main_thread("refresh_status_", latency, loss)
 
-    def _draw_icon(self, icon: NSImage | NSView) -> None:
-        """Draw the menu bar icon.
+    def _draw_icon(self, icon: NSImage) -> None:
+        """Update the menu bar icon.
 
-        Updates the macOS menu bar status item with either an NSImage or NSView icon.
-        For NSView icons, adds the view as a subview to the status bar button and
-        positions it appropriately within the button bounds.
+        Stores the provided NSImage and instructs the rumps NSApp wrapper to
+        apply it to the status-bar item.
 
         Args:
-            icon (NSImage | NSView): The icon to display in the menu bar.
-                                   Can be either an NSImage or NSView instance.
-
-        Raises:
-            TypeError: If icon is not an NSImage or NSView instance.
+            icon (NSImage): The icon to display in the menu bar.
         """
 
-        # Remove existing subview(s) if present
-        if len(self._nsapp.nsstatusitem.button().subviews()) > 0:
-            for i in range(len(self._nsapp.nsstatusitem.button().subviews())):
-                self._nsapp.nsstatusitem.button().subviews()[i].removeFromSuperview()
-
-        # Set icon to image if provided, otherwise blank backgrop for view
-        if icon is not None and isinstance(icon, NSImage):
-            logger.debug(f"Drawing icon from NSImage")
-            self._icon_nsimage = icon
-        elif icon is not None and isinstance(icon, NSView):
-            blank_image = NSImage.alloc().initWithSize_(icon.frame().size)
-            self._icon_nsimage = blank_image
-        else:  # pragma: no cover
-            raise TypeError(
-                f"Invalid icon type: {type(icon)}. Expected NSImage or NSView."
-            )
+        logger.debug(f"In _draw_icon(): Drawing icon from NSImage")
+        self._icon_nsimage = icon
 
         self._nsapp.setStatusBarIcon()
-
-        if isinstance(icon, NSView):
-            logger.debug(f"Adding NSView as subview to status bar button")
-            self._nsapp.nsstatusitem.button().addSubview_(icon)
-
-            # Center the view within the button
-            button_frame = self._nsapp.nsstatusitem.button().frame()
-            icon_frame = icon.frame()
-            offset_x = (button_frame.size.width - icon_frame.size.width) / 2
-            offset_y = (button_frame.size.height - icon_frame.size.height) / 2
-            icon.setFrameOrigin_((offset_x, offset_y))
 
     def refresh_status_(
         self,
         latency: float | None = None,
         loss: float | None = None,
         use_saved: bool = False,
+        force: bool = False,
     ) -> None:
         """Refresh the status icon and dynamic menu text.
 
         Updates the menu item text with current network statistics and
         refreshes the menu bar icon based on the current display mode
-        and network connectivity status. This method is thread-safe and
-        can be called from background threads.
+        and network connectivity status. Must be called on the main thread;
+        use ``run_in_main_thread`` to dispatch from background threads.
 
         Args:
             latency (float | None, optional): Current latency in milliseconds.
                                             Defaults to None.
             loss (float | None, optional): Current packet loss ratio (0.0-1.0).
                                          Defaults to None.
-            use_saved (bool, optional): Whether to use previously stored values
-                                      instead of the provided parameters.
+            use_saved (bool, optional): If True, ignores ``latency`` and ``loss``
+                                      and reuses the last stored values instead.
                                       Defaults to False.
+            force (bool, optional): If True, bypasses the last-state cache and
+                                   always redraws the icon even when the state
+                                   has not changed. Defaults to False.
         """
         if use_saved:
             latency = self.latency
@@ -288,20 +342,20 @@ class PingrThingrApp(App):
 
         if self._settings.get("paused"):
             logger.debug(
-                f"In refresh_status(): Application is paused, showing paused status"
+                f"In refresh_status_(): Application is paused, showing paused status"
             )
             self.statistics_menu.title = "Paused"
             self._draw_icon(symbol_icon("pause.circle", "Paused"))
-            
+
         else:
             logger.debug(
-                f"In refresh_status(): Application is running, showing latency and loss"
+                f"In refresh_status_(): Application is running, showing latency and loss"
             )
             loss_str = f"{(loss*100):.2f}%" if loss is not None else "---"
             latency_str = f"{(latency):.2f} ms" if latency is not None else "---"
             self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
             display = self._settings.get("display_mode", "Dot")
-            logger.debug(f"In refresh_status(): Current display_mode: {display}")
+            logger.debug(f"In refresh_status_(): Current display_mode: {display}")
 
             icon, new_state = generate_status_icon(  # type: ignore
                 display,  # type: ignore
@@ -309,17 +363,18 @@ class PingrThingrApp(App):
                 loss,
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
-                self._last_state,
+                self._last_state if not force else None,
+                self._nsapp.nsstatusitem.button().effectiveAppearance(),
             )
 
             logger.debug(
-                f"In refresh_status(): Last state: {self._last_state}, new state: {new_state}"
+                f"In refresh_status_(): Last state: {self._last_state}, new state: {new_state}"
             )
             self._last_state = new_state
 
             if icon is not None:
                 logger.debug(
-                    f"In refresh_status(): Updating icon for new state: {new_state}"
+                    f"In refresh_status_(): Updating icon for new state: {new_state}"
                 )
                 self._draw_icon(icon)
 
@@ -335,10 +390,14 @@ class PingrThingrApp(App):
         """
         new_targets = ping_target_window(self._settings.get("targets", []))  # type: ignore
         if new_targets is not None:
-            logger.debug(f"Updating targets from ping_target_window(): {new_targets}")
+            logger.debug(
+                f"In ping_targets(): Updating targets from ping_target_window(): {new_targets}"
+            )
             self._settings.set("targets", new_targets)
         else:
-            logger.debug(f"ping_target_window() returned None, no changes to targets")
+            logger.debug(
+                f"In ping_targets(): ping_target_window() returned None, no changes to targets"
+            )
 
     def pause_toggle(self, sender) -> None:
         """Toggle the pinger pause state.
@@ -349,7 +408,9 @@ class PingrThingrApp(App):
         Args:
             sender (MenuItem): The pause menu item that was clicked.
         """
-        logger.debug(f"Toggling pause state from {sender.state} to {not sender.state}")
+        logger.debug(
+            f"In pause_toggle(): Toggling pause state from {sender.state} to {not sender.state}"
+        )
 
         self._settings.set("paused", not sender.state)
 
@@ -391,13 +452,25 @@ class PingrThingrApp(App):
         )
 
         if new_version or not quiet:
-            self.run_in_timer(
+            self.run_in_main_thread(
                 "_update_dialog_return", new_version, __VERSION__, release_url, error
             )
 
-    def _update_dialog_return(self, new_version: str, current_version, release_url: str, error: str) -> None:
-        update_dialog(new_version, current_version, release_url, error)
+    def _update_dialog_return(
+        self, new_version: str, current_version, release_url: str, error: str
+    ) -> None:
+        """Display the update dialog on the main thread.
 
+        This thin wrapper exists so that ``check_for_updates_return`` can
+        dispatch the dialog to the main thread via ``run_in_main_thread``.
+
+        Args:
+            new_version (str): Latest version string, or empty if none available.
+            current_version (str): Currently installed version string.
+            release_url (str): URL to the GitHub release page for the new version.
+            error (str): Error message if the update check failed, empty on success.
+        """
+        update_dialog(new_version, current_version, release_url, error)
 
     def update_timer(self, sender) -> None:
         """Handle startup update check timer expiration.

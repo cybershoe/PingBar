@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 from AppKit import (
     CGRect,  # type: ignore[import]
+    NSAppearance,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSView,  # type: ignore[import]
     NSColor,  # type: ignore[import]
@@ -22,6 +23,27 @@ from AppKit import (
 )
 from typing import Tuple
 from ..settings import ThresholdModel, IconStyle
+
+
+def nsview_to_nsimage(nsview: NSView) -> NSImage:
+    """Render an NSView into an NSImage by capturing its display output.
+
+    Creates a bitmap representation of the view at its current size and
+    wraps it in an NSImage. The view does not need to be attached to a
+    window for this to work.
+
+    Args:
+        nsview (NSView): The view to capture.
+
+    Returns:
+        NSImage: A rasterised image of the view's contents.
+    """
+    bounds = nsview.bounds()
+    bitmap_rep = nsview.bitmapImageRepForCachingDisplayInRect_(bounds)
+    nsview.cacheDisplayInRect_toBitmapImageRep_(bounds, bitmap_rep)
+    image = NSImage.alloc().initWithSize_(bounds.size)
+    image.addRepresentation_(bitmap_rep)
+    return image
 
 
 def _criticality(
@@ -73,7 +95,7 @@ def _criticality(
     loss_criticality = _evaluate_criticality(loss, loss_thresholds)
 
     logger.debug(
-        f"Latency: {latency}, Loss: {loss}, Latency Criticality: {latency_criticality}, Loss Criticality: {loss_criticality}"
+        f"In _criticality(): Latency: {latency}, Loss: {loss}, Latency Criticality: {latency_criticality}, Loss Criticality: {loss_criticality}"
     )
     return latency_criticality, loss_criticality
 
@@ -85,6 +107,7 @@ def generate_status_icon(
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
+    appearance: NSAppearance | None = None,
 ) -> Tuple[NSImage | NSView | None, str]:
     """Generate a status icon based on the specified style and network metrics.
 
@@ -120,7 +143,12 @@ def generate_status_icon(
             )
         case "Text":
             icon, state = status_text_icon(
-                latency, loss, latency_thresholds, loss_thresholds, last_state
+                latency,
+                loss,
+                latency_thresholds,
+                loss_thresholds,
+                last_state,
+                appearance,
             )
         case _:  # pragma: no cover
             raise NotImplemented(f"No implementation for icon style: {style}")
@@ -188,6 +216,7 @@ def status_text_icon(
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
+    appearance: NSAppearance | None = None,
 ) -> Tuple[NSView | None, str]:
     """Create a status text icon showing latency and loss with color-coded thresholds.
 
@@ -276,7 +305,10 @@ def status_text_icon(
     view.addSubview_(latency_view)
     view.addSubview_(loss_view)
 
-    return view, new_state
+    view.setAppearance_(appearance)
+
+    image = nsview_to_nsimage(view)
+    return image, new_state
 
 
 def symbol_icon(
