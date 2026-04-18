@@ -15,7 +15,6 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from Foundation import NSTimer, NSRunLoop  # type: ignore
 from AppKit import NSImage, NSView, NSObject  # type: ignore
 import gc
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
@@ -72,10 +71,10 @@ class PingrThingrApp(App):
         )
         self.check_for_updates_menu = MenuItem(
             "Check for updates...", callback=self.check_for_updates
-        )  # Placeholder for future update checking functionality
+        ) 
         self.check_for_updates_on_startup_menu = MenuItem(
             "Check on startup", callback=self.check_for_updates_on_startup
-        )  # Placeholder for future update checking functionality
+        ) 
         self.pause_menu.state = self._settings.get("paused", False)
         self.check_for_updates_on_startup_menu.state = self._settings.get(
             "check_for_updates", False
@@ -108,37 +107,51 @@ class PingrThingrApp(App):
         )
 
         self._update_timer = Timer(self.update_timer, 2)  # Update every 2 seconds
-        self._ns_init_timer = Timer(self.ns_init_timer, 0.1)  # Short delay to ensure NSApp is initialized
+        self._ns_init_timer = Timer(
+            self.ns_init_timer, 0.1
+        )  # Short delay to ensure NSApp is initialized
         self._ns_init_timer.start()
         if self._settings.get("check_for_updates", False):
-            logger.debug(f"Check for updates on startup is enabled, starting update timer")
+            logger.debug(
+                f"Check for updates on startup is enabled, starting update timer"
+            )
             self._update_timer.start()
         else:
-            logger.debug(f"Check for updates on startup is disabled, not starting update timer")
-
+            logger.debug(
+                f"Check for updates on startup is disabled, not starting update timer"
+            )
 
         logger.info(f"Initialized PingrThingr")
 
+    # Run a function in the main thread after a short delay to ensure NSApp is fully initialized
     def ns_init_timer(self, sender):
         sender.stop()
+        self._dispatcher = self.MainThreadDispatcher.alloc().init()
+        self._dispatcher._app = self
         self.appearance_observer = self.AppearanceObserver.alloc().init()
         self.appearance_observer._app = self
         self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
-            self.appearance_observer,
-            "effectiveAppearance",
-            0,
-            None
+            self.appearance_observer, "effectiveAppearance", 0, None
         )
+
     class AppearanceObserver(NSObject):
         def observeValueForKeyPath_ofObject_change_context_(
             self, keyPath, obj, change, context
         ):
-            logger.debug("in AppearanceObserver.observeValueForKeyPath_ofObject_change_context_")
+            logger.debug(
+                "in AppearanceObserver.observeValueForKeyPath_ofObject_change_context_"
+            )
             if keyPath == "effectiveAppearance":
-                self._app.run_in_timer("refresh_status_", use_saved=True, force=True)                # re-draw your icon or update colors here
+                self._app.run_in_main_thread(
+                    "refresh_status_", use_saved=True, force=True
+                )  # re-draw your icon or update colors here
                 logger.debug(f"Appearance change detected, refreshing status icon")
 
-    def run_in_timer(self, func: str, *args, **kwargs):
+    class MainThreadDispatcher(NSObject):
+        def dispatchSelector_(self, userdata):
+            self._app._run_from_selector_(userdata)
+
+    def run_in_main_thread(self, func: str, *args, **kwargs):
         """Run a function in the main application thread using a Timer.
 
         Schedules a function to be executed on the main thread using a one-shot
@@ -150,44 +163,43 @@ class PingrThingrApp(App):
             *args: Variable length argument list to pass to the function.
             **kwargs: Arbitrary keyword arguments to pass to the function.
         """
-        logger.debug(f"Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}")
+        logger.debug(
+            f"Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}"
+        )
 
         # non-scalar values in userdata seem to cause memory leaks between python and objc
         userdata = pickle_dumps({"func": func, "args": args, "kwargs": kwargs})
 
-        timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
-            0.0, self, "_run_from_timer:", userdata, False
-        )        
-        NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
+        self._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_(
+            "dispatchSelector:", userdata, False
+        )
 
-    def _run_from_timer_(self, timer):
+    def _run_from_selector_(self, userdata):
 
-        logger.debug(f"Running function from timer with userInfo: {timer.userInfo()}")
+        logger.debug(f"Running function from selector")
 
         try:
-            user_info = pickle_loads(timer.userInfo())
+            user_info = pickle_loads(userdata)
         except Exception as e:
-            logger.error(f"Error unpickling userInfo from timer: {e}")
+            logger.error(f"Error unpickling userdata from selector: {e}")
             return
         else:
-            logger.debug(f"Successfully unpickled userInfo: {user_info}")
-        finally:
-            timer.invalidate()
+            logger.debug(f"Successfully unpickled userdata: {user_info}")
 
-        func=getattr(self, user_info.get('func', None), None)
+        func = getattr(self, user_info.get("func", None), None)
 
         if func is None:
             raise KeyError(f"Function name not found in timer userInfo: {user_info}")
         else:
             logger.debug(f"Retrieved function '{func.__name__}' from timer userInfo")
-        
-        args=user_info.get('args', ())
-        kwargs=user_info.get('kwargs', {})
-        
-        logger.debug(f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}")
-        func(*args, **kwargs)
 
-        logger.debug(f"Total objects after running function: {len(gc.get_objects())}")
+        args = user_info.get("args", ())
+        kwargs = user_info.get("kwargs", {})
+
+        logger.debug(
+            f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}"
+        )
+        func(*args, **kwargs)
 
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
@@ -234,7 +246,7 @@ class PingrThingrApp(App):
             f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        self.run_in_timer("refresh_status_", latency, loss)
+        self.run_in_main_thread("refresh_status_", latency, loss)
 
     def _draw_icon(self, icon: NSImage | NSView) -> None:
         """Draw the menu bar icon.
@@ -286,7 +298,7 @@ class PingrThingrApp(App):
         latency: float | None = None,
         loss: float | None = None,
         use_saved: bool = False,
-        force: bool = False
+        force: bool = False,
     ) -> None:
         """Refresh the status icon and dynamic menu text.
 
@@ -317,7 +329,7 @@ class PingrThingrApp(App):
             )
             self.statistics_menu.title = "Paused"
             self._draw_icon(symbol_icon("pause.circle", "Paused"))
-            
+
         else:
             logger.debug(
                 f"In refresh_status(): Application is running, showing latency and loss"
@@ -335,7 +347,7 @@ class PingrThingrApp(App):
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
                 self._last_state if not force else None,
-                self._nsapp.nsstatusitem.button().effectiveAppearance()
+                self._nsapp.nsstatusitem.button().effectiveAppearance(),
             )
 
             logger.debug(
@@ -417,13 +429,14 @@ class PingrThingrApp(App):
         )
 
         if new_version or not quiet:
-            self.run_in_timer(
+            self.run_in_main_thread(
                 "_update_dialog_return", new_version, __VERSION__, release_url, error
             )
 
-    def _update_dialog_return(self, new_version: str, current_version, release_url: str, error: str) -> None:
+    def _update_dialog_return(
+        self, new_version: str, current_version, release_url: str, error: str
+    ) -> None:
         update_dialog(new_version, current_version, release_url, error)
-
 
     def update_timer(self, sender) -> None:
         """Handle startup update check timer expiration.
