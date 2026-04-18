@@ -16,7 +16,6 @@ from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
 from AppKit import NSImage, NSView, NSObject  # type: ignore
-import gc
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -198,33 +197,6 @@ class PingrThingrApp(App):
         self._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_(
             "dispatchSelector:", userdata, False
         )
-
-    def _run_from_selector_(self, userdata):
-
-        logger.debug(f"Running function from selector")
-
-        try:
-            user_info = pickle_loads(userdata)
-        except Exception as e:
-            logger.error(f"Error unpickling userdata from selector: {e}")
-            return
-        else:
-            logger.debug(f"Successfully unpickled userdata: {user_info}")
-
-        func = getattr(self, user_info.get("func", None), None)
-
-        if func is None:
-            raise KeyError(f"Function name not found in timer userInfo: {user_info}")
-        else:
-            logger.debug(f"Retrieved function '{func.__name__}' from timer userInfo")
-
-        args = user_info.get("args", ())
-        kwargs = user_info.get("kwargs", {})
-
-        logger.debug(
-            f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}"
-        )
-        func(*args, **kwargs)
 
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
