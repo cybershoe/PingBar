@@ -137,7 +137,7 @@ class PingrThingrApp(App):
     class AppearanceObserver(NSObject):
         def observeValueForKeyPath_ofObject_change_context_(
             self, keyPath, obj, change, context
-        ):
+        ):  # pragma: no cover
             logger.debug(
                 "in AppearanceObserver.observeValueForKeyPath_ofObject_change_context_"
             )
