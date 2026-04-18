@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 from AppKit import (
     CGRect,  # type: ignore[import]
     NSAppearance,  # type: ignore[import]
-    NSAppearanceNameDarkAqua,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSView,  # type: ignore[import]
     NSColor,  # type: ignore[import]
