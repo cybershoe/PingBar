@@ -28,7 +28,7 @@ class PingrThingrApp(App):
 
     Attributes:
         pinger (Pinger): The network pinger instance.
-        settings (dict): Application settings dictionary.
+        _settings (SettingsManager): Persistent application settings manager.
     """
 
     def __init__(self, *args, **kwargs):
@@ -122,8 +122,16 @@ class PingrThingrApp(App):
 
         logger.info(f"Initialized PingrThingr")
 
-    # Run a function in the main thread after a short delay to ensure NSApp is fully initialized
     def ns_init_timer(self, sender):  # pragma: no cover
+        """Perform deferred NSApp-dependent initialisation.
+
+        Called once by a short-delay rumps Timer after the application has
+        started, ensuring NSApp and the status-bar item are fully available
+        before KVO observers and the main-thread dispatcher are set up.
+
+        Args:
+            sender (Timer): The one-shot Timer that fired this callback.
+        """
         sender.stop()
         self._dispatcher = self.MainThreadDispatcher.alloc().init()
         self._dispatcher._app = self
@@ -134,9 +142,24 @@ class PingrThingrApp(App):
         )
 
     class AppearanceObserver(NSObject):
+        """KVO observer that reacts to system appearance changes.
+
+        Registered on the status-bar button's effectiveAppearance key path
+        so that the status icon is redrawn whenever the user switches between
+        light and dark mode.
+        """
+
         def observeValueForKeyPath_ofObject_change_context_(
             self, keyPath, obj, change, context
         ):  # pragma: no cover
+            """Handle a KVO notification for a watched key path.
+
+            Args:
+                keyPath (str): The key path that changed.
+                obj: The object whose property changed.
+                change (dict): Dictionary describing the change.
+                context: Arbitrary context pointer passed at registration time.
+            """
             logger.debug(
                 "in AppearanceObserver.observeValueForKeyPath_ofObject_change_context_"
             )
@@ -147,7 +170,26 @@ class PingrThingrApp(App):
                 logger.debug(f"Appearance change detected, refreshing status icon")
 
     class MainThreadDispatcher(NSObject):
+        """NSObject shim used to dispatch calls onto the main run-loop thread.
+
+        Because PingrThingrApp is not an NSObject subclass it cannot be the
+        target of performSelectorOnMainThread. This lightweight wrapper holds
+        a back-reference (_app) and forwards pickled call descriptors to the
+        application instance.
+        """
+
         def dispatchSelector_(self, userdata):
+            """Receive a pickled call descriptor and execute it on the main thread.
+
+            Invoked by the Objective-C runtime via
+            performSelectorOnMainThread_withObject_waitUntilDone_. Unpickles
+            the function name and arguments, looks up the method on the
+            application instance, and calls it.
+
+            Args:
+                userdata (bytes): Pickled dict with keys ``func`` (str),
+                    ``args`` (tuple), and ``kwargs`` (dict).
+            """
             logger.debug(f"in dispatchSelector_")
 
             try:
@@ -180,16 +222,20 @@ class PingrThingrApp(App):
             func(*args, **kwargs)
 
     def run_in_main_thread(self, func: str, *args, **kwargs):
-        """Run a function in the main application thread using a Timer.
+        """Schedule a method to execute on the main application thread.
 
-        Schedules a function to be executed on the main thread using a one-shot
-        Timer, to allow arguments to be passed between threads without orphaned
-        references causing a emory leak.
+        Serialises the method name and arguments via pickle and dispatches
+        the call through ``MainThreadDispatcher`` using
+        ``performSelectorOnMainThread_withObject_waitUntilDone_``. This
+        avoids cross-thread PyObjC retain cycles that arise when Python
+        objects are passed directly as NSTimer userInfo.
+
+        Safe to call from any thread, including the pinger background thread.
 
         Args:
-            func (callable): The function to execute on the main thread.
-            *args: Variable length argument list to pass to the function.
-            **kwargs: Arbitrary keyword arguments to pass to the function.
+            func (str): Name of a method on this application instance to call.
+            *args: Positional arguments forwarded to the method.
+            **kwargs: Keyword arguments forwarded to the method.
         """
         logger.debug(
             f"Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}"
@@ -250,18 +296,13 @@ class PingrThingrApp(App):
         self.run_in_main_thread("refresh_status_", latency, loss)
 
     def _draw_icon(self, icon: NSImage) -> None:
-        """Draw the menu bar icon.
+        """Update the menu bar icon.
 
-        Updates the macOS menu bar status item with either an NSImage or NSView icon.
-        For NSView icons, adds the view as a subview to the status bar button and
-        positions it appropriately within the button bounds.
+        Stores the provided NSImage and instructs the rumps NSApp wrapper to
+        apply it to the status-bar item.
 
         Args:
-            icon (NSImage | NSView): The icon to display in the menu bar.
-                                   Can be either an NSImage or NSView instance.
-
-        Raises:
-            TypeError: If icon is not an NSImage or NSView instance.
+            icon (NSImage): The icon to display in the menu bar.
         """
 
         logger.debug(f"Drawing icon from NSImage")
@@ -280,17 +321,20 @@ class PingrThingrApp(App):
 
         Updates the menu item text with current network statistics and
         refreshes the menu bar icon based on the current display mode
-        and network connectivity status. This method is thread-safe and
-        can be called from background threads.
+        and network connectivity status. Must be called on the main thread;
+        use ``run_in_main_thread`` to dispatch from background threads.
 
         Args:
             latency (float | None, optional): Current latency in milliseconds.
                                             Defaults to None.
             loss (float | None, optional): Current packet loss ratio (0.0-1.0).
                                          Defaults to None.
-            use_saved (bool, optional): Whether to use previously stored values
-                                      instead of the provided parameters.
+            use_saved (bool, optional): If True, ignores ``latency`` and ``loss``
+                                      and reuses the last stored values instead.
                                       Defaults to False.
+            force (bool, optional): If True, bypasses the last-state cache and
+                                   always redraws the icon even when the state
+                                   has not changed. Defaults to False.
         """
         if use_saved:
             latency = self.latency
@@ -412,6 +456,17 @@ class PingrThingrApp(App):
     def _update_dialog_return(
         self, new_version: str, current_version, release_url: str, error: str
     ) -> None:
+        """Display the update dialog on the main thread.
+
+        This thin wrapper exists so that ``check_for_updates_return`` can
+        dispatch the dialog to the main thread via ``run_in_main_thread``.
+
+        Args:
+            new_version (str): Latest version string, or empty if none available.
+            current_version (str): Currently installed version string.
+            release_url (str): URL to the GitHub release page for the new version.
+            error (str): Error message if the update check failed, empty on success.
+        """
         update_dialog(new_version, current_version, release_url, error)
 
     def update_timer(self, sender) -> None:
