@@ -47,15 +47,15 @@ latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
 loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 
 
-def nsimage_to_nsview(ns_image: NSImage) -> NSView:
-    size = ns_image.size()
-    image_view = NSImageView.alloc().initWithFrame_(
-        NSMakeRect(0, 0, size.width, size.height)
-    )
-    image_view.setImage_(ns_image)
-    outview = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
-    outview.addSubview_(image_view)
-    return outview
+# def nsimage_to_nsview(ns_image: NSImage) -> NSView:
+#     size = ns_image.size()
+#     image_view = NSImageView.alloc().initWithFrame_(
+#         NSMakeRect(0, 0, size.width, size.height)
+#     )
+#     image_view.setImage_(ns_image)
+#     outview = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+#     outview.addSubview_(image_view)
+#     return outview
 
 def nsimage_to_png(ns_image: NSImage, output_path):
     # 1. Get the TIFF representation of the NSImage
@@ -71,28 +71,28 @@ def nsimage_to_png(ns_image: NSImage, output_path):
     # 4. Write to disk
     png_data.writeToFile_atomically_(output_path, True)
 
-def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
-    if isinstance(ns_view, NSImage):
-        ns_view = nsimage_to_nsview(ns_view)
+# def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
+#     if isinstance(ns_view, NSImage):
+#         ns_view = nsimage_to_nsview(ns_view)
 
-    viewbounds = ns_view.bounds()
-    dark_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
-    light_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+#     viewbounds = ns_view.bounds()
+#     dark_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
+#     light_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
 
-    outview = NSView.alloc().initWithFrame_(
-        NSMakeRect(0, 0, viewbounds.size.width, viewbounds.size.height)
-    )
-    outview.setWantsLayer_(True)
-    outview.layer().setBackgroundColor_((black if dark else white))
-    ns_view.setAppearance_(dark_aqua if dark else light_aqua)
+#     outview = NSView.alloc().initWithFrame_(
+#         NSMakeRect(0, 0, viewbounds.size.width, viewbounds.size.height)
+#     )
+#     outview.setWantsLayer_(True)
+#     outview.layer().setBackgroundColor_((black if dark else white))
+#     ns_view.setAppearance_(dark_aqua if dark else light_aqua)
 
-    outview.addSubview_(ns_view)
+#     outview.addSubview_(ns_view)
 
-    bitmap_rep = outview.bitmapImageRepForCachingDisplayInRect_(viewbounds)
-    outview.cacheDisplayInRect_toBitmapImageRep_(viewbounds, bitmap_rep)
+#     bitmap_rep = outview.bitmapImageRepForCachingDisplayInRect_(viewbounds)
+#     outview.cacheDisplayInRect_toBitmapImageRep_(viewbounds, bitmap_rep)
 
-    png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
-    png_data.writeToFile_atomically_(path, True)
+#     png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
+#     png_data.writeToFile_atomically_(path, True)
 
 
 @pytest.fixture
