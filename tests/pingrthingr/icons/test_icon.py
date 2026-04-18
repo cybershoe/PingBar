@@ -4,9 +4,6 @@ from AppKit import (
     NSAppearanceNameAqua,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSBitmapImageRep,  # type: ignore[import]
-    NSImageView,  # type: ignore[import]
-    NSView,  # type: ignore[import]
-    NSMakeRect,  # type: ignore[import]
     NSPNGFileType,  # type: ignore[import]
 )
 from Quartz import CGColorCreate, CGColorSpaceCreateDeviceRGB  # type: ignore[import]
@@ -47,52 +44,19 @@ latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
 loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 
 
-# def nsimage_to_nsview(ns_image: NSImage) -> NSView:
-#     size = ns_image.size()
-#     image_view = NSImageView.alloc().initWithFrame_(
-#         NSMakeRect(0, 0, size.width, size.height)
-#     )
-#     image_view.setImage_(ns_image)
-#     outview = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
-#     outview.addSubview_(image_view)
-#     return outview
-
 def nsimage_to_png(ns_image: NSImage, output_path):
     # 1. Get the TIFF representation of the NSImage
     tiff_data = ns_image.TIFFRepresentation()
-    
+
     # 2. Create a bitmap image representation from that TIFF data
     bitmap_rep = NSBitmapImageRep.imageRepWithData_(tiff_data)
-    
+
     # 3. Create the PNG data from the bitmap representation
     # NSPNGFileType is the constant for PNG (integer value 4)
     png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
-    
+
     # 4. Write to disk
     png_data.writeToFile_atomically_(output_path, True)
-
-# def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
-#     if isinstance(ns_view, NSImage):
-#         ns_view = nsimage_to_nsview(ns_view)
-
-#     viewbounds = ns_view.bounds()
-#     dark_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
-#     light_aqua = NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
-
-#     outview = NSView.alloc().initWithFrame_(
-#         NSMakeRect(0, 0, viewbounds.size.width, viewbounds.size.height)
-#     )
-#     outview.setWantsLayer_(True)
-#     outview.layer().setBackgroundColor_((black if dark else white))
-#     ns_view.setAppearance_(dark_aqua if dark else light_aqua)
-
-#     outview.addSubview_(ns_view)
-
-#     bitmap_rep = outview.bitmapImageRepForCachingDisplayInRect_(viewbounds)
-#     outview.cacheDisplayInRect_toBitmapImageRep_(viewbounds, bitmap_rep)
-
-#     png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
-#     png_data.writeToFile_atomically_(path, True)
 
 
 @pytest.fixture
@@ -121,12 +85,15 @@ class TestIconImages:
             loss=loss,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
-            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua) if dark else NSAppearance.appearanceNamed_(NSAppearanceNameAqua) ,
+            appearance=(
+                NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
+                if dark
+                else NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+            ),
         )
         assert (
             compare_image(
-                icon,
-                f"{display.lower()}-{case}-{'dark' if dark else 'light'}"
+                icon, f"{display.lower()}-{case}-{'dark' if dark else 'light'}"
             )
             < 0.01
         ), "Generated icon should match reference image"
@@ -134,8 +101,7 @@ class TestIconImages:
     def test_pause_icon(self, compare_image):
         pause_icon = symbol_icon("pause.circle", "Paused")
         assert (
-            compare_image(pause_icon, "pause")
-            < 0.01
+            compare_image(pause_icon, "pause") < 0.01
         ), "Generated pause icon should match reference image"
 
 
