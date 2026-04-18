@@ -3,10 +3,7 @@ from pathlib import Path
 from json import load as json_load, dump as json_dump
 
 from pingrthingr import PingrThingrApp
-from pingrthingr.icons import generate_status_icon
-from pingrthingr.settings.models import ThresholdModel
 from AppKit import NSAppearance, NSAppearanceNameAqua  # type: ignore
-
 
 base_path = Path(__file__).parent
 
