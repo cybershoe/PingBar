@@ -44,7 +44,7 @@ class PingrThingrApp(App):
         """
         super(PingrThingrApp, self).__init__(*args, **kwargs)
         self._settings_path = path_join(application_support(self.name), "settings.json")
-        logger.debug(f"Settings file path: {self._settings_path}")
+        logger.debug(f"In __init__(): Settings file path: {self._settings_path}")
         self._settings = SettingsManager(self._settings_path)
         self.latency = None
         self.loss = None
@@ -112,15 +112,15 @@ class PingrThingrApp(App):
         self._ns_init_timer.start()
         if self._settings.get("check_for_updates", False):
             logger.debug(
-                f"Check for updates on startup is enabled, starting update timer"
+                f"In __init__(): Check for updates on startup is enabled, starting update timer"
             )
             self._update_timer.start()
         else:
             logger.debug(
-                f"Check for updates on startup is disabled, not starting update timer"
+                f"In __init__(): Check for updates on startup is disabled, not starting update timer"
             )
 
-        logger.info(f"Initialized PingrThingr")
+        logger.info(f"In __init__(): Initialized PingrThingr")
 
     def ns_init_timer(self, sender):  # pragma: no cover
         """Perform deferred NSApp-dependent initialisation.
@@ -160,14 +160,12 @@ class PingrThingrApp(App):
                 change (dict): Dictionary describing the change.
                 context: Arbitrary context pointer passed at registration time.
             """
-            logger.debug(
-                "in AppearanceObserver.observeValueForKeyPath_ofObject_change_context_"
-            )
+
             if keyPath == "effectiveAppearance":
                 self._app.run_in_main_thread(
                     "refresh_status_", use_saved=True, force=True
                 )  # re-draw your icon or update colors here
-                logger.debug(f"Appearance change detected, refreshing status icon")
+                logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Appearance change detected, refreshing status icon")
 
     class MainThreadDispatcher(NSObject):
         """NSObject shim used to dispatch calls onto the main run-loop thread.
@@ -190,34 +188,31 @@ class PingrThingrApp(App):
                 userdata (bytes): Pickled dict with keys ``func`` (str),
                     ``args`` (tuple), and ``kwargs`` (dict).
             """
-            logger.debug(f"in dispatchSelector_")
 
             try:
                 user_info = pickle_loads(userdata)
             except Exception as e:
-                logger.error(f"Error unpickling userdata from selector: {e}")
+                logger.error(f"In dispatchSelector_(): Error unpickling userdata from selector: {e}")
                 return
             else:
                 logger.debug(f"Successfully unpickled userdata: {user_info}")
 
             func = getattr(self._app, user_info.get("func", None), None)
 
-            print(func)
-
             if func is None:
                 raise KeyError(
-                    f"Function name not found in timer userInfo: {user_info}"
+                    f"Function name not found in userdata: {user_info}"
                 )
             else:
                 logger.debug(
-                    f"Retrieved function '{func.__name__}' from timer userInfo"
+                    f"In dispatchSelector_(): Retrieved function '{func.__name__}' from userdata"
                 )
 
             args = user_info.get("args", ())
             kwargs = user_info.get("kwargs", {})
 
             logger.debug(
-                f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}"
+                f"Running function from userdata: {func.__name__} with args {args} and kwargs {kwargs}"
             )
             func(*args, **kwargs)
 
@@ -238,7 +233,7 @@ class PingrThingrApp(App):
             **kwargs: Keyword arguments forwarded to the method.
         """
         logger.debug(
-            f"Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}"
+            f"In run_in_main_thread(): Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}"
         )
 
         # non-scalar values in userdata seem to cause memory leaks between python and objc
@@ -305,7 +300,7 @@ class PingrThingrApp(App):
             icon (NSImage): The icon to display in the menu bar.
         """
 
-        logger.debug(f"Drawing icon from NSImage")
+        logger.debug(f"In _draw_icon(): Drawing icon from NSImage")
         self._icon_nsimage = icon
 
         self._nsapp.setStatusBarIcon()
@@ -345,20 +340,20 @@ class PingrThingrApp(App):
 
         if self._settings.get("paused"):
             logger.debug(
-                f"In refresh_status(): Application is paused, showing paused status"
+                f"In refresh_status_(): Application is paused, showing paused status"
             )
             self.statistics_menu.title = "Paused"
             self._draw_icon(symbol_icon("pause.circle", "Paused"))
 
         else:
             logger.debug(
-                f"In refresh_status(): Application is running, showing latency and loss"
+                f"In refresh_status_(): Application is running, showing latency and loss"
             )
             loss_str = f"{(loss*100):.2f}%" if loss is not None else "---"
             latency_str = f"{(latency):.2f} ms" if latency is not None else "---"
             self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
             display = self._settings.get("display_mode", "Dot")
-            logger.debug(f"In refresh_status(): Current display_mode: {display}")
+            logger.debug(f"In refresh_status_(): Current display_mode: {display}")
 
             icon, new_state = generate_status_icon(  # type: ignore
                 display,  # type: ignore
@@ -371,13 +366,13 @@ class PingrThingrApp(App):
             )
 
             logger.debug(
-                f"In refresh_status(): Last state: {self._last_state}, new state: {new_state}"
+                f"In refresh_status_(): Last state: {self._last_state}, new state: {new_state}"
             )
             self._last_state = new_state
 
             if icon is not None:
                 logger.debug(
-                    f"In refresh_status(): Updating icon for new state: {new_state}"
+                    f"In refresh_status_(): Updating icon for new state: {new_state}"
                 )
                 self._draw_icon(icon)
 
@@ -393,10 +388,10 @@ class PingrThingrApp(App):
         """
         new_targets = ping_target_window(self._settings.get("targets", []))  # type: ignore
         if new_targets is not None:
-            logger.debug(f"Updating targets from ping_target_window(): {new_targets}")
+            logger.debug(f"In ping_targets(): Updating targets from ping_target_window(): {new_targets}")
             self._settings.set("targets", new_targets)
         else:
-            logger.debug(f"ping_target_window() returned None, no changes to targets")
+            logger.debug(f"In ping_targets(): ping_target_window() returned None, no changes to targets")
 
     def pause_toggle(self, sender) -> None:
         """Toggle the pinger pause state.
@@ -407,7 +402,7 @@ class PingrThingrApp(App):
         Args:
             sender (MenuItem): The pause menu item that was clicked.
         """
-        logger.debug(f"Toggling pause state from {sender.state} to {not sender.state}")
+        logger.debug(f"In pause_toggle(): Toggling pause state from {sender.state} to {not sender.state}")
 
         self._settings.set("paused", not sender.state)
 
