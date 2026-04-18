@@ -15,12 +15,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-<<<<<<< HEAD
-from Foundation import NSTimer, NSRunLoop  # type: ignore
-from AppKit import NSImage, NSView  # type: ignore
-=======
 from AppKit import NSImage, NSObject  # type: ignore
->>>>>>> dev
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -246,41 +241,9 @@ class PingrThingrApp(App):
         # non-scalar values in userdata seem to cause memory leaks between python and objc
         userdata = pickle_dumps({"func": func, "args": args, "kwargs": kwargs})
 
-<<<<<<< HEAD
-        timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
-            0.0, self, "_run_from_timer:", userdata, False
-        )        
-        NSRunLoop.mainRunLoop().addTimer_forMode_(timer, "NSDefaultRunLoopMode")
-
-    def _run_from_timer_(self, timer):
-
-        logger.debug(f"Running function from timer with userInfo: {timer.userInfo()}")
-
-        try:
-            user_info = pickle_loads(timer.userInfo())
-        except Exception as e:
-            logger.error(f"Error unpickling userInfo from timer: {e}")
-            return
-        else:
-            logger.debug(f"Successfully unpickled userInfo: {user_info}")
-
-        func=getattr(self, user_info.get('func', None), None)
-
-        if func is None:
-            raise KeyError(f"Function name not found in timer userInfo: {user_info}")
-        else:
-            logger.debug(f"Retrieved function '{func.__name__}' from timer userInfo")
-        
-        args=user_info.get('args', ())
-        kwargs=user_info.get('kwargs', {})
-        
-        logger.debug(f"Running function from timer: {func.__name__} with args {args} and kwargs {kwargs}")
-        func(*args, **kwargs)
-=======
         self._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_(
             "dispatchSelector:", userdata, False
         )
->>>>>>> dev
 
     def pause_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
