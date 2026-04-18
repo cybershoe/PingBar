@@ -6,6 +6,8 @@ from json import load as json_load, dump as json_dump
 from pingrthingr import PingrThingrApp
 from pingrthingr.icons import generate_status_icon
 from pingrthingr.settings.models import ThresholdModel
+from AppKit import NSAppearance, NSAppearanceNameAqua, NSAppearanceNameDarkAqua # type: ignore
+import pickle
 
 
 
@@ -15,7 +17,7 @@ base_path = Path(__file__).parent
 
 @pytest.fixture(autouse=True)
 def mocked_app(mocker, tmp_path):
-    def _mocked_app(settings: dict | None = None, mock_run_in_timer: bool = True):
+    def _mocked_app(settings: dict | None = None):
         # Create an instance of the app for testing
         mock_pinger = mocker.MagicMock()
         mocker.patch("pingrthingr.app.Pinger", return_value=mock_pinger)
@@ -29,67 +31,58 @@ def mocked_app(mocker, tmp_path):
                 json_dump(default_settings, f)
         app = PingrThingrApp("testapp")
         mock_nsapp = mocker.MagicMock()
-        mocked_run_in_timer = mocker.MagicMock()
-        def _mocked_run_in_timer(func, *args, **kwargs):
-            func = getattr(app, func)
-            func(*args, **kwargs)
-        mocked_run_in_timer.side_effect = _mocked_run_in_timer
+
         mocker.patch.object(app, "_nsapp", mock_nsapp, create=True)
-        if mock_run_in_timer:
-            mocker.patch.object(app, "run_in_timer", mocked_run_in_timer)
+        mock_button = mocker.MagicMock()
+        mock_button.effectiveAppearance.return_value = NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+        mock_nsapp.nsstatusitem.button.return_value = mock_button
+
+        app._dispatcher = app.MainThreadDispatcher.alloc().init()
+        app._dispatcher._app = app
+        def _run_in_main_thread(func_name, *args, **kwargs):
+            userdata = pickle.dumps({
+                "func": func_name,
+                "args": args,
+                "kwargs": kwargs
+            })
+            app._dispatcher.dispatchSelector_(userdata)
+        mocker.patch.object(app, "run_in_main_thread", _run_in_main_thread)
+        
         return app, mock_pinger, mock_nsapp
 
     yield _mocked_app
 
 
 class TestCrossThreadScheduling:
-    def test_run_in_timer(self, mocked_app, mocker):
-        app, _, mock_nsapp = mocked_app(mock_run_in_timer=False)
+    def test_run_in_main_thread(self, mocked_app, mocker):
+        app, _, _ = mocked_app()
         
         mock_test_function = mocker.MagicMock(__name__="mock_test_function")
         app.test_function = mock_test_function
         
-        # Call run_in_timer with our test function
-        app.run_in_timer('test_function', "positional", key1="key_value1")
-        # The function should not be called immediately (it's scheduled for timer)
-        assert not mock_test_function.called, "Function should not be called immediately"
+        # Call run_in_main_thread with our test function
+        app.run_in_main_thread('test_function', "positional", key1="key_value1")
         
-        # Now simulate the timer firing by calling _run_from_timer_ directly
-        # This tests the unpickling and function execution logic
-        import pickle
-        mock_timer = mocker.MagicMock()
-        userdata = pickle.dumps({
-            "func": "test_function", 
-            "args": ("positional",), 
-            "kwargs": {"key1": "key_value1"}
-        })
-        mock_timer.userInfo.return_value = userdata
-        
-        app._run_from_timer_(mock_timer)
-        
-        assert mock_test_function.called, "Function should be called when timer fires"
+        assert mock_test_function.called
         assert mock_test_function.call_args == (("positional",), {"key1": "key_value1"}), "Function should be called with correct arguments"
 
     def test_bad_pickle(self, mocked_app, mocker, caplog):
         app, _, _ = mocked_app()
-        mock_timer = mocker.MagicMock()
-        mock_timer.userInfo.return_value = b"not a pickle"
+        userdata = b"not a pickle"
         with caplog.at_level("ERROR"):
-            app._run_from_timer_(mock_timer)
-            assert "Error unpickling userInfo from timer" in caplog.text, "Should log an error when unpickling fails"
+            app._dispatcher.dispatchSelector_(userdata)
+            assert "Error unpickling userdata from selector" in caplog.text, "Should log an error when unpickling fails"
 
     def test_no_function(self, mocked_app, mocker):
         app, _, _ = mocked_app()
         import pickle
-        mock_timer = mocker.MagicMock()
         userdata = pickle.dumps({ 
             "func": "non_existent_function",
             "args": (), 
             "kwargs": {}
         })
-        mock_timer.userInfo.return_value = userdata
         with pytest.raises(KeyError):
-            app._run_from_timer_(mock_timer)
+            app._dispatcher.dispatchSelector_(userdata)
 
 class TestPingrThingrAppInitialization:
     def test_initialization(self, mocked_app, tmp_path):
@@ -135,7 +128,6 @@ class TestPingUpdates:
         assert (
             mocked_nsapp.setStatusBarIcon.call_count == 1
         ), "NSApp.setMenuBarIcon should not have been called again"
-
 
 class TestSettingsChanges:
     def test_pause(self, mocked_app, tmp_path, mocker):

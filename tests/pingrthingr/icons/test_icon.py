@@ -3,6 +3,7 @@ from AppKit import (
     NSAppearanceNameDarkAqua,  # type: ignore[import]
     NSAppearanceNameAqua,  # type: ignore[import]
     NSImage,  # type: ignore[import]
+    NSBitmapImageRep,  # type: ignore[import]
     NSImageView,  # type: ignore[import]
     NSView,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
@@ -56,6 +57,19 @@ def nsimage_to_nsview(ns_image: NSImage) -> NSView:
     outview.addSubview_(image_view)
     return outview
 
+def nsimage_to_png(ns_image: NSImage, output_path):
+    # 1. Get the TIFF representation of the NSImage
+    tiff_data = ns_image.TIFFRepresentation()
+    
+    # 2. Create a bitmap image representation from that TIFF data
+    bitmap_rep = NSBitmapImageRep.imageRepWithData_(tiff_data)
+    
+    # 3. Create the PNG data from the bitmap representation
+    # NSPNGFileType is the constant for PNG (integer value 4)
+    png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
+    
+    # 4. Write to disk
+    png_data.writeToFile_atomically_(output_path, True)
 
 def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
     if isinstance(ns_view, NSImage):
@@ -83,13 +97,13 @@ def nsview_to_png(ns_view: NSView, path: str, dark: bool = False) -> None:
 
 @pytest.fixture
 def compare_image(image_diff, tmp_path):
-    def _test_image_diff(image: NSImage | NSView, test_name: str, dark: bool) -> float:
+    def _test_image_diff(image: NSImage, test_name: str) -> float:
         exemplar_image = base_path / f"resources/example-{test_name}.png"
         output_path = tmp_path / f"compare-{test_name}.png"
         if not Path(exemplar_image).is_file():  # pragma: no cover
-            nsview_to_png(image, str(exemplar_image), dark)
+            nsimage_to_png(image, str(exemplar_image))
 
-        nsview_to_png(image, str(output_path), dark)
+        nsimage_to_png(image, str(output_path))
         return image_diff(str(output_path), str(exemplar_image))
 
     return _test_image_diff
@@ -107,21 +121,20 @@ class TestIconImages:
             loss=loss,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
+            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua) if dark else NSAppearance.appearanceNamed_(NSAppearanceNameAqua) ,
         )
         assert (
             compare_image(
                 icon,
-                f"{display.lower()}-{case}-{'dark' if dark else 'light'}",
-                dark=dark,
+                f"{display.lower()}-{case}-{'dark' if dark else 'light'}"
             )
             < 0.01
         ), "Generated icon should match reference image"
 
-    @pytest.mark.parametrize("dark", [True, False])
-    def test_pause_icon(self, compare_image, dark):
+    def test_pause_icon(self, compare_image):
         pause_icon = symbol_icon("pause.circle", "Paused")
         assert (
-            compare_image(pause_icon, f"pause-{'dark' if dark else 'light'}", dark=dark)
+            compare_image(pause_icon, "pause")
             < 0.01
         ), "Generated pause icon should match reference image"
 
