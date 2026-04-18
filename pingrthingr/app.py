@@ -282,17 +282,6 @@ class PingrThingrApp(App):
 
         self._nsapp.setStatusBarIcon()
 
-        if isinstance(icon, NSView):
-            logger.debug(f"Adding NSView as subview to status bar button")
-            self._nsapp.nsstatusitem.button().addSubview_(icon)
-
-            # Center the view within the button
-            button_frame = self._nsapp.nsstatusitem.button().frame()
-            icon_frame = icon.frame()
-            offset_x = (button_frame.size.width - icon_frame.size.width) / 2
-            offset_y = (button_frame.size.height - icon_frame.size.height) / 2
-            icon.setFrameOrigin_((offset_x, offset_y))
-
     def refresh_status_(
         self,
         latency: float | None = None,
