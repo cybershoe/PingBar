@@ -130,7 +130,7 @@ class Pinger:
         """
         logger.debug("In start(): Starting background event loop for Pinger")
         try:
-            if self._loop.is_running():  # type: ignore  pragma: no branch
+            if self._loop.is_running():  # type: ignore  pragma: no cover
                 logger.debug("In start(): already running, skipping start")
                 return
             if not self._loop.is_closed():  # type: ignore  pragma: no cover
