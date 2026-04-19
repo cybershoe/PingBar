@@ -2,6 +2,8 @@ import pytest
 from pathlib import Path
 from json import load as json_load, dump as json_dump
 
+from pytest_mock import mocker
+
 from pingrthingr import PingrThingrApp
 from AppKit import NSAppearance, NSAppearanceNameAqua  # type: ignore
 
@@ -234,16 +236,18 @@ class TestCheckForUpdates:
         app, _, _ = mocked_app()
         mocked_dialog = mocker.MagicMock()
         mocker.patch("pingrthingr.app.update_dialog", mocked_dialog)
+        mocker.patch("pingrthingr.app.__VERSION__", "v0.2.0")
+
 
         # Not quiet, should call runner to display results
-        app.check_for_updates_return("", "", "v0.4.0 is the latest version.", False)
+        app.check_for_updates_return("", "", "v0.2.0 is the latest version.", False)
         mocked_dialog.assert_called_once_with(
-            "", "v0.4.0", "", "v0.4.0 is the latest version."
+            "", "v0.2.0", "", "v0.2.0 is the latest version."
         )
 
         # Quiet, should not call runner
         mocked_dialog.reset_mock()
-        app.check_for_updates_return("", "", "v0.4.0 is the latest version.", True)
+        app.check_for_updates_return("", "", "v0.2.0 is the latest version.", True)
         assert (
             not mocked_dialog.called
         ), "Runner should not be called when quiet is True and no new version"
