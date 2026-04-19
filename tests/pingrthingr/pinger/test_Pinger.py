@@ -60,7 +60,7 @@ def mocked_pinger(mocker, ping_response):
             timeout=1,
             cb=cb,
             start_running=start_running,
-            frequency=0,  #  Use a shorter frequency for faster tests
+            frequency=0,  # Use a shorter frequency for faster tests
         )
         pingers.append(pinger)  # Keep a reference to allow cleanup
         return pinger, callback_response, cb
@@ -185,8 +185,8 @@ class TestPingerStartPauseResumeDestroy:
             len(threading_enumerate()) == starting_thread_count + 1
         ), "There should be one additional thread for the Pinger"
         pinger.run(False)
+        await asyncio.sleep(0.2)  # Let event propogate to pinger
         callback_mock.reset_mock()
-        await asyncio.sleep(0.2)  # Wait longer than the ping interval
         assert not callback_mock.called, "Callback should not be called when paused"
         pinger.run(True)
         await asyncio.sleep(0.1)  # Allow the Pinger to restart
