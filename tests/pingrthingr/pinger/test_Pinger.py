@@ -60,7 +60,7 @@ def mocked_pinger(mocker, ping_response):
             timeout=1,
             cb=cb,
             start_running=start_running,
-            frequency=0,  # Use a shorter frequency for faster tests
+            frequency=0,  #  Use a shorter frequency for faster tests
         )
         pingers.append(pinger)  # Keep a reference to allow cleanup
         return pinger, callback_response, cb
