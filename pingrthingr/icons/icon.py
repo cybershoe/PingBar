@@ -5,31 +5,162 @@ network status information in the macOS menu bar, including status text
 with color-coded thresholds and SF Symbol icons.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 from AppKit import (
+    CGRect,  # type: ignore[import]
+    NSAppearance,  # type: ignore[import]
     NSImage,  # type: ignore[import]
+    NSView,  # type: ignore[import]
     NSColor,  # type: ignore[import]
+    NSTextField,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
     NSSize,  # type: ignore[import]
-    NSString,  # type: ignore[import]
     NSFont,  # type: ignore[import]
-    NSForegroundColorAttributeName,  # type: ignore[import]
-    NSFontAttributeName,  # type: ignore[import]
     NSImageSymbolConfiguration,  # type: ignore[import]
 )
-from Foundation import NSUserDefaults  # type: ignore[import]
 from typing import Tuple
+from ..settings import ThresholdModel, IconStyle
+
+
+def nsview_to_nsimage(nsview: NSView) -> NSImage:
+    """Render an NSView into an NSImage by capturing its display output.
+
+    Creates a bitmap representation of the view at its current size and
+    wraps it in an NSImage. The view does not need to be attached to a
+    window for this to work.
+
+    Args:
+        nsview (NSView): The view to capture.
+
+    Returns:
+        NSImage: A rasterised image of the view's contents.
+    """
+    bounds = nsview.bounds()
+    bitmap_rep = nsview.bitmapImageRepForCachingDisplayInRect_(bounds)
+    nsview.cacheDisplayInRect_toBitmapImageRep_(bounds, bitmap_rep)
+    image = NSImage.alloc().initWithSize_(bounds.size)
+    image.addRepresentation_(bitmap_rep)
+    return image
+
+
+def _criticality(
+    latency: float | None,
+    loss: float | None,
+    latency_thresholds: ThresholdModel,
+    loss_thresholds: ThresholdModel,
+) -> Tuple[int, int]:
+    """Evaluate the criticality level of latency and loss values.
+
+    Compares latency and loss values against threshold models to determine
+    criticality levels from 0 (unknown) to 4 (critical).
+
+    Args:
+        latency (float | None): Network latency in milliseconds, or None if unavailable.
+        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
+        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
+        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
+
+    Returns:
+        Tuple[int, int]: A tuple of (latency_criticality, loss_criticality) levels.
+                        Each level is 0-4 where 0=unknown, 1=normal, 2=warn, 3=alert, 4=critical.
+    """
+
+    def _evaluate_criticality(value: float | None, thresholds: ThresholdModel) -> int:
+
+        if value is None:  # pragma: no cover
+            raise ValueError(
+                "Cannot mix None values with numeric values for criticality evaluation"
+            )
+
+        match value:
+            # Special case to allow any non-zero value to be considered a warning or higher, but treat 0.0 as normal
+            case 0.0:
+                return 1
+            case v if v >= thresholds.critical:
+                return 4
+            case v if v >= thresholds.alert:
+                return 3
+            case v if v >= thresholds.warn:
+                return 2
+            case _:
+                return 1
+
+    if latency is None and loss is None:  # pragma: no cover
+        return (0, 0)
+
+    latency_criticality = _evaluate_criticality(latency, latency_thresholds)
+    loss_criticality = _evaluate_criticality(loss, loss_thresholds)
+
+    logger.debug(
+        f"In _criticality(): Latency: {latency}, Loss: {loss}, Latency Criticality: {latency_criticality}, Loss Criticality: {loss_criticality}"
+    )
+    return latency_criticality, loss_criticality
+
+
+def generate_status_icon(
+    style: IconStyle,
+    latency: float | None,
+    loss: float | None,
+    latency_thresholds: ThresholdModel,
+    loss_thresholds: ThresholdModel,
+    last_state: str | None = None,
+    appearance: NSAppearance | None = None,
+) -> Tuple[NSImage | NSView | None, str]:
+    """Generate a status icon based on the specified style and network metrics.
+
+    Creates either a dot or text icon representing network status based on latency
+    and packet loss values. Returns None if the state hasn't changed to avoid
+    unnecessary updates.
+
+    Args:
+        style (IconStyle): The icon style to generate ('Dot' or 'Text').
+        latency (float | None): Network latency in milliseconds, or None if unavailable.
+        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
+        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
+        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
+        last_state (str | None): The previous state to compare against. Defaults to None.
+
+    Returns:
+        Tuple[NSImage | NSView | None, str]: A tuple containing the icon (NSImage for dot,
+                                            NSView for text, or None if unchanged) and
+                                            the current state string.
+
+    Raises:
+        NotImplementedError: If an unsupported icon style is requested.
+    """
+
+    match style:
+        case "Dot":
+            icon, state = status_dot_icon(
+                latency,
+                loss,
+                latency_thresholds,
+                loss_thresholds,
+                last_state,
+            )
+        case "Text":
+            icon, state = status_text_icon(
+                latency,
+                loss,
+                latency_thresholds,
+                loss_thresholds,
+                last_state,
+                appearance,
+            )
+        case _:  # pragma: no cover
+            raise NotImplemented(f"No implementation for icon style: {style}")
+    return icon, state
 
 
 def status_dot_icon(
     latency: float | None,
     loss: float | None,
+    latency_thresholds: ThresholdModel,
+    loss_thresholds: ThresholdModel,
     last_state: str | None = None,
-    latency_warn_threshold: float = 80.0,
-    latency_alert_threshold: float = 500.0,
-    latency_critical_threshold: float = 1000.0,
-    loss_warn_threshold: float = 0.00,
-    loss_alert_threshold: float = 0.05,
-    loss_critical_threshold: float = 0.25,
 ) -> Tuple[NSImage | None, str]:
     """Create a status dot icon based on latency and loss thresholds.
 
@@ -41,45 +172,37 @@ def status_dot_icon(
     Args:
         latency (float | None): Network latency in milliseconds, or None if unavailable.
         loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
-        last_state (str | None): The previous state of the network status ("normal", "warn", "alert", "critical", or "unknown"). Used to determine if the icon needs to be updated. Defaults to None.
-        latency_warn_threshold (float): Warning threshold for latency in ms. Defaults to 80.0.
-        latency_alert_threshold (float): Alert threshold for latency in ms. Defaults to 500.0.
-        latency_critical_threshold (float): Critical threshold for latency in ms. Defaults to 1000.0.
-        loss_warn_threshold (float): Warning threshold for loss as decimal. Defaults to 0.00.
-        loss_alert_threshold (float): Alert threshold for loss as decimal. Defaults to 0.05.
-        loss_critical_threshold (float): Critical threshold for loss as decimal. Defaults to 0.25.
+        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
+        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
+        last_state (str | None): The previous state string returned by the last call to avoid unnecessary updates. Defaults to None.
 
     Returns:
         Tuple[NSImage | None, str]: A tuple with a 20x20 pixel icon with a colored dot representing network status, or None
         if the new state equals the previous state, and a string describing the current state.
 
     """
+    criticality = max(_criticality(latency, loss, latency_thresholds, loss_thresholds))
 
-    symbol_name = "circle.fill"
+    symbol_name = "circle.dotted" if criticality == 0 else "circle.fill"
 
-    match (latency, loss):
-        case (la, lo) if lo is None:
-            symbol_name = "circle.dotted"
+    match criticality:
+        case 0:
             color = None
             state = "unknown"
-        case (la, lo) if (
-            la or 0.0
-        ) > latency_critical_threshold or lo > loss_critical_threshold:  # type: ignore[comparison-overlap]
-            color = NSColor.redColor()
-            state = "critical"
-        case (la, lo) if (
-            la or 0.0
-        ) > latency_alert_threshold or lo > loss_alert_threshold:  # type: ignore[comparison-overlap]
-            color = NSColor.orangeColor()
-            state = "alert"
-        case (la, lo) if (
-            la or 0.0
-        ) > latency_warn_threshold or lo > loss_warn_threshold:  # type: ignore[comparison-overlap]
-            color = NSColor.yellowColor()
-            state = "warn"
-        case _:
+        case 1:
             color = None
             state = "normal"
+        case 2:
+            color = NSColor.yellowColor()
+            state = "warn"
+        case 3:
+            color = NSColor.orangeColor()
+            state = "alert"
+        case 4:
+            color = NSColor.redColor()
+            state = "critical"
+        case _:  # pragma: no cover
+            raise ValueError(f"Invalid criticality level: {criticality}")
 
     if state == last_state:
         return None, state
@@ -90,116 +213,101 @@ def status_dot_icon(
 def status_text_icon(
     latency: float | None,
     loss: float | None,
+    latency_thresholds: ThresholdModel,
+    loss_thresholds: ThresholdModel,
     last_state: str | None = None,
-    latency_warn_threshold: float = 80.0,
-    latency_alert_threshold: float = 500.0,
-    latency_critical_threshold: float = 1000.0,
-    loss_warn_threshold: float = 0.00,
-    loss_alert_threshold: float = 0.05,
-    loss_critical_threshold: float = 0.25,
-) -> Tuple[NSImage | None, str]:
+    appearance: NSAppearance | None = None,
+) -> Tuple[NSView | None, str]:
     """Create a status text icon showing latency and loss with color-coded thresholds.
 
-    This function generates a two-line NSImage icon displaying network latency
-    and packet loss values. The background color changes based on configurable
+    This function generates a two-line NSView icon (50x22 pixels) displaying network latency
+    and packet loss values. Each line's background color changes based on configurable
     thresholds: normal (no background), warning (yellow), alert (orange), and
     critical (red).
 
     Args:
         latency (float | None): Network latency in milliseconds, or None if unavailable.
         loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
-        last_state (str | None): The previous state of the network status (concatenation of latency and loss states). Used to determine if the icon needs to be updated. Defaults to None.
-        latency_warn_threshold (float): Warning threshold for latency in ms. Defaults to 80.0.
-        latency_alert_threshold (float): Alert threshold for latency in ms. Defaults to 500.0.
-        latency_critical_threshold (float): Critical threshold for latency in ms. Defaults to 1000.0.
-        loss_warn_threshold (float): Warning threshold for loss as decimal. Defaults to 0.00.
-        loss_alert_threshold (float): Alert threshold for loss as decimal. Defaults to 0.05.
-        loss_critical_threshold (float): Critical threshold for loss as decimal. Defaults to 0.25.
+        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
+        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
+        last_state (str | None): The previous state string returned by the last call to avoid unnecessary updates. Defaults to None.
+
 
     Returns:
-        Tuple[NSImage | None, str]: A tuple with a 50x20 pixel icon with right-aligned text showing latency and loss values, or None
-        if the new state equals the previous state, and a string describing the current state.
+        Tuple[NSView | None, str]: A tuple with a 50x22 pixel NSView or None, and a string describing the current state.
     """
 
-    latency_text = f"{latency:.1f}" if latency is not None else "---"
-    loss_text = f"{loss * 100:.1f}" if loss is not None else "---"
+    latency_text = f"{latency:.1f} ms" if latency is not None else "---"
+    loss_text = f"{loss * 100:.1f} %" if loss is not None else "---"
     new_state = f"{latency_text}-{loss_text}"
     if new_state == last_state:
         return None, new_state
 
-    size = NSSize(50, 20)
+    size = NSSize(50, 22)
 
-    # Determine text color based on system appearance
-    defaults = NSUserDefaults.standardUserDefaults()
-    dark_mode = defaults.stringForKey_("AppleInterfaceStyle") == "Dark"
-    if dark_mode:
-        theme_color = NSColor.whiteColor()
-    else:
-        theme_color = NSColor.blackColor()
-
-    image = NSImage.alloc().initWithSize_(size)
-
-    image.lockFocus()
-
-    # Set up font and attributes
+    # Set up fonts
     normalFont = NSFont.systemFontOfSize_(9)
     boldFont = NSFont.boldSystemFontOfSize_(9)
 
-    latency_thresholds = [
-        latency_warn_threshold,
-        latency_alert_threshold,
-        latency_critical_threshold,
-    ]
+    latency_criticality, loss_criticality = _criticality(
+        latency, loss, latency_thresholds, loss_thresholds
+    )
 
-    loss_thresholds = [
-        loss_warn_threshold,
-        loss_alert_threshold,
-        loss_critical_threshold,
-    ]
+    view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
 
-    for idx, (value, thresholds) in enumerate(
-        ((loss, loss_thresholds), (latency, latency_thresholds))
-    ):
-        # set text color and background based on thresholds
+    def _value_view(text: str, criticality: int, frame: CGRect) -> NSView:
+        """Create an NSTextField view for displaying status text with appropriate styling.
 
-        match value:
-            case None:
-                text_color = theme_color
-                font = normalFont
-            case v if v <= thresholds[0]:
-                text_color = theme_color
-                font = normalFont
-            case v if v <= thresholds[1]:
-                text_color = NSColor.blackColor()
-                font = boldFont
-                rect = NSMakeRect(0, (10 * idx), size.width, 10)
-                NSColor.yellowColor().drawSwatchInRect_(rect)
-            case v if v <= thresholds[2]:
-                text_color = NSColor.blackColor()
-                font = boldFont
-                rect = NSMakeRect(0, (10 * idx), size.width, 10)
-                NSColor.orangeColor().drawSwatchInRect_(rect)
-            case _:
-                text_color = NSColor.whiteColor()
-                font = boldFont
-                rect = NSMakeRect(0, (10 * idx), size.width, 10)
-                NSColor.redColor().drawSwatchInRect_(rect)
+        Args:
+            text (str): The text to display in the field.
+            criticality (int): Criticality level (1-4) determining background color and font weight.
+            frame (CGRect): The frame rectangle for positioning the text field.
 
-        attributes = {
-            NSForegroundColorAttributeName: text_color,
-            NSFontAttributeName: font,
-        }
+        Returns:
+            NSView: An NSTextField configured with appropriate text, colors, and positioning.
+        """
 
-        text = f"{value * (1 if idx else 100):.1f}" if value is not None else "---"
-        text += " ms" if idx else " %"
-        value_text = NSString.stringWithString_(text)
-        value_size = value_text.sizeWithAttributes_(attributes)
-        value_x = size.width - value_size.width - 2
-        value_text.drawAtPoint_withAttributes_(
-            (value_x - 4 + (4 * idx), (10 * idx)), attributes
-        )
+        text_view = NSTextField.labelWithString_(text)
+        text_view.setAlignment_(2)  # right align
+        if criticality <= 1:
+            text_view.setFont_(normalFont)
+        else:
+            text_view.setFont_(boldFont)
+            text_view.setDrawsBackground_(True)
 
-    image.unlockFocus()
+            match criticality:
+                case 2:
+                    text_view.setBackgroundColor_(NSColor.yellowColor())
+                    text_view.setTextColor_(NSColor.blackColor())
+                case 3:
+                    text_view.setBackgroundColor_(NSColor.orangeColor())
+                    text_view.setTextColor_(NSColor.blackColor())
+                case 4:
+                    text_view.setBackgroundColor_(NSColor.redColor())
+                    text_view.setTextColor_(NSColor.whiteColor())
+                case _:  # pragma: no cover
+                    raise ValueError(f"Invalid criticality level: {criticality}")
+
+        text_view.setFrame_(frame)
+        return text_view
+
+    latency_view = _value_view(
+        latency_text,
+        latency_criticality,
+        NSMakeRect(0, size.height / 2, size.width, size.height / 2),
+    )
+    loss_view = _value_view(
+        loss_text,
+        loss_criticality,
+        NSMakeRect(0, 0, size.width, size.height / 2),
+    )
+
+    view.addSubview_(latency_view)
+    view.addSubview_(loss_view)
+
+    view.setAppearance_(appearance)
+
+    image = nsview_to_nsimage(view)
     return image, new_state
 
 

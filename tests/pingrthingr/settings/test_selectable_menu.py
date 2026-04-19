@@ -1,5 +1,5 @@
 import pytest
-from typing import Callable, Tuple
+from typing import Callable
 from unittest.mock import Mock
 from rumps import MenuItem
 from pingrthingr.settings import SelectableMenu

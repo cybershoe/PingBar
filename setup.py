@@ -13,10 +13,10 @@ from os import getenv
 # 1. Dynamically get the current git branch name
 def get_branch_name():
     """Get the current git branch name for build versioning.
-    
+
     Retrieves the current git branch name and returns it as a suffix
     for the application name. Returns empty string for the main branch.
-    
+
     Returns:
         str: Branch name prefixed with '-' or empty string for main branch,
              or if BUILD_APPEND_BRANCH is not set to "true".
@@ -35,9 +35,10 @@ def get_branch_name():
     return ""
 
 
+exec(open("pingrthingr/version.py").read())
 APP = ["main.py"]
-NAME = f"PingrThingr{get_branch_name()}"
-VERSION = "0.3.0"
+NAME = f"PingrThingr{get_branch_name().replace('/', '-')}"
+VERSION = __VERSION__  # type: ignore
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": True,
@@ -51,7 +52,7 @@ OPTIONS = {
         "CFBundleShortVersionString": VERSION,
         "NSHumanReadableCopyright": "Copyright \u00a9 2026, Adam Schumacher, Released under the MIT License",
     },
-    "packages": ["rumps"],
+    "packages": ["rumps",'anyio'],
     "iconfile": "PingrThingr.icns",
 }
 

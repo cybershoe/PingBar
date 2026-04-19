@@ -1,5 +1,5 @@
 import os.path
-import plistlib
+# import plistlib
 
 #
 # Example settings file for dmgbuild
