@@ -18,7 +18,6 @@ from .updates import update_dialog, run_update_check
 from AppKit import NSImage, NSObject  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
-
 class PingrThingrApp(App):
     """Main application class for PingrThingr menu bar app.
 
@@ -260,7 +259,7 @@ class PingrThingrApp(App):
         if paused:  # pragma: no cover
             self.latency = None
             self.loss = None
-        self.refresh_status_(use_saved=True)
+        self.refresh_status_(use_saved=True, force=True)
 
     def ping_targets_cb(self, targets: list[str]) -> None:
         """Callback for ping targets setting changes.
