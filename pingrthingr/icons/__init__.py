@@ -4,4 +4,5 @@ Provides functions for creating NSImage and NSView icons that display
 network status information with color-coded thresholds.
 """
 
-from .icon import status_text_icon, status_dot_icon, symbol_icon, generate_status_icon
+from .icon import status_text_icon, generate_status_icon
+from .symbol import symbol_icon
