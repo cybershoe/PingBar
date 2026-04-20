@@ -18,7 +18,9 @@ class TestSelectableMenu:
             callback: Callable | None = mock_cb,
         ):
             return (
-                SelectableMenu(title=title, options=options, selected=selected, callback=callback),
+                SelectableMenu(
+                    title=title, options=options, selected=selected, callback=callback
+                ),
                 callback,
             )
 
@@ -59,10 +61,10 @@ class TestSelectableMenu:
         for item in menu._menu_items:
             if item.title != "Option 2":
                 assert item.state == 0, "Non-selected items should have state 0"
-        mock_cb.assert_called_once_with(
-            menu
-        )  # Callback should be called
-        assert menu.get_selected() == "Option 2", "get_selected should return 'Option 2'"
+        mock_cb.assert_called_once_with(menu)  # Callback should be called
+        assert (
+            menu.get_selected() == "Option 2"
+        ), "get_selected should return 'Option 2'"
 
     def test_no_options(self, mock_selectable_menu):
         menu, mock_cb = mock_selectable_menu(options=None, selected=None)

@@ -84,7 +84,7 @@ class SelectableMenu(MenuItem):
         if self._callback:
             logger.debug(
                 f"In SelectableMenu._option_selected(): Calling callback with selected option: {sender.title}"
-            )   
+            )
             self._callback(self)
 
     def get_selected(self) -> str | None:

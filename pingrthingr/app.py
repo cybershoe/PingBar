@@ -65,7 +65,7 @@ class PingrThingrApp(App):
             "Display Mode",
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
-            callback = self._display_menu_cb,
+            callback=self._display_menu_cb,
         )
         self._ping_targets_menu = MenuItem(
             "Set ping targets...", callback=self._ping_targets_menu_cb
