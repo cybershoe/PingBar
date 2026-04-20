@@ -9,6 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from .version import __VERSION__
+from .about import show_about_window
 from rumps import App, MenuItem, Timer, separator, application_support
 from os.path import join as path_join
 from .pinger import Pinger
@@ -76,6 +77,8 @@ class PingrThingrApp(App):
         self._check_for_updates_on_startup_menu = MenuItem(
             "Check on startup", callback=self._check_for_updates_on_startup_menu_cb
         )
+        self._about_menu = MenuItem("About PingrThingr", callback=show_about_window)
+
         self._pause_menu.state = self._settings.get("paused", False)
         self._check_for_updates_on_startup_menu.state = self._settings.get(
             "check_for_updates", False
@@ -92,6 +95,8 @@ class PingrThingrApp(App):
             self._check_for_updates_menu,
             self._check_for_updates_on_startup_menu,
             separator,
+            self._about_menu,
+            separator
         ]
         self._last_state = None
 
