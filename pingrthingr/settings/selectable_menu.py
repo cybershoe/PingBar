@@ -28,7 +28,7 @@ class SelectableMenu(MenuItem):
         title="Select",
         options: List[str] | None = None,
         selected: str | None = None,
-        cb: Callable | None = None,
+        callback: Callable | None = None,
         **kwargs,
     ):
         """Initialize the SelectableMenu with options and callback.
@@ -53,7 +53,7 @@ class SelectableMenu(MenuItem):
             f"{title}: {selected}" if selected else title, **kwargs
         )
         self._menu_items = []
-        cb_name = getattr(cb, "__name__", None)
+        cb_name = getattr(callback, "__name__", None)
         logger.debug(
             f"In SelectableMenu.__init__(): Initializing SelectableMenu with options: {options}, selected: {selected}, callback: {cb_name}"
         )
@@ -66,7 +66,7 @@ class SelectableMenu(MenuItem):
         self.menu = self._menu_items
         for item in self._menu_items:
             self.add(item)
-        self._cb = cb
+        self._callback = callback
 
     def _option_selected(self, sender) -> None:
         """Handle selection of a menu option.
@@ -81,8 +81,11 @@ class SelectableMenu(MenuItem):
             item.state = 0
         sender.state = 1
         self.title = f"{self._base_title}: {sender.title}"
-        if self._cb:
-            self._cb(sender.title)
+        if self._callback:
+            logger.debug(
+                f"In SelectableMenu._option_selected(): Calling callback with selected option: {sender.title}"
+            )   
+            self._callback(self)
 
     def get_selected(self) -> str | None:
         """Get the currently selected option.
