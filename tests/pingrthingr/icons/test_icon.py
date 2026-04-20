@@ -22,6 +22,7 @@ base_path = Path(__file__).parent
 ping_thresholds = [
     ("unknown", None, None),
     ("no_loss", 0.0, 0.0),
+    ("full_loss", None, 1.0),
     ("ok_latency", 50.0, 0.0),
     ("warn_loss", 0.0, 0.02),
     ("warn_edge_latency", 80.0, 0.0),
