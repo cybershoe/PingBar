@@ -18,6 +18,7 @@ from .updates import update_dialog, run_update_check
 from AppKit import NSImage, NSObject  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
+
 class PingrThingrApp(App):
     """Main application class for PingrThingr menu bar app.
 
@@ -106,7 +107,9 @@ class PingrThingrApp(App):
             "display_mode", lambda _: self.refresh_status_(use_saved=True)
         )
 
-        self._startup_update_check_timer = Timer(self._startup_update_check_timer_cb, 2)  # Update every 2 seconds
+        self._startup_update_check_timer = Timer(
+            self._startup_update_check_timer_cb, 2
+        )  # Update every 2 seconds
         self._ns_init_timer = Timer(
             self._ns_init_timer_cb, 0.1
         )  # Short delay to ensure NSApp is initialized
@@ -122,7 +125,6 @@ class PingrThingrApp(App):
             )
 
         logger.info(f"In __init__(): Initialized PingrThingr")
-
 
     # NSObject subclasses for KVO and main thread dispatching
 
@@ -224,7 +226,6 @@ class PingrThingrApp(App):
             self.appearance_observer, "effectiveAppearance", 0, None
         )
 
-
     def _startup_update_check_timer_cb(self, sender) -> None:
         """Handle startup update check timer expiration.
 
@@ -239,7 +240,6 @@ class PingrThingrApp(App):
         self._check_for_updates_menu.title = "Checking for updates..."
         sender.stop()
         run_update_check(__VERSION__, self.check_for_updates_return, True)
-
 
     # Menu callbacks
 
@@ -317,7 +317,9 @@ class PingrThingrApp(App):
         Args:
             paused (bool): True to pause the pinger, False to resume.
         """
-        logger.debug(f"In pause_settings_cb(): Setting pinger running state to {not paused}")
+        logger.debug(
+            f"In pause_settings_cb(): Setting pinger running state to {not paused}"
+        )
         self._pinger.run(not paused)
         self._pause_menu.state = paused
         if paused:  # pragma: no cover

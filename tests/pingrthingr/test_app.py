@@ -238,7 +238,6 @@ class TestCheckForUpdates:
         mocker.patch("pingrthingr.app.update_dialog", mocked_dialog)
         mocker.patch("pingrthingr.app.__VERSION__", "v0.2.0")
 
-
         # Not quiet, should call runner to display results
         app.check_for_updates_return("", "", "v0.2.0 is the latest version.", False)
         mocked_dialog.assert_called_once_with(
