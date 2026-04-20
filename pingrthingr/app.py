@@ -64,7 +64,7 @@ class PingrThingrApp(App):
         self._pause_menu = MenuItem("Pause", callback=self._pause_menu_cb)
         self._display_menu = SelectableMenu(
             "Display Mode",
-            options=["Dot", "Text"],
+            options=["Dot", "Text", "Chart"],
             selected=self._settings.get("display_mode", "Dot"),
             callback=self._display_menu_cb,
         )

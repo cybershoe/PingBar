@@ -1,7 +1,7 @@
-"""Text icon generation for PingrThingr.
+"""Chart icon generation for PingrThingr.
 
-Provides a two-line menu bar icon that displays numeric latency and packet
-loss values with colour-coded backgrounds based on criticality level.
+Provides a two-line menu bar icon that displays bar charts representing
+latency and loss over time, with bar colours reflecting criticality levels.
 """
 
 from typing import Tuple
@@ -19,18 +19,20 @@ from AppKit import (
 from .util import _nsview_to_nsimage
 
 
-def status_text_icon(
+def status_chart_icon(
     latency: float | None,
     loss: float | None,
     latency_criticality: int,
     loss_criticality: int,
+    minimum_latency_scale: float,
+    minimum_loss_scale: float,
     last_state: str | None = None,
     appearance: NSAppearance | None = None,
 ) -> Tuple[NSImage | None, str]:
-    """Create a status text icon showing latency and loss with colour-coded criticality.
+    """Create a status chart icon showing latency and loss with colour-coded criticality.
 
-    Generates a 50x22 pixel two-line menu bar icon displaying numeric latency and
-    packet loss values. Each row's background colour reflects its criticality level:
+    Generates a 50x22 pixel two-line menu bar icon displaying bar charts for latency and
+    packet loss values. Each bar's colour reflects its criticality level:
     normal (no background), warning (yellow), alert (orange), or critical (red).
 
     Args:

@@ -16,6 +16,7 @@ from AppKit import (
 from typing import Tuple
 from .dot import status_dot_icon
 from .text import status_text_icon
+from .chart import status_chart_icon
 from ..settings import ThresholdModel, IconStyle
 
 
@@ -115,6 +116,17 @@ def generate_status_icon(
                 loss,
                 latency_criticality,
                 loss_criticality,
+                last_state,
+                appearance,
+            )
+        case "Chart":
+            icon, state = status_chart_icon(
+                latency,
+                loss,
+                latency_criticality,
+                loss_criticality,
+                latency_thresholds.warn,  # Use warn level as minimum scale for better visualization
+                loss_thresholds.alert,  # Use alert level as minimum scale for better visualization
                 last_state,
                 appearance,
             )
