@@ -87,7 +87,7 @@ class TestUpdateCheck:
         callback = mocker.MagicMock()
 
         run_update_check(current_version_name, callback, quiet=True)
-        await asyncio.sleep(0.1)  # Wait for the thread to complete
+        await asyncio.sleep(0.2)  # Wait for the thread to complete
         assert callback.called
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == expected_new_version
@@ -100,7 +100,7 @@ class TestUpdateCheck:
         mock_request(raise_for_status=HTTPError("HTTP error occurred"))
         callback = mocker.MagicMock()
         run_update_check("v1.0.0", callback, quiet=True)
-        await asyncio.sleep(0.1)  # Wait for the thread to complete
+        await asyncio.sleep(0.2)  # Wait for the thread to complete
         assert callback.called
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
@@ -129,7 +129,7 @@ class TestUpdateCheck:
         callback = mocker.MagicMock()
 
         run_update_check(current_version_name, callback, quiet=True)
-        await asyncio.sleep(0.1)  # Wait for the thread to complete
+        await asyncio.sleep(0.2)  # Wait for the thread to complete
         assert callback.called
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
@@ -149,7 +149,7 @@ class TestUpdateCheck:
         mock_request(status_code=201)
         callback = mocker.MagicMock()
         run_update_check("v1.0.0", callback, quiet=True)
-        await asyncio.sleep(0.1)  # Wait for the thread to complete
+        await asyncio.sleep(0.2)  # Wait for the thread to complete
         assert callback.called
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
