@@ -11,6 +11,7 @@ from AppKit import (
     NSImage,  # type: ignore[import]
 )
 
+
 def status_dot_icon(
     latency_criticality: int,
     loss_criticality: int,

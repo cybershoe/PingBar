@@ -12,6 +12,7 @@ from AppKit import (
     NSImageSymbolConfiguration,  # type: ignore[import]
 )
 
+
 def symbol_icon(
     symbol_name: str,
     accessibility_description: str,

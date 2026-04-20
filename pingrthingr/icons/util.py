@@ -9,6 +9,7 @@ from AppKit import (
     NSImage,  # type: ignore[import]
 )
 
+
 def _nsview_to_nsimage(nsview: NSView) -> NSImage:
     """Render an NSView into an NSImage by capturing its display output.
 

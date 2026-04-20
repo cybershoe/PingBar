@@ -99,7 +99,9 @@ def generate_status_icon(
         NotImplementedError: If an unsupported icon style is requested.
     """
 
-    latency_criticality, loss_criticality = _criticality(latency, loss, latency_thresholds, loss_thresholds)
+    latency_criticality, loss_criticality = _criticality(
+        latency, loss, latency_thresholds, loss_thresholds
+    )
     match style:
         case "Dot":
             icon, state = status_dot_icon(

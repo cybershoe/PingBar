@@ -18,6 +18,7 @@ from AppKit import (
 )
 from .util import _nsview_to_nsimage
 
+
 def status_text_icon(
     latency: float | None,
     loss: float | None,
@@ -34,9 +35,9 @@ def status_text_icon(
 
     Args:
         latency (float | None): Network latency in milliseconds, or None if unavailable.
-        loss (float | None): Packet loss as a decimal (0.0–1.0), or None if unavailable.
-        latency_criticality (int): Pre-computed criticality level for latency (0–4).
-        loss_criticality (int): Pre-computed criticality level for packet loss (0–4).
+        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
+        latency_criticality (int): Pre-computed criticality level for latency (0-4).
+        loss_criticality (int): Pre-computed criticality level for packet loss (0-4).
         last_state (str | None): State string from the previous call; return value is
             ``None`` when the state is unchanged. Defaults to None.
         appearance (NSAppearance | None): The NSAppearance to apply to the rendered view,
@@ -116,7 +117,6 @@ def status_text_icon(
     view.addSubview_(loss_view)
 
     view.setAppearance_(appearance)
-
 
     image = _nsview_to_nsimage(view)
     return image, new_state

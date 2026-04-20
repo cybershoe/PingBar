@@ -117,7 +117,7 @@ class TestIconSameState:
             last_state=None,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
-            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua),
         )
         icon2, _ = generate_status_icon(
             style,
@@ -126,7 +126,7 @@ class TestIconSameState:
             last_state=state1,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
-            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua),
         )
         assert icon1 is not None, "Icon should be generated on first call"
         assert icon2 is None, "Icon should not be regenerated if state is unchanged"
