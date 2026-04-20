@@ -157,7 +157,7 @@ class TestSettingsChanges:
 
     def test_display_mode_change(self, mocked_app, tmp_path):
         app, _, mock_nsapp = mocked_app()
-        app._settings.set("display_mode", "Text")
+        app._display_menu.set_selected("Text")
         assert (
             mock_nsapp.setStatusBarIcon.called
         ), "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
@@ -167,7 +167,7 @@ class TestSettingsChanges:
         assert (
             settings_data.get("display_mode") == "Text"
         ), "Settings file should reflect display mode change"
-        app._settings.set("display_mode", "Dot")
+        app._display_menu.set_selected("Dot")
         assert (
             mock_nsapp.setStatusBarIcon.called
         ), "NSApp.setMenuBarIcon should be called to update the icon when display mode changes"
