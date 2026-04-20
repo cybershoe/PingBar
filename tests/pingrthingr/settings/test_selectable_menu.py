@@ -15,11 +15,11 @@ class TestSelectableMenu:
             title="Test Menu",
             options: list[str] | None = ["Option 1", "Option 2", "Option 3"],
             selected: str | None = "Option 1",
-            cb: Callable | None = mock_cb,
+            callback: Callable | None = mock_cb,
         ):
             return (
-                SelectableMenu(title=title, options=options, selected=selected, cb=cb),
-                cb,
+                SelectableMenu(title=title, options=options, selected=selected, callback=callback),
+                callback,
             )
 
         return _mock_selectable_menu
@@ -60,8 +60,9 @@ class TestSelectableMenu:
             if item.title != "Option 2":
                 assert item.state == 0, "Non-selected items should have state 0"
         mock_cb.assert_called_once_with(
-            "Option 2"
-        )  # Callback should be called with selected option
+            menu
+        )  # Callback should be called
+        assert menu.get_selected() == "Option 2", "get_selected should return 'Option 2'"
 
     def test_no_options(self, mock_selectable_menu):
         menu, mock_cb = mock_selectable_menu(options=None, selected=None)
@@ -94,9 +95,9 @@ class TestSelectableMenu:
 
     def test_initialize_with_no_cb(self, mock_selectable_menu):
         menu, _ = mock_selectable_menu(
-            cb=None
+            callback=None
         )  # Should not error when callback is None
         menu.set_selected(
             "Option 2"
         )  # Should not raise an error when setting selection without a callback
-        assert menu._cb is None, "Callback should be None when not provided"
+        assert menu._callback is None, "Callback should be None when not provided"
