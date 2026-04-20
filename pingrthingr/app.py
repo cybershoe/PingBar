@@ -65,7 +65,7 @@ class PingrThingrApp(App):
             "Display Mode",
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
-            cb=lambda x: self._settings.set("display_mode", x),
+            callback=self._display_menu_cb,
         )
         self._ping_targets_menu = MenuItem(
             "Set ping targets...", callback=self._ping_targets_menu_cb
@@ -103,9 +103,7 @@ class PingrThingrApp(App):
 
         self._settings.register_callback("paused", self.pause_settings_cb)
         self._settings.register_callback("targets", self.ping_targets_settings_cb)
-        self._settings.register_callback(
-            "display_mode", lambda _: self.refresh_status_(use_saved=True)
-        )
+        self._settings.register_callback("display_mode", self.display_mode_settings_cb)
 
         self._startup_update_check_timer = Timer(
             self._startup_update_check_timer_cb, 2
@@ -279,6 +277,23 @@ class PingrThingrApp(App):
 
         self._settings.set("paused", not sender.state)
 
+    def _display_menu_cb(self, sender) -> None:
+        """Handle display mode menu selection.
+
+        Updates the display mode setting based on the user's selection in the
+        "Display Mode" submenu. The SelectableMenu component handles the menu
+        state and title updates, so this callback only needs to persist the
+        selected value to settings.
+
+        Args:
+            sender (SelectableMenu): The SelectableMenu instance that triggered this callback.
+        """
+        new_selection = sender.get_selected()
+        logger.debug(
+            f"In _display_menu_cb(): Updating display_mode setting to {new_selection}"
+        )
+        self._settings.set("display_mode", new_selection)
+
     def _check_for_updates_menu_cb(self, sender) -> None:
         """Initiate a manual check for application updates.
 
@@ -337,6 +352,17 @@ class PingrThingrApp(App):
             targets (list[str]): List of IP addresses to ping.
         """
         self._pinger.targets = targets
+
+    def display_mode_settings_cb(self, display_mode: str) -> None:
+        """Callback for display mode setting changes.
+
+        Updates the status icon display mode when the display_mode setting is
+        changed through the settings manager.
+
+        Args:
+            display_mode (str): The new display mode ("Dot" or "Text").
+        """
+        self.refresh_status_(use_saved=True)
 
     def update_statistics_cb(
         self, latency: float | None = None, loss: float | None = None
