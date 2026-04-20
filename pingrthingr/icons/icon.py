@@ -70,13 +70,15 @@ def _criticality(
 
     def _evaluate_criticality(value: float | None, thresholds: ThresholdModel) -> int:
 
-        if value is None:  # pragma: no cover
-            raise ValueError(
-                "Cannot mix None values with numeric values for criticality evaluation"
-            )
+        # if value is None:  # pragma: no cover
+        #     raise ValueError(
+        #         "Cannot mix None values with numeric values for criticality evaluation"
+        #     )
 
         match value:
             # Special case to allow any non-zero value to be considered a warning or higher, but treat 0.0 as normal
+            case None:
+                return 0
             case 0.0:
                 return 1
             case v if v >= thresholds.critical:
@@ -88,8 +90,8 @@ def _criticality(
             case _:
                 return 1
 
-    if latency is None and loss is None:  # pragma: no cover
-        return (0, 0)
+    # if latency is None and loss is None:  # pragma: no cover
+    #     return (0, 0)
 
     latency_criticality = _evaluate_criticality(latency, latency_thresholds)
     loss_criticality = _evaluate_criticality(loss, loss_thresholds)
