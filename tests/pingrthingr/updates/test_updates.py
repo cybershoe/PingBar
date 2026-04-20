@@ -87,8 +87,11 @@ class TestUpdateCheck:
         callback = mocker.MagicMock()
 
         run_update_check(current_version_name, callback, quiet=True)
-        await asyncio.sleep(0.2)  # Wait for the thread to complete
-        assert callback.called
+        loop_count = 0
+        while not callback.called and loop_count < 10:
+            await asyncio.sleep(0.1)
+            loop_count += 1
+        assert callback.called, f"Callback not called after {loop_count}00 ms"
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == expected_new_version
         assert repo_url == expected_url
@@ -100,8 +103,11 @@ class TestUpdateCheck:
         mock_request(raise_for_status=HTTPError("HTTP error occurred"))
         callback = mocker.MagicMock()
         run_update_check("v1.0.0", callback, quiet=True)
-        await asyncio.sleep(0.2)  # Wait for the thread to complete
-        assert callback.called
+        loop_count = 0
+        while not callback.called and loop_count < 10:
+            await asyncio.sleep(0.1)
+            loop_count += 1
+        assert callback.called, f"Callback not called after {loop_count}00 ms"
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
         assert repo_url == ""
@@ -129,8 +135,11 @@ class TestUpdateCheck:
         callback = mocker.MagicMock()
 
         run_update_check(current_version_name, callback, quiet=True)
-        await asyncio.sleep(0.2)  # Wait for the thread to complete
-        assert callback.called
+        loop_count = 0
+        while not callback.called and loop_count < 10:
+            await asyncio.sleep(0.1)
+            loop_count += 1
+        assert callback.called, f"Callback not called after {loop_count}00 ms"
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
         assert repo_url == ""
@@ -149,8 +158,11 @@ class TestUpdateCheck:
         mock_request(status_code=201)
         callback = mocker.MagicMock()
         run_update_check("v1.0.0", callback, quiet=True)
-        await asyncio.sleep(0.2)  # Wait for the thread to complete
-        assert callback.called
+        loop_count = 0
+        while not callback.called and loop_count < 10:
+            await asyncio.sleep(0.1)
+            loop_count += 1
+        assert callback.called, f"Callback not called after {loop_count}00 ms"
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
         assert repo_url == ""
