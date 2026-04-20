@@ -56,38 +56,40 @@ class PingrThingrApp(App):
             ),
             "PingrThingr",
         )
-        self.statistics_menu = MenuItem("---")
-        self.pause_menu = MenuItem("Pause", callback=self.pause_toggle)
-        self.display_menu = SelectableMenu(
+
+        # Initialize menu items
+        self._statistics_menu = MenuItem("---")
+        self._pause_menu = MenuItem("Pause", callback=self.pause_toggle)
+        self._display_menu = SelectableMenu(
             "Display Mode",
             options=["Dot", "Text"],
             selected=self._settings.get("display_mode", "Dot"),
             cb=lambda x: self._settings.set("display_mode", x),
         )
-        self.ping_targets_menu = MenuItem(
+        self._ping_targets_menu = MenuItem(
             "Set ping targets...", callback=self.ping_targets
         )
-        self.check_for_updates_menu = MenuItem(
+        self._check_for_updates_menu = MenuItem(
             "Check for updates...", callback=self.check_for_updates
         )
-        self.check_for_updates_on_startup_menu = MenuItem(
+        self._check_for_updates_on_startup_menu = MenuItem(
             "Check on startup", callback=self.check_for_updates_on_startup
         )
-        self.pause_menu.state = self._settings.get("paused", False)
-        self.check_for_updates_on_startup_menu.state = self._settings.get(
+        self._pause_menu.state = self._settings.get("paused", False)
+        self._check_for_updates_on_startup_menu.state = self._settings.get(
             "check_for_updates", False
         )
 
         self.menu = [
-            self.statistics_menu,
+            self._statistics_menu,
             separator,
-            self.pause_menu,
+            self._pause_menu,
             separator,
-            self.display_menu,
-            self.ping_targets_menu,
+            self._display_menu,
+            self._ping_targets_menu,
             separator,
-            self.check_for_updates_menu,
-            self.check_for_updates_on_startup_menu,
+            self._check_for_updates_menu,
+            self._check_for_updates_on_startup_menu,
             separator,
         ]
         self._last_state = None
@@ -255,7 +257,7 @@ class PingrThingrApp(App):
         """
         logger.debug(f"In pause_cb(): Setting pinger running state to {not paused}")
         self.pinger.run(not paused)
-        self.pause_menu.state = paused
+        self._pause_menu.state = paused
         if paused:  # pragma: no cover
             self.latency = None
             self.loss = None
@@ -343,7 +345,7 @@ class PingrThingrApp(App):
             logger.debug(
                 f"In refresh_status_(): Application is paused, showing paused status"
             )
-            self.statistics_menu.title = "Paused"
+            self._statistics_menu.title = "Paused"
             self._draw_icon(symbol_icon("pause.circle", "Paused"))
 
         else:
@@ -352,7 +354,7 @@ class PingrThingrApp(App):
             )
             loss_str = f"{(loss*100):.2f}%" if loss is not None else "---"
             latency_str = f"{(latency):.2f} ms" if latency is not None else "---"
-            self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
+            self._statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status_(): Current display_mode: {display}")
 
@@ -444,8 +446,8 @@ class PingrThingrApp(App):
             quiet (bool, optional): If True, suppresses update dialog if no update is available.
                                     Defaults to False.
         """
-        self.check_for_updates_menu.set_callback(self.check_for_updates)
-        self.check_for_updates_menu.title = "Check for updates..."
+        self._check_for_updates_menu.set_callback(self.check_for_updates)
+        self._check_for_updates_menu.title = "Check for updates..."
         logger.debug(
             f"Update check returned: new_version={new_version}, release_url={release_url}, error={error}"
         )
@@ -481,8 +483,8 @@ class PingrThingrApp(App):
         Args:
             sender (Timer): The Timer object that triggered this callback
         """
-        self.check_for_updates_menu.set_callback(None)
-        self.check_for_updates_menu.title = "Checking for updates..."
+        self._check_for_updates_menu.set_callback(None)
+        self._check_for_updates_menu.title = "Checking for updates..."
         sender.stop()
         run_update_check(__VERSION__, self.check_for_updates_return, True)
 

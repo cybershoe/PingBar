@@ -94,10 +94,10 @@ class TestPingrThingrAppInitialization:
         assert app.pinger is not None, "Pinger should be initialized"
         assert app.menu is not None, "Menu should be initialized"
         assert (
-            app.statistics_menu is not None
+            app._statistics_menu is not None
         ), "Statistics menu item should be initialized"
-        assert app.pause_menu is not None, "Pause menu item should be initialized"
-        assert app.display_menu is not None, "Display menu should be initialized"
+        assert app._pause_menu is not None, "Pause menu item should be initialized"
+        assert app._display_menu is not None, "Display menu should be initialized"
         assert app._icon_nsimage is not None, "Icon NSImage should be initialized"
         assert (
             Path(app._settings_path) == tmp_path / "settings.json"
@@ -113,7 +113,7 @@ class TestPingUpdates:
         assert app.latency == 100, "Latency should be updated to 100"
         assert app.loss == 0, "Loss should be updated to 0"
         assert (
-            app.statistics_menu.title != "waiting..."
+            app._statistics_menu.title != "waiting..."
         ), "Statistics menu title should be updated"
         assert (
             mocked_nsapp.setStatusBarIcon.called
@@ -140,7 +140,7 @@ class TestSettingsChanges:
         app.pause_toggle(mock_sender)
         mock_pinger.run.assert_called_with(False)
         assert (
-            app.pause_menu.state == True
+            app._pause_menu.state == True
         ), "Pause menu state should be set to True when paused"
         assert (
             app.latency is None and app.loss is None
@@ -207,17 +207,17 @@ class TestCheckForUpdates:
         mocker.patch("pingrthingr.app.__VERSION__", "v0.2.0")
 
         # Check update invocation via menu
-        app.check_for_updates(app.check_for_updates_menu)
+        app.check_for_updates(app._check_for_updates_menu)
         mocked_update.assert_called_once_with(
             "v0.2.0", app.check_for_updates_return, False
         )
-        assert app.check_for_updates_menu.callback == None
-        assert app.check_for_updates_menu.title == "Checking for updates..."
+        assert app._check_for_updates_menu.callback == None
+        assert app._check_for_updates_menu.title == "Checking for updates..."
 
         # Check callback handling
         app.check_for_updates_return("v1.0.0", "https://example.com/release", "", True)
-        assert app.check_for_updates_menu.callback == app.check_for_updates
-        assert app.check_for_updates_menu.title == "Check for updates..."
+        assert app._check_for_updates_menu.callback == app.check_for_updates
+        assert app._check_for_updates_menu.title == "Check for updates..."
         assert mocked_dialog.called
         mocked_dialog.assert_called_once_with(
             "v1.0.0", "v0.2.0", "https://example.com/release", ""
@@ -229,8 +229,8 @@ class TestCheckForUpdates:
         mocked_update.assert_called_once_with(
             "v0.2.0", app.check_for_updates_return, True
         )
-        assert app.check_for_updates_menu.callback == None
-        assert app.check_for_updates_menu.title == "Checking for updates..."
+        assert app._check_for_updates_menu.callback == None
+        assert app._check_for_updates_menu.title == "Checking for updates..."
 
     def test_check_for_updates_no_new_version(self, mocked_app, mocker):
         app, _, _ = mocked_app()
@@ -276,14 +276,14 @@ class TestCheckForUpdates:
             app._settings.get("check_for_updates") == False
         ), "Initial setting should be False"
         assert (
-            app.check_for_updates_on_startup_menu.state == False
+            app._check_for_updates_on_startup_menu.state == False
         ), "Menu state should reflect initial setting"
-        app.check_for_updates_on_startup_menu.callback(
-            app.check_for_updates_on_startup_menu
+        app._check_for_updates_on_startup_menu.callback(
+            app._check_for_updates_on_startup_menu
         )  # Toggle the setting
         assert (
             app._settings.get("check_for_updates") == True
         ), "Setting should be toggled to True"
         assert (
-            app.check_for_updates_on_startup_menu.state == True
+            app._check_for_updates_on_startup_menu.state == True
         ), "Menu state should reflect toggled setting"
