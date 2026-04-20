@@ -1,3 +1,9 @@
+"""Text icon generation for PingrThingr.
+
+Provides a two-line menu bar icon that displays numeric latency and packet
+loss values with colour-coded backgrounds based on criticality level.
+"""
+
 from typing import Tuple
 from AppKit import (
     CGRect,  # type: ignore[import]
@@ -19,24 +25,26 @@ def status_text_icon(
     loss_criticality: int,
     last_state: str | None = None,
     appearance: NSAppearance | None = None,
-) -> Tuple[NSView | None, str]:
-    """Create a status text icon showing latency and loss with color-coded thresholds.
+) -> Tuple[NSImage | None, str]:
+    """Create a status text icon showing latency and loss with colour-coded criticality.
 
-    This function generates a two-line NSView icon (50x22 pixels) displaying network latency
-    and packet loss values. Each line's background color changes based on configurable
-    thresholds: normal (no background), warning (yellow), alert (orange), and
-    critical (red).
+    Generates a 50x22 pixel two-line menu bar icon displaying numeric latency and
+    packet loss values. Each row's background colour reflects its criticality level:
+    normal (no background), warning (yellow), alert (orange), or critical (red).
 
     Args:
         latency (float | None): Network latency in milliseconds, or None if unavailable.
-        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
-        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
-        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
-        last_state (str | None): The previous state string returned by the last call to avoid unnecessary updates. Defaults to None.
-
+        loss (float | None): Packet loss as a decimal (0.0–1.0), or None if unavailable.
+        latency_criticality (int): Pre-computed criticality level for latency (0–4).
+        loss_criticality (int): Pre-computed criticality level for packet loss (0–4).
+        last_state (str | None): State string from the previous call; return value is
+            ``None`` when the state is unchanged. Defaults to None.
+        appearance (NSAppearance | None): The NSAppearance to apply to the rendered view,
+            or None to use the default appearance. Defaults to None.
 
     Returns:
-        Tuple[NSView | None, str]: A tuple with a 50x22 pixel NSView or None, and a string describing the current state.
+        Tuple[NSImage | None, str]: A 50x22 pixel NSImage, or None if the state is
+        unchanged, paired with a string describing the current state.
     """
 
     latency_text = f"{latency:.1f} ms" if latency is not None else "---"

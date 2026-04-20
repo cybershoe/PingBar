@@ -1,3 +1,9 @@
+"""Dot icon generation for PingrThingr.
+
+Provides a small coloured-dot menu bar icon whose colour reflects the
+worst-case criticality across latency and packet loss.
+"""
+
 from typing import Tuple
 from .symbol import symbol_icon
 from AppKit import (
@@ -10,24 +16,22 @@ def status_dot_icon(
     loss_criticality: int,
     last_state: str | None = None,
 ) -> Tuple[NSImage | None, str]:
-    """Create a status dot icon based on latency and loss thresholds.
+    """Create a coloured-dot status icon from pre-computed criticality levels.
 
-    This function generates a small NSImage icon (20x20 pixels) that displays
-    a colored dot indicating the network status based on latency and packet
-    loss values. The color changes according to configurable thresholds for
-    warning, alert, and critical conditions.
+    Generates a 20x20 pixel NSImage containing a filled circle whose colour
+    reflects the worst-case criticality: normal (default tint), warning
+    (yellow), alert (orange), or critical (red). An unknown state uses a
+    dotted circle.
 
     Args:
-        latency (float | None): Network latency in milliseconds, or None if unavailable.
-        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
-        latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
-        loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
-        last_state (str | None): The previous state string returned by the last call to avoid unnecessary updates. Defaults to None.
+        latency_criticality (int): Pre-computed criticality level for latency (0–4).
+        loss_criticality (int): Pre-computed criticality level for packet loss (0–4).
+        last_state (str | None): State string from the previous call; return value is
+            ``None`` when the state is unchanged. Defaults to None.
 
     Returns:
-        Tuple[NSImage | None, str]: A tuple with a 20x20 pixel icon with a colored dot representing network status, or None
-        if the new state equals the previous state, and a string describing the current state.
-
+        Tuple[NSImage | None, str]: A 20x20 pixel NSImage, or None if the state is
+        unchanged, paired with a string describing the current state.
     """
     criticality = max(latency_criticality, loss_criticality)
 

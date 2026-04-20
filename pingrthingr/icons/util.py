@@ -1,3 +1,9 @@
+"""Rendering utilities for the icons package.
+
+Provides low-level helpers for converting AppKit views into rasterised
+NSImage objects.
+"""
+
 from AppKit import (
     NSView,  # type: ignore[import]
     NSImage,  # type: ignore[import]

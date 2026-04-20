@@ -1,3 +1,9 @@
+"""SF Symbol icon generation for PingrThingr.
+
+Provides a helper for rendering named SF Symbols into fixed-size NSImage
+objects suitable for the macOS menu bar.
+"""
+
 from AppKit import (
     NSColor,  # type: ignore[import]
     NSImage,  # type: ignore[import]
