@@ -12,7 +12,7 @@ import pytest
 from pingrthingr.settings import ThresholdModel
 from pingrthingr.icons import (
     symbol_icon,
-    status_dot_icon,
+    # status_dot_icon,
     status_text_icon,
     generate_status_icon,
 )
@@ -107,22 +107,26 @@ class TestIconImages:
 
 
 class TestIconSameState:
-    @pytest.mark.parametrize("testfunction", [status_dot_icon, status_text_icon])
+    @pytest.mark.parametrize("style", ["Dot", "Text"])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
-    def test_status_icon_same_state(self, testfunction, case, latency, loss):
-        icon1, state1 = testfunction(
+    def test_status_icon_same_state(self, style, case, latency, loss):
+        icon1, state1 = generate_status_icon(
+            style,
             latency=latency,
             loss=loss,
             last_state=None,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
+            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
         )
-        icon2, _ = testfunction(
+        icon2, _ = generate_status_icon(
+            style,
             latency=latency,
             loss=loss,
             last_state=state1,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
+            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
         )
         assert icon1 is not None, "Icon should be generated on first call"
         assert icon2 is None, "Icon should not be regenerated if state is unchanged"
