@@ -58,8 +58,8 @@ class TestCrossThreadScheduling:
         mock_test_function = mocker.MagicMock(__name__="mock_test_function")
         app.test_function = mock_test_function
 
-        # Call run_in_main_thread with our test function
-        app.run_in_main_thread("test_function", "positional", key1="key_value1")
+        # Call _run_in_main_thread with our test function
+        app._run_in_main_thread("test_function", "positional", key1="key_value1")
 
         assert mock_test_function.called
         assert mock_test_function.call_args == (
@@ -91,7 +91,7 @@ class TestPingrThingrAppInitialization:
     def test_initialization(self, mocked_app, tmp_path):
         app, _, _ = mocked_app()
         assert app._settings is not None, "SettingsManager should be initialized"
-        assert app.pinger is not None, "Pinger should be initialized"
+        assert app._pinger is not None, "Pinger should be initialized"
         assert app.menu is not None, "Menu should be initialized"
         assert (
             app._statistics_menu is not None
@@ -109,7 +109,7 @@ class TestPingUpdates:
         app, _, mocked_nsapp = mocked_app()
 
         # Simulate a ping response and check if statistics are updated
-        app.update_statistics(latency=100, loss=0)
+        app.update_statistics_cb(latency=100, loss=0)
         assert app.latency == 100, "Latency should be updated to 100"
         assert app.loss == 0, "Loss should be updated to 0"
         assert (
@@ -122,12 +122,12 @@ class TestPingUpdates:
     def test_ping_response_no_update_when_same(self, mocked_app):
         app, _, mocked_nsapp = mocked_app()
         mocked_nsapp.setStatusBarIcon.reset_mock()  # Reset mock call count
-        app.update_statistics(latency=100, loss=0)
+        app.update_statistics_cb(latency=100, loss=0)
         assert (
             mocked_nsapp.setStatusBarIcon.call_count == 1
         ), "NSApp.setMenuBarIcon should be called to update the icon"
 
-        app.update_statistics(latency=100, loss=0)
+        app.update_statistics_cb(latency=100, loss=0)
         assert (
             mocked_nsapp.setStatusBarIcon.call_count == 1
         ), "NSApp.setMenuBarIcon should not have been called again"
@@ -137,7 +137,7 @@ class TestSettingsChanges:
     def test_pause(self, mocked_app, tmp_path, mocker):
         app, mock_pinger, mock_nsapp = mocked_app()
         mock_sender = mocker.MagicMock(state=False)
-        app.pause_toggle(mock_sender)
+        app._pause_menu_cb(mock_sender)
         mock_pinger.run.assert_called_with(False)
         assert (
             app._pause_menu.state == True
@@ -176,7 +176,7 @@ class TestSettingsChanges:
         app, _, _ = mocked_app()
         new_targets = ["3.4.5.6", "7.8.9.10"]
         mocker.patch("pingrthingr.app.ping_target_window", return_value=new_targets)
-        app.ping_targets(None)
+        app._ping_targets_menu_cb(None)
         settings_file = tmp_path / "settings.json"
         settings_data = json_load(open(settings_file))
         assert (
@@ -188,7 +188,7 @@ class TestSettingsChanges:
         mocker.patch("pingrthingr.app.ping_target_window", return_value=None)
         settings_file = tmp_path / "settings.json"
         pre_app_targets = app._settings.get("targets")
-        app.ping_targets(None)
+        app._ping_targets_menu_cb(None)
         assert (
             app._settings.get("targets") == pre_app_targets
         ), "Settings should not be updated when update is cancelled"
@@ -207,7 +207,7 @@ class TestCheckForUpdates:
         mocker.patch("pingrthingr.app.__VERSION__", "v0.2.0")
 
         # Check update invocation via menu
-        app.check_for_updates(app._check_for_updates_menu)
+        app._check_for_updates_menu_cb(app._check_for_updates_menu)
         mocked_update.assert_called_once_with(
             "v0.2.0", app.check_for_updates_return, False
         )
@@ -216,7 +216,7 @@ class TestCheckForUpdates:
 
         # Check callback handling
         app.check_for_updates_return("v1.0.0", "https://example.com/release", "", True)
-        assert app._check_for_updates_menu.callback == app.check_for_updates
+        assert app._check_for_updates_menu.callback == app._check_for_updates_menu_cb
         assert app._check_for_updates_menu.title == "Check for updates..."
         assert mocked_dialog.called
         mocked_dialog.assert_called_once_with(
@@ -225,7 +225,7 @@ class TestCheckForUpdates:
 
         # Check update invocation via timer
         mocked_update.reset_mock()
-        app.update_timer(app._update_timer)
+        app._startup_update_check_timer_cb(app._startup_update_check_timer)
         mocked_update.assert_called_once_with(
             "v0.2.0", app.check_for_updates_return, True
         )
@@ -257,7 +257,7 @@ class TestCheckForUpdates:
         settings = {"check_for_updates": True}
         app, _, _ = mocked_app(settings)
         assert (
-            app._update_timer.is_alive()
+            app._startup_update_check_timer.is_alive()
         ), "Update timer should be started when check_for_updates is True"
 
     def test_check_for_updates_on_startup_disabled(self, mocked_app):
@@ -265,7 +265,7 @@ class TestCheckForUpdates:
         settings = {"check_for_updates": False}
         app, _, _ = mocked_app(settings)
         assert (
-            not app._update_timer.is_alive()
+            not app._startup_update_check_timer.is_alive()
         ), "Update timer should not be started when check_for_updates is False"
 
     def test_check_for_updates_on_startup_toggle(self, mocked_app):
