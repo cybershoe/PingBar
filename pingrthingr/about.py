@@ -18,7 +18,7 @@ from AppKit import (
 license_file = base_path = Path(__file__).parent.parent / "LICENSE"
 
 
-def show_about_window(_):
+def show_about_window(_):  # pragma: no cover
 
     VIEW_WIDTH = 300
     SCROLL_HEIGHT = 180
