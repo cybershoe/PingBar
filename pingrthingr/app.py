@@ -16,7 +16,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from AppKit import NSImage, NSObject  # type: ignore
+from AppKit import NSImage, NSObject, NSAppearanceNameAqua, NSAppearanceNameDarkAqua  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -153,7 +153,9 @@ class PingrThingrApp(App):
             """
 
             if keyPath == "effectiveAppearance":
-                new_appearance = obj.effectiveAppearance().name()
+                new_appearance = obj.effectiveAppearance().bestMatchFromAppearancesWithNames_(
+                    [NSAppearanceNameDarkAqua, NSAppearanceNameAqua]
+                )
                 if new_appearance != self._app._appearance:
                     logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Effective appearance changed from {self._app._appearance} to {new_appearance}")
                     self._app._appearance = new_appearance
