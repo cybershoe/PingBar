@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from AppKit import (
-    NSAppearance,  # type: ignore[import]
+    # NSAppearance,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSView,  # type: ignore[import]
 )
@@ -76,7 +76,7 @@ def generate_status_icon(
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
-    appearance: NSAppearance | None = None,
+    # appearance: NSAppearance | None = None,
     force: bool = False,
 ) -> Tuple[NSImage | None, NSView | None, str]:
     """Generate a status icon based on the specified style and network metrics.
@@ -121,7 +121,7 @@ def generate_status_icon(
                 latency_criticality,
                 loss_criticality,
                 last_state,
-                appearance,
+                # appearance,
                 force
             )
         case "Chart":
@@ -133,7 +133,7 @@ def generate_status_icon(
                 latency_thresholds.warn,  # Use warn level as minimum scale for better visualization
                 loss_thresholds.alert,  # Use alert level as minimum scale for better visualization
                 last_state,
-                appearance,
+                # appearance,
                 force
             )
         case _:  # pragma: no cover

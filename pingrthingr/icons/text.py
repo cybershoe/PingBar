@@ -25,7 +25,7 @@ def status_text_icon(
     latency_criticality: int,
     loss_criticality: int,
     last_state: str | None = None,
-    appearance: NSAppearance | None = None,
+    # appearance: NSAppearance | None = None,
     force: bool = False,
 ) -> Tuple[NSImage | None, NSView | None, str]:
     """Create a status text icon showing latency and loss with colour-coded criticality.

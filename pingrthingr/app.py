@@ -132,40 +132,40 @@ class PingrThingrApp(App):
 
     # NSObject subclasses for KVO and main thread dispatching
 
-    class AppearanceObserver(NSObject):
-        """KVO observer that reacts to system appearance changes.
+    # class AppearanceObserver(NSObject):
+    #     """KVO observer that reacts to system appearance changes.
 
-        Registered on the status-bar button's effectiveAppearance key path
-        so that the status icon is redrawn whenever the user switches between
-        light and dark mode.
-        """
+    #     Registered on the status-bar button's effectiveAppearance key path
+    #     so that the status icon is redrawn whenever the user switches between
+    #     light and dark mode.
+    #     """
 
-        def observeValueForKeyPath_ofObject_change_context_(
-            self, keyPath, obj, change, context
-        ):  # pragma: no cover
-            """Handle a KVO notification for a watched key path.
+    #     def observeValueForKeyPath_ofObject_change_context_(
+    #         self, keyPath, obj, change, context
+    #     ):  # pragma: no cover
+    #         """Handle a KVO notification for a watched key path.
 
-            Args:
-                keyPath (str): The key path that changed.
-                obj: The object whose property changed.
-                change (dict): Dictionary describing the change.
-                context: Arbitrary context pointer passed at registration time.
-            """
+    #         Args:
+    #             keyPath (str): The key path that changed.
+    #             obj: The object whose property changed.
+    #             change (dict): Dictionary describing the change.
+    #             context: Arbitrary context pointer passed at registration time.
+    #         """
 
-            if keyPath == "effectiveAppearance":
-                new_appearance = obj.effectiveAppearance().bestMatchFromAppearancesWithNames_(
-                    [NSAppearanceNameDarkAqua, NSAppearanceNameAqua]
-                )
-                if new_appearance != self._app._appearance:
-                    logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Effective appearance changed from {self._app._appearance} to {new_appearance}")
-                    self._app._appearance = new_appearance
-                    #self._app._run_in_main_thread(
-                        #"refresh_status_", use_saved=True, force=True
-                    #)  # re-draw your icon or update colors here
-                else:
-                    logger.debug(
-                        f"In observeValueForKeyPath_ofObject_change_context_(): Appearance did not change"
-                    )
+    #         if keyPath == "effectiveAppearance":
+    #             new_appearance = obj.effectiveAppearance().bestMatchFromAppearancesWithNames_(
+    #                 [NSAppearanceNameDarkAqua, NSAppearanceNameAqua]
+    #             )
+    #             if new_appearance != self._app._appearance:
+    #                 logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Effective appearance changed from {self._app._appearance} to {new_appearance}")
+    #                 self._app._appearance = new_appearance
+    #                 #self._app._run_in_main_thread(
+    #                     #"refresh_status_", use_saved=True, force=True
+    #                 #)  # re-draw your icon or update colors here
+    #             else:
+    #                 logger.debug(
+    #                     f"In observeValueForKeyPath_ofObject_change_context_(): Appearance did not change"
+    #                 )
 
     class MainThreadDispatcher(NSObject):
         """NSObject shim used to dispatch calls onto the main run-loop thread.
@@ -231,11 +231,11 @@ class PingrThingrApp(App):
         sender.stop()
         self._dispatcher = self.MainThreadDispatcher.alloc().init()
         self._dispatcher._app = self
-        self.appearance_observer = self.AppearanceObserver.alloc().init()
-        self.appearance_observer._app = self
-        self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
-            self.appearance_observer, "effectiveAppearance", 0, None
-        )
+        # self.appearance_observer = self.AppearanceObserver.alloc().init()
+        # self.appearance_observer._app = self
+        # self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
+        #     self.appearance_observer, "effectiveAppearance", 0, None
+        # )
 
     def _startup_update_check_timer_cb(self, sender) -> None:
         """Handle startup update check timer expiration.
@@ -487,7 +487,7 @@ class PingrThingrApp(App):
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
                 self._last_state,
-                self._nsapp.nsstatusitem.button().effectiveAppearance(),
+                # self._nsapp.nsstatusitem.button().effectiveAppearance(),
                 force=force
             )
 
