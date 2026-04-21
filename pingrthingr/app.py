@@ -16,7 +16,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from AppKit import NSImage, NSObject, NSAppearanceNameAqua, NSAppearanceNameDarkAqua  # type: ignore
+from AppKit import NSImage, NSView, NSObject, NSAppearanceNameAqua, NSAppearanceNameDarkAqua  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -159,9 +159,9 @@ class PingrThingrApp(App):
                 if new_appearance != self._app._appearance:
                     logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Effective appearance changed from {self._app._appearance} to {new_appearance}")
                     self._app._appearance = new_appearance
-                    self._app._run_in_main_thread(
-                        "refresh_status_", use_saved=True, force=True
-                    )  # re-draw your icon or update colors here
+                    #self._app._run_in_main_thread(
+                        #"refresh_status_", use_saved=True, force=True
+                    #)  # re-draw your icon or update colors here
                 else:
                     logger.debug(
                         f"In observeValueForKeyPath_ofObject_change_context_(): Appearance did not change"
@@ -398,7 +398,7 @@ class PingrThingrApp(App):
 
     # Icon and menu update methods
 
-    def _draw_icon(self, icon: NSImage) -> None:
+    def _draw_icon(self, icon: NSImage, view: NSView | None = None) -> None:
         """Update the menu bar icon.
 
         Stores the provided NSImage and instructs the rumps NSApp wrapper to
@@ -410,8 +410,16 @@ class PingrThingrApp(App):
 
         logger.debug(f"In _draw_icon(): Drawing icon from NSImage")
         self._icon_nsimage = icon
+        self._icon_nsview = view
+
+        for oldview in list(self._nsapp.nsstatusitem.button().subviews()):
+            oldview.removeFromSuperview()
+
 
         self._nsapp.setStatusBarIcon()
+        if view is not None:
+            logger.debug(f"In _draw_icon(): Adding custom NSView to status bar button")
+            self._nsapp.nsstatusitem.button().addSubview(view)
 
     def refresh_status_(
         self,
@@ -463,7 +471,7 @@ class PingrThingrApp(App):
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status_(): Current display_mode: {display}")
 
-            icon, new_state = generate_status_icon(  # type: ignore
+            icon, view, new_state = generate_status_icon(  # type: ignore
                 display,  # type: ignore
                 latency,
                 loss,
@@ -483,7 +491,7 @@ class PingrThingrApp(App):
                 logger.debug(
                     f"In refresh_status_(): Updating icon for new state: {new_state}"
                 )
-                self._draw_icon(icon)
+                self._draw_icon(icon, view)
 
     # Update check return handling methods
 

@@ -27,7 +27,7 @@ def status_text_icon(
     last_state: str | None = None,
     appearance: NSAppearance | None = None,
     force: bool = False,
-) -> Tuple[NSImage | None, str]:
+) -> Tuple[NSImage | None, NSView | None, str]:
     """Create a status text icon showing latency and loss with colour-coded criticality.
 
     Generates a 50x22 pixel two-line menu bar icon displaying numeric latency and
@@ -54,7 +54,7 @@ def status_text_icon(
     loss_text = f"{loss * 100:.1f} %" if loss is not None else "---"
     new_state = f"{latency_text}-{loss_text}"
     if new_state == last_state and not force:
-        return None, new_state
+        return None, None, new_state
 
     size = NSSize(50, 22)
 
@@ -62,7 +62,8 @@ def status_text_icon(
     normalFont = NSFont.systemFontOfSize_(9)
     boldFont = NSFont.boldSystemFontOfSize_(9)
 
-    view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    base_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    overlay_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
 
     def _value_view(text: str, criticality: int, frame: CGRect) -> NSView:
         """Create an NSTextField view for displaying status text with appropriate styling.
@@ -111,10 +112,19 @@ def status_text_icon(
         NSMakeRect(0, 0, size.width, size.height / 2),
     )
 
-    view.addSubview_(latency_view)
-    view.addSubview_(loss_view)
+    if latency_criticality > 1:
+        overlay_view.addSubview_(latency_view)
+    else:
+        base_view.addSubview_(latency_view)
+    
+        base_view.addSubview_(latency_view)
 
-    view.setAppearance_(appearance)
+    if loss_criticality > 1:
+        overlay_view.addSubview_(loss_view)
+    else:
+        base_view.addSubview_(loss_view)
 
-    image = _nsview_to_nsimage(view)
-    return image, new_state
+    # overlay_view.setAppearance_(appearance)
+
+    base_image = _nsview_to_nsimage(base_view)
+    return base_image, overlay_view, new_state

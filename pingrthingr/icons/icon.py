@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 from AppKit import (
     NSAppearance,  # type: ignore[import]
     NSImage,  # type: ignore[import]
+    NSView,  # type: ignore[import]
 )
 from typing import Tuple
 from .dot import status_dot_icon
@@ -77,7 +78,7 @@ def generate_status_icon(
     last_state: str | None = None,
     appearance: NSAppearance | None = None,
     force: bool = False,
-) -> Tuple[NSImage | None, str]:
+) -> Tuple[NSImage | None, NSView | None, str]:
     """Generate a status icon based on the specified style and network metrics.
 
     Creates either a dot or text icon representing network status based on latency
@@ -101,6 +102,7 @@ def generate_status_icon(
         NotImplementedError: If an unsupported icon style is requested.
     """
 
+    view = None
     latency_criticality, loss_criticality = _criticality(
         latency, loss, latency_thresholds, loss_thresholds
     )
@@ -113,7 +115,7 @@ def generate_status_icon(
                 force
             )
         case "Text":
-            icon, state = status_text_icon(
+            icon, view, state = status_text_icon(
                 latency,
                 loss,
                 latency_criticality,
@@ -136,4 +138,4 @@ def generate_status_icon(
             )
         case _:  # pragma: no cover
             raise NotImplemented(f"No implementation for icon style: {style}")
-    return icon, state
+    return icon, view, state
