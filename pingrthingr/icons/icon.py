@@ -76,6 +76,7 @@ def generate_status_icon(
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
     appearance: NSAppearance | None = None,
+    force: bool = False,
 ) -> Tuple[NSImage | None, str]:
     """Generate a status icon based on the specified style and network metrics.
 
@@ -90,7 +91,7 @@ def generate_status_icon(
         latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
         loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
         last_state (str | None): The previous state to compare against. Defaults to None.
-
+        force (bool): If True, forces the icon to be regenerated regardless of state. Defaults to False.
     Returns:
         Tuple[NSImage | NSView | None, str]: A tuple containing the icon (NSImage for dot,
                                             NSView for text, or None if unchanged) and
@@ -109,6 +110,7 @@ def generate_status_icon(
                 latency_criticality,
                 loss_criticality,
                 last_state,
+                force
             )
         case "Text":
             icon, state = status_text_icon(
@@ -118,6 +120,7 @@ def generate_status_icon(
                 loss_criticality,
                 last_state,
                 appearance,
+                force
             )
         case "Chart":
             icon, state = status_chart_icon(
@@ -129,6 +132,7 @@ def generate_status_icon(
                 loss_thresholds.alert,  # Use alert level as minimum scale for better visualization
                 last_state,
                 appearance,
+                force
             )
         case _:  # pragma: no cover
             raise NotImplemented(f"No implementation for icon style: {style}")

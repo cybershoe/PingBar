@@ -32,6 +32,7 @@ def status_chart_icon(
     minimum_loss_scale: float,
     last_state: str | None = None,
     appearance: NSAppearance | None = None,
+    force: bool = False
 ) -> Tuple[NSImage | None, str]:
     """Create a status chart icon showing latency and loss with colour-coded criticality.
 
@@ -65,7 +66,8 @@ def status_chart_icon(
         states = []
 
     
-    states.insert(0, (latency if latency is not None else 0, loss if loss is not None else 0, latency_criticality, loss_criticality))
+    if not force:
+        states.insert(0, (latency if latency is not None else 0, loss if loss is not None else 0, latency_criticality, loss_criticality))
     
 
     # state format: "chart-" followed by tuples of latency/loss floats, and a criticality integers. Values are separated

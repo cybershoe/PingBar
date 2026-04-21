@@ -26,6 +26,7 @@ def status_text_icon(
     loss_criticality: int,
     last_state: str | None = None,
     appearance: NSAppearance | None = None,
+    force: bool = False,
 ) -> Tuple[NSImage | None, str]:
     """Create a status text icon showing latency and loss with colour-coded criticality.
 
@@ -42,6 +43,7 @@ def status_text_icon(
             ``None`` when the state is unchanged. Defaults to None.
         appearance (NSAppearance | None): The NSAppearance to apply to the rendered view,
             or None to use the default appearance. Defaults to None.
+        force (bool): If True, forces the icon to be regenerated regardless of state. Defaults to False.
 
     Returns:
         Tuple[NSImage | None, str]: A 50x22 pixel NSImage, or None if the state is
@@ -51,7 +53,7 @@ def status_text_icon(
     latency_text = f"{latency:.1f} ms" if latency is not None else "---"
     loss_text = f"{loss * 100:.1f} %" if loss is not None else "---"
     new_state = f"{latency_text}-{loss_text}"
-    if new_state == last_state:
+    if new_state == last_state and not force:
         return None, new_state
 
     size = NSSize(50, 22)

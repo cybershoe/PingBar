@@ -16,6 +16,7 @@ def status_dot_icon(
     latency_criticality: int,
     loss_criticality: int,
     last_state: str | None = None,
+    force: bool = False,
 ) -> Tuple[NSImage | None, str]:
     """Create a coloured-dot status icon from pre-computed criticality levels.
 
@@ -29,7 +30,7 @@ def status_dot_icon(
         loss_criticality (int): Pre-computed criticality level for packet loss (0–4).
         last_state (str | None): State string from the previous call; return value is
             ``None`` when the state is unchanged. Defaults to None.
-
+        force (bool): If True, forces the icon to be regenerated regardless of state. Defaults to False.
     Returns:
         Tuple[NSImage | None, str]: A 20x20 pixel NSImage, or None if the state is
         unchanged, paired with a string describing the current state.
@@ -57,7 +58,7 @@ def status_dot_icon(
         case _:  # pragma: no cover
             raise ValueError(f"Invalid criticality level: {criticality}")
 
-    if state == last_state:
+    if state == last_state and not force:
         return None, state
 
     return (symbol_icon(symbol_name, "Network Status", color, True), state)
