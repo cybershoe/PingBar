@@ -112,23 +112,35 @@ class TestIconImages:
         test_result_indexes = [0,1,2,3,5,6,8,9,10,12,13,14]
         test_values = [ping_thresholds[i][-2:] for i in test_result_indexes]
 
-        status = ""
+        state = ""
         chart_icon = None
 
         for latency, loss in test_values:
 
-            chart_icon, status = generate_status_icon(
+            chart_icon, state = generate_status_icon(
                 style="Chart",
                 latency=latency,
                 loss=loss,
                 latency_thresholds=latency_thresholds,
                 loss_thresholds=loss_thresholds,
-                last_state=status,
+                last_state=state,
                 appearance=appearance,
             )
         assert (
             compare_image(chart_icon, f"chart-{'dark' if dark else 'light'}") < 0.01
         ), "Generated chart icon should match reference image"
+
+        _, new_state = generate_status_icon(
+                style="Chart",
+                latency=0.0,
+                loss=0.0,
+                latency_thresholds=latency_thresholds,
+                loss_thresholds=loss_thresholds,
+                last_state=state,
+                appearance=appearance,
+                force=True
+            )
+        assert state==new_state, "State should not be updated when force is True"
 
 class TestIconSameState:
     @pytest.mark.parametrize("style", ["Dot", "Text"])
