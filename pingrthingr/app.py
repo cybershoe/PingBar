@@ -50,6 +50,7 @@ class PingrThingrApp(App):
         self.latency = None
         self.loss = None
         self.title = None
+        self._appearance = None
         self._icon_nsimage = symbol_icon(
             (
                 "pause.circle"
@@ -152,12 +153,17 @@ class PingrThingrApp(App):
             """
 
             if keyPath == "effectiveAppearance":
-                self._app._run_in_main_thread(
-                    "refresh_status_", use_saved=True, force=True
-                )  # re-draw your icon or update colors here
-                logger.debug(
-                    f"In observeValueForKeyPath_ofObject_change_context_(): Appearance change detected, refreshing status icon"
-                )
+                new_appearance = obj.effectiveAppearance().name()
+                if new_appearance != self._app._appearance:
+                    logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Effective appearance changed from {self._app._appearance} to {new_appearance}")
+                    self._app._appearance = new_appearance
+                    self._app._run_in_main_thread(
+                        "refresh_status_", use_saved=True, force=True
+                    )  # re-draw your icon or update colors here
+                else:
+                    logger.debug(
+                        f"In observeValueForKeyPath_ofObject_change_context_(): Appearance did not change"
+                    )
 
     class MainThreadDispatcher(NSObject):
         """NSObject shim used to dispatch calls onto the main run-loop thread.
