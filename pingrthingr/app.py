@@ -64,7 +64,7 @@ class PingrThingrApp(App):
         self._pause_menu = MenuItem("Pause", callback=self._pause_menu_cb)
         self._display_menu = SelectableMenu(
             "Display Mode",
-            options=["Dot", "Text"],
+            options=["Dot", "Text", "Chart"],
             selected=self._settings.get("display_mode", "Dot"),
             callback=self._display_menu_cb,
         )
@@ -367,7 +367,7 @@ class PingrThingrApp(App):
         Args:
             display_mode (str): The new display mode ("Dot" or "Text").
         """
-        self.refresh_status_(use_saved=True)
+        self.refresh_status_(use_saved=True, force=True)
 
     def update_statistics_cb(
         self, latency: float | None = None, loss: float | None = None
@@ -461,8 +461,9 @@ class PingrThingrApp(App):
                 loss,
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
-                self._last_state if not force else None,
+                self._last_state,
                 self._nsapp.nsstatusitem.button().effectiveAppearance(),
+                force=force
             )
 
             logger.debug(

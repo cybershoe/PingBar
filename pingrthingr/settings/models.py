@@ -36,7 +36,7 @@ def validate_ip_address(value):
 
 
 IPAddress = Annotated[str, AfterValidator(validate_ip_address)]
-IconStyle = Literal["Dot", "Text"]
+IconStyle = Literal["Dot", "Text", "Chart"]
 
 
 class ThresholdModel(BaseModel):
@@ -63,7 +63,7 @@ class SettingsModel(BaseModel):
     settings including display mode, pause state, and ping targets.
 
     Attributes:
-        display_mode (Literal["Dot", "Text"]): Status icon display mode.
+        display_mode (Literal["Dot", "Text", "Chart"]): Status icon display mode.
         paused (bool): Whether the application is currently paused.
         targets (list[IPAddress]): List of target IP addresses to ping.
         latency_thresholds (ThresholdModel): Thresholds for latency evaluation.
