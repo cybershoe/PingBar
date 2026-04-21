@@ -57,8 +57,6 @@ def status_chart_icon(
 
     HISTORY_LENGTH = 12
 
-    latency_text = f"{latency:.1f} ms" if latency is not None else "---"
-    loss_text = f"{loss * 100:.1f} %" if loss is not None else "---"
 
     if last_state and re_match(r"chart-((\d+.\d+,\d+.\d+,\d+,\d+)(;|$))+", last_state):
         states = [(float(v[0]), float(v[1]), int(v[2]), int(v[3])) for v in [pair.split(",") for pair in last_state[6:].split(";")]]
@@ -99,8 +97,8 @@ def status_chart_icon(
             value_bar.setBorderWidth_(0)
             match criticality:
                 case 0:
-                    value_bar.setFillColor_(NSColor.labelColor())
-                    chart_base_view.addSubview_(value_bar)
+                    value_bar.setFillColor_(NSColor.grayColor())
+                    chart_overlay_view.addSubview_(value_bar)
                 case 1:
                     value_bar.setFillColor_(NSColor.labelColor())
                     chart_base_view.addSubview_(value_bar)
@@ -123,9 +121,9 @@ def status_chart_icon(
                 NSMakeRect(0, 0, blank_bars * 4 , 1)
             )
             empty_bar.setBoxType_(NSBoxCustom)
-            empty_bar.setFillColor_(NSColor.labelColor())
+            empty_bar.setFillColor_(NSColor.grayColor())
             empty_bar.setBorderWidth_(0)
-            chart_base_view.addSubview_(empty_bar)
+            chart_overlay_view.addSubview_(empty_bar)
         return chart_base_view, chart_overlay_view
 
     latency_base_view, latency_overlay_view = _chart_view(
