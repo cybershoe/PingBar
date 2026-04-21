@@ -16,7 +16,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from AppKit import NSImage, NSAppearanceNameAqua, NSAppearanceNameDarkAqua, NSNotificationCenter, NSObject, NSScreen  # type: ignore
+from AppKit import NSImage, NSAppearanceNameAqua, NSAppearanceNameDarkAqua, NSObject  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -133,60 +133,22 @@ class PingrThingrApp(App):
     # NSObject subclasses for KVO and main thread dispatching
 
     class AppearanceObserver(NSObject):
-        """KVO observer that reacts to per-screen appearance changes.
+        """KVO observer that reacts to system appearance changes.
 
-        Registered on each ``NSScreen``'s ``effectiveAppearance`` key path
+        Registered on the status-bar button's effectiveAppearance key path
         so that the status icon is redrawn whenever the menu-bar appearance
-        changes on any connected display.  Observing ``NSScreen`` rather
-        than the status-bar button avoids spurious KVO notifications that
-        would otherwise fire during each rendering pass when macOS
-        transiently mutates the button's drawing context.
+        changes (e.g. when the wallpaper changes the menu-bar colour, or
+        when the user switches between system-wide light and dark mode).
 
-        Also listens for ``NSApplicationDidChangeScreenParametersNotification``
-        so that observers are refreshed when displays are connected or
-        disconnected.
+        A change-detection guard prevents spurious re-draws: KVO may fire
+        during each rendering pass as macOS transiently mutates the button's
+        drawing context, so the callback only triggers a redraw when the
+        resolved appearance name actually differs from the last known value.
         """
-
-        def observeScreens(self):  # pragma: no cover
-            logger.debug(f"In observeScreens(): Registering KVO observers on connected screens")
-            """Register KVO on the current set of connected screens.
-
-            Removes any existing per-screen observers first, then registers
-            the receiver as an observer of ``effectiveAppearance`` on every
-            screen currently in ``NSScreen.screens()``.
-            """
-            for screen in getattr(self, "_observed_screens", []):
-                try:
-                    screen.removeObserver_forKeyPath_(self, "effectiveAppearance")
-                except Exception:
-                    pass  # screen may have been disconnected; its KVO registration is already gone
-            self._observed_screens = list(NSScreen.screens())
-            for screen in self._observed_screens:
-                screen.addObserver_forKeyPath_options_context_(
-                    self, "effectiveAppearance", 0, None
-                )
-
-        def screensChanged_(self, notification):  # pragma: no cover
-            logger.debug(f"In screensChanged_(): Received screen configuration change notification, refreshing observers and status")
-            """Handle ``NSApplicationDidChangeScreenParametersNotification``.
-
-            Re-registers KVO observers on the updated set of connected
-            screens and triggers a status-icon redraw so the correct
-            appearance is applied immediately after a display
-            configuration change.
-
-            Args:
-                notification: The notification object (unused).
-            """
-            self.observeScreens()
-            self._app._run_in_main_thread(
-                "refresh_status_", use_saved=True, force=True
-            )
 
         def observeValueForKeyPath_ofObject_change_context_(
             self, keyPath, obj, change, context
         ):  # pragma: no cover
-            logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Received KVO notification for keyPath: {keyPath}, object: {obj}, change: {change}, context: {context}")
             """Handle a KVO notification for a watched key path.
 
             Args:
@@ -195,6 +157,7 @@ class PingrThingrApp(App):
                 change (dict): Dictionary describing the change.
                 context: Arbitrary context pointer passed at registration time.
             """
+            logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Received KVO notification for keyPath: {keyPath}, object: {obj}, change: {change}, context: {context}")
 
             if keyPath == "effectiveAppearance":
                 new_appearance = obj.effectiveAppearance().bestMatchFromAppearancesWithNames_(
@@ -269,14 +232,13 @@ class PingrThingrApp(App):
         started, ensuring NSApp and the status-bar item are fully available
         before KVO observers and the main-thread dispatcher are set up.
 
-        Registers a KVO observer on every connected screen's
-        ``effectiveAppearance`` property rather than on the status-bar
-        button itself.  The button's ``effectiveAppearance`` is mutated
-        transiently during each draw pass, which would cause oscillating
-        redraws if observed directly.  ``NSScreen.effectiveAppearance`` is
-        a stable, settled value that only changes when the menu-bar
-        appearance actually changes (e.g. wallpaper swap or system-wide
-        toggle), so it never fires spuriously during rendering.
+        Registers a KVO observer on the status-bar button's
+        ``effectiveAppearance`` key path so that the icon is redrawn
+        whenever the menu-bar appearance changes (wallpaper swap, system
+        light/dark toggle, etc.).  A change-detection guard inside the
+        callback prevents the oscillating-redraw problem that would
+        otherwise occur because macOS transiently mutates the button's
+        drawing context on every render pass.
 
         Args:
             sender (Timer): The one-shot Timer that fired this callback.
@@ -286,12 +248,8 @@ class PingrThingrApp(App):
         self._dispatcher._app = self
         self.appearance_observer = self.AppearanceObserver.alloc().init()
         self.appearance_observer._app = self
-        self.appearance_observer.observeScreens()
-        NSNotificationCenter.defaultCenter().addObserver_selector_name_object_(
-            self.appearance_observer,
-            "screensChanged:",
-            "NSApplicationDidChangeScreenParametersNotification",
-            None,
+        self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
+            self.appearance_observer, "effectiveAppearance", 0, None
         )
 
     def _startup_update_check_timer_cb(self, sender) -> None:
