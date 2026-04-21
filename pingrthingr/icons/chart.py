@@ -69,12 +69,13 @@ def status_chart_icon(
     if not force:
         states.insert(0, (latency if latency is not None else 0, loss if loss is not None else 0, latency_criticality, loss_criticality))
     
+    states = states[:HISTORY_LENGTH]
 
     # state format: "chart-" followed by tuples of latency/loss floats, and a criticality integers. Values are separated
     # by a comma, tuples are separated by a semicolon. Most recent tuple is first.
 
 
-    new_state = f"chart-{';'.join([f'{x[0]:.2f},{x[1]:.2f},{x[2]},{x[3]}' for x in states[-HISTORY_LENGTH-1:]])}"
+    new_state = f"chart-{';'.join([f'{x[0]:.2f},{x[1]:.2f},{x[2]},{x[3]}' for x in states])}"
 
     size = NSSize((HISTORY_LENGTH * 4), 22)
 
