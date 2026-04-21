@@ -12,7 +12,7 @@ import pytest
 from pingrthingr.settings import ThresholdModel
 from pingrthingr.icons import (
     symbol_icon,
-    status_dot_icon,
+    # status_dot_icon,
     status_text_icon,
     generate_status_icon,
 )
@@ -22,6 +22,7 @@ base_path = Path(__file__).parent
 ping_thresholds = [
     ("unknown", None, None),
     ("no_loss", 0.0, 0.0),
+    ("full_loss", None, 1.0),
     ("ok_latency", 50.0, 0.0),
     ("warn_loss", 0.0, 0.02),
     ("warn_edge_latency", 80.0, 0.0),
@@ -104,24 +105,64 @@ class TestIconImages:
             compare_image(pause_icon, "pause") < 0.01
         ), "Generated pause icon should match reference image"
 
+    @pytest.mark.parametrize("dark", [True, False])
+    def test_chart_icon(self, compare_image, dark):        
+
+        appearance = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua) if dark else NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+        test_result_indexes = [0,1,2,3,5,6,8,9,10,12,13,14]
+        test_values = [ping_thresholds[i][-2:] for i in test_result_indexes]
+
+        state = ""
+        chart_icon = None
+
+        for latency, loss in test_values:
+
+            chart_icon, state = generate_status_icon(
+                style="Chart",
+                latency=latency,
+                loss=loss,
+                latency_thresholds=latency_thresholds,
+                loss_thresholds=loss_thresholds,
+                last_state=state,
+                appearance=appearance,
+            )
+        assert (
+            compare_image(chart_icon, f"chart-{'dark' if dark else 'light'}") < 0.01
+        ), "Generated chart icon should match reference image"
+
+        _, new_state = generate_status_icon(
+                style="Chart",
+                latency=0.0,
+                loss=0.0,
+                latency_thresholds=latency_thresholds,
+                loss_thresholds=loss_thresholds,
+                last_state=state,
+                appearance=appearance,
+                force=True
+            )
+        assert state==new_state, "State should not be updated when force is True"
 
 class TestIconSameState:
-    @pytest.mark.parametrize("testfunction", [status_dot_icon, status_text_icon])
+    @pytest.mark.parametrize("style", ["Dot", "Text"])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
-    def test_status_icon_same_state(self, testfunction, case, latency, loss):
-        icon1, state1 = testfunction(
+    def test_status_icon_same_state(self, style, case, latency, loss):
+        icon1, state1 = generate_status_icon(
+            style,
             latency=latency,
             loss=loss,
             last_state=None,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
+            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua),
         )
-        icon2, _ = testfunction(
+        icon2, _ = generate_status_icon(
+            style,
             latency=latency,
             loss=loss,
             last_state=state1,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
+            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua),
         )
         assert icon1 is not None, "Icon should be generated on first call"
         assert icon2 is None, "Icon should not be regenerated if state is unchanged"

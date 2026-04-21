@@ -14,6 +14,7 @@ from asyncio import (
     run_coroutine_threadsafe,
     sleep as asyncio_sleep,
     wait_for,
+    Event,
     CancelledError,
     TimeoutError,
 )
@@ -77,13 +78,15 @@ class Pinger:
         self._loop = None
         self._thread = None
         self._pinger_coroutine = None
+        self._pinger_event = Event()
 
         logger.info(f"Pinger initialized")
         logger.debug(
             f"In __init__(): Configuration - timeout: {timeout}, count: {count}, interval: {interval}, frequency: {frequency}"
         )
+        self.start()
         if start_running:
-            self.start()  # Start in the running state
+            self._pinger_event.set()  # Start in the running state
 
     def stop(self) -> None:
         """Stop the pinger, cancelling the ping task and shutting down the event loop.
@@ -127,7 +130,7 @@ class Pinger:
         """
         logger.debug("In start(): Starting background event loop for Pinger")
         try:
-            if self._loop.is_running():  # type: ignore  pragma: no branch
+            if self._loop.is_running():  # type: ignore  pragma: no cover
                 logger.debug("In start(): already running, skipping start")
                 return
             if not self._loop.is_closed():  # type: ignore  pragma: no cover
@@ -188,6 +191,9 @@ class Pinger:
         """
         try:
             while True:
+                logger.debug("awaiting for pinger event to be set before starting ping cycle")
+                await self._pinger_event.wait()  # Wait until the event is set to start pinging
+                logger.debug(f"after Event.wait(), Pinger event is {'set' if self._pinger_event.is_set() else 'not set'}, starting ping cycle")
                 start_time = monotonic()
                 if len(self.targets) > 0:
                     logger.debug(f"In _run_pings(): Pinging targets: {self._targets}")
@@ -216,7 +222,7 @@ class Pinger:
                                 "In _run_pings(): Ping results: %s", ping_results
                             )
 
-                        if self.cb:
+                        if self.cb and self._pinger_event.is_set():
                             try:
                                 avg_latency = self.remove_outliers_and_avg(
                                     [
@@ -254,11 +260,15 @@ class Pinger:
         Args:
             running (bool): True to start pinging, False to stop pinging.
         """
-        if running:
-            self.start()
-
-        else:
-            self.stop()
+        logger.debug(f"In run(): Setting running state to {running}")
+        if self._loop is not None:  # pragma: no branch
+            if running:
+                logger.debug("In run(): Starting ping monitoring")
+                self._loop.call_soon_threadsafe(self._pinger_event.set)
+                logger.debug(f"In run(): Pinger event is {'set' if self._pinger_event.is_set() else 'not set'}")
+            else:
+                logger.debug("In run(): Stopping ping monitoring")
+                self._loop.call_soon_threadsafe(self._pinger_event.clear)
 
     def remove_outliers_and_avg(self, values: List[float]) -> float | None:
         """Remove outlier values and return the mean of remaining values.
