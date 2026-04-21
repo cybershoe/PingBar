@@ -143,5 +143,6 @@ def status_chart_icon(
     base_view.addSubview_(loss_base_view)
     overlay_view.addSubview_(loss_overlay_view)
 
-    image = _nsview_to_nsimage(base_view)
-    return image, overlay_view, new_state
+    base_image = _nsview_to_nsimage(base_view)
+    base_image.setTemplate_(True)
+    return base_image, overlay_view, new_state

@@ -127,4 +127,6 @@ def status_text_icon(
     # overlay_view.setAppearance_(appearance)
 
     base_image = _nsview_to_nsimage(base_view)
+    base_image.setTemplate_(True)
+
     return base_image, overlay_view, new_state
