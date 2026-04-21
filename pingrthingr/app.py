@@ -177,7 +177,10 @@ class PingrThingrApp(App):
             screen currently in ``NSScreen.screens()``.
             """
             for screen in getattr(self, "_observed_screens", []):
-                screen.removeObserver_forKeyPath_(self, "effectiveAppearance")
+                try:
+                    screen.removeObserver_forKeyPath_(self, "effectiveAppearance")
+                except Exception:
+                    pass  # screen may have been disconnected; its KVO registration is already gone
             self._observed_screens = list(NSScreen.screens())
             for screen in self._observed_screens:
                 screen.addObserver_forKeyPath_options_context_(
