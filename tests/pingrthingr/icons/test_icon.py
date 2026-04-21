@@ -105,6 +105,30 @@ class TestIconImages:
             compare_image(pause_icon, "pause") < 0.01
         ), "Generated pause icon should match reference image"
 
+    @pytest.mark.parametrize("dark", [True, False])
+    def test_chart_icon(self, compare_image, dark):        
+
+        appearance = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua) if dark else NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+        test_result_indexes = [0,1,2,3,5,6,8,9,10,12,13,14]
+        test_values = [ping_thresholds[i][-2:] for i in test_result_indexes]
+
+        status = ""
+        chart_icon = None
+
+        for latency, loss in test_values:
+
+            chart_icon, status = generate_status_icon(
+                style="Chart",
+                latency=latency,
+                loss=loss,
+                latency_thresholds=latency_thresholds,
+                loss_thresholds=loss_thresholds,
+                last_state=status,
+                appearance=appearance,
+            )
+        assert (
+            compare_image(chart_icon, f"chart-{'dark' if dark else 'light'}") < 0.01
+        ), "Generated chart icon should match reference image"
 
 class TestIconSameState:
     @pytest.mark.parametrize("style", ["Dot", "Text"])

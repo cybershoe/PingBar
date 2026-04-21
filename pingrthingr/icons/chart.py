@@ -13,7 +13,6 @@ from AppKit import (
     NSBox,  # type: ignore[import]
     NSBoxCustom,  # type: ignore[import]
     NSColor,  # type: ignore[import]
-    NSFont,  # type: ignore[import]
     NSImage,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
     NSSize,  # type: ignore[import]
@@ -75,7 +74,7 @@ def status_chart_icon(
 
     new_state = f"chart-{';'.join([f'{x[0]:.2f},{x[1]:.2f},{x[2]},{x[3]}' for x in states[-HISTORY_LENGTH-1:]])}"
 
-    size = NSSize((HISTORY_LENGTH * 4)+2, 22)
+    size = NSSize((HISTORY_LENGTH * 4), 22)
 
     view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
 
@@ -86,25 +85,10 @@ def status_chart_icon(
         logger.debug(f"Max value for chart scaling: {max_scale}")
         chart_view = NSView.alloc().initWithFrame_(frame)
 
-        left_bar = NSBox.alloc().initWithFrame_(
-                NSMakeRect(frame.size.width - 1, 0, 1, frame.size.height)
-            )
-        left_bar.setBoxType_(NSBoxCustom)
-        left_bar.setFillColor_(NSColor.grayColor())
-        left_bar.setBorderWidth_(0)
-        chart_view.addSubview_(left_bar)
-        right_bar = NSBox.alloc().initWithFrame_(
-                NSMakeRect(0, 0, 1, frame.size.height)
-            )
-        right_bar.setBoxType_(NSBoxCustom)
-        right_bar.setFillColor_(NSColor.grayColor())
-        right_bar.setBorderWidth_(0)
-        chart_view.addSubview_(right_bar)
-
         for idx, (value, criticality) in enumerate(states):
             bar_height = (value / max_scale) * frame.size.height if max_scale > 0 else 0
             value_bar = NSBox.alloc().initWithFrame_(
-                NSMakeRect(frame.size.width - (4 * (idx + 1)) - 1, 0, 4, max(bar_height, 1))
+                NSMakeRect(frame.size.width - (4 * (idx + 1)), 0, 4, max(bar_height, 1))
             )
             value_bar.setBoxType_(NSBoxCustom)
             match criticality:
@@ -123,6 +107,15 @@ def status_chart_icon(
             value_bar.setBorderWidth_(0)
             chart_view.addSubview_(value_bar)
 
+        if len(states) < HISTORY_LENGTH:
+            blank_bars = HISTORY_LENGTH - len(states)
+            empty_bar = NSBox.alloc().initWithFrame_(
+                NSMakeRect(0, 0, blank_bars * 4 , 1)
+            )
+            empty_bar.setBoxType_(NSBoxCustom)
+            empty_bar.setFillColor_(NSColor.grayColor())
+            empty_bar.setBorderWidth_(0)
+            chart_view.addSubview_(empty_bar)
         return chart_view
 
     latency_view = _chart_view(
