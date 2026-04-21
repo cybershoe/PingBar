@@ -146,10 +146,10 @@ class PingrThingrApp(App):
         self._dispatcher._app = self
         self.appearance_observer = self.AppearanceObserver.alloc().init()
         self.appearance_observer._app = self
-        self.appearance_observer.observe_screens_()
+        self.appearance_observer.observeScreens()
         NSNotificationCenter.defaultCenter().addObserver_selector_name_object_(
             self.appearance_observer,
-            "screens_changed:",
+            "screensChanged:",
             "NSApplicationDidChangeScreenParametersNotification",
             None,
         )
@@ -169,7 +169,7 @@ class PingrThingrApp(App):
         disconnected.
         """
 
-        def observe_screens_(self):  # pragma: no cover
+        def observeScreens(self):  # pragma: no cover
             """Register KVO on the current set of connected screens.
 
             Removes any existing per-screen observers first, then registers
@@ -187,7 +187,7 @@ class PingrThingrApp(App):
                     self, "effectiveAppearance", 0, None
                 )
 
-        def screens_changed_(self, notification):  # pragma: no cover
+        def screensChanged_(self, notification):  # pragma: no cover
             """Handle ``NSApplicationDidChangeScreenParametersNotification``.
 
             Re-registers KVO observers on the updated set of connected
@@ -198,7 +198,7 @@ class PingrThingrApp(App):
             Args:
                 notification: The notification object (unused).
             """
-            self.observe_screens_()
+            self.observeScreens()
             self._app.run_in_main_thread(
                 "refresh_status_", use_saved=True, force=True
             )
