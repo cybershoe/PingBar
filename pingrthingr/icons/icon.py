@@ -125,7 +125,7 @@ def generate_status_icon(
                 force
             )
         case "Chart":
-            icon, state = status_chart_icon(
+            icon, view, state = status_chart_icon(
                 latency,
                 loss,
                 latency_criticality,

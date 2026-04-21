@@ -33,7 +33,7 @@ def status_chart_icon(
     last_state: str | None = None,
     appearance: NSAppearance | None = None,
     force: bool = False
-) -> Tuple[NSImage | None, str]:
+) -> Tuple[NSImage | None, NSView | None, str]:
     """Create a status chart icon showing latency and loss with colour-coded criticality.
 
     Generates a 50x22 pixel two-line menu bar icon displaying bar charts for latency and
@@ -79,14 +79,16 @@ def status_chart_icon(
 
     size = NSSize((HISTORY_LENGTH * 4), 22)
 
-    view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    base_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    overlay_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
 
-    def _chart_view(states: List[Tuple[float, int]], min_scale: float, frame: CGRect) -> NSView:
+    def _chart_view(states: List[Tuple[float, int]], min_scale: float, frame: CGRect) -> Tuple[NSView, NSView]:
 
         max_value = max((s[0] for s in states), default=0)
         max_scale = max(max_value, min(min_scale, max_value * 3))  # Ensure some headroom above the max value for better visualization
         logger.debug(f"Max value for chart scaling: {max_scale}")
-        chart_view = NSView.alloc().initWithFrame_(frame)
+        chart_base_view = NSView.alloc().initWithFrame_(frame)
+        chart_overlay_view = NSView.alloc().initWithFrame_(frame)
 
         for idx, (value, criticality) in enumerate(states):
             bar_height = (value / max_scale) * frame.size.height if max_scale > 0 else 0
@@ -94,21 +96,26 @@ def status_chart_icon(
                 NSMakeRect(frame.size.width - (4 * (idx + 1)), 0, 4, max(bar_height, 1))
             )
             value_bar.setBoxType_(NSBoxCustom)
+            value_bar.setBorderWidth_(0)
             match criticality:
                 case 0:
-                    value_bar.setFillColor_(NSColor.grayColor())
+                    value_bar.setFillColor_(NSColor.labelColor())
+                    chart_base_view.addSubview_(value_bar)
                 case 1:
                     value_bar.setFillColor_(NSColor.labelColor())
+                    chart_base_view.addSubview_(value_bar)
                 case 2:
                     value_bar.setFillColor_(NSColor.yellowColor())
+                    chart_overlay_view.addSubview_(value_bar)
                 case 3:
                     value_bar.setFillColor_(NSColor.orangeColor())
+                    chart_overlay_view.addSubview_(value_bar)
                 case 4:
                     value_bar.setFillColor_(NSColor.redColor())
+                    chart_overlay_view.addSubview_(value_bar)
                 case _:  # pragma: no cover
                     raise ValueError(f"Invalid criticality level: {criticality}")
-            value_bar.setBorderWidth_(0)
-            chart_view.addSubview_(value_bar)
+
 
         if len(states) < HISTORY_LENGTH:
             blank_bars = HISTORY_LENGTH - len(states)
@@ -116,27 +123,27 @@ def status_chart_icon(
                 NSMakeRect(0, 0, blank_bars * 4 , 1)
             )
             empty_bar.setBoxType_(NSBoxCustom)
-            empty_bar.setFillColor_(NSColor.grayColor())
+            empty_bar.setFillColor_(NSColor.labelColor())
             empty_bar.setBorderWidth_(0)
-            chart_view.addSubview_(empty_bar)
-        return chart_view
+            chart_base_view.addSubview_(empty_bar)
+        return chart_base_view, chart_overlay_view
 
-    latency_view = _chart_view(
+    latency_base_view, latency_overlay_view = _chart_view(
         [(x[0], x[2]) for x in states],
         minimum_latency_scale,
         NSMakeRect(0, size.height / 2, size.width, size.height / 2),
     )
 
-    loss_view = _chart_view(
+    loss_base_view, loss_overlay_view = _chart_view(
         [(x[1], x[3]) for x in states],
         minimum_loss_scale,
         NSMakeRect(0, 0, size.width, size.height / 2),
     )
 
-    view.addSubview_(latency_view)
-    view.addSubview_(loss_view)
+    base_view.addSubview_(latency_base_view)
+    overlay_view.addSubview_(latency_overlay_view)
+    base_view.addSubview_(loss_base_view)
+    overlay_view.addSubview_(loss_overlay_view)
 
-    view.setAppearance_(appearance)
-
-    image = _nsview_to_nsimage(view)
-    return image, new_state
+    image = _nsview_to_nsimage(base_view)
+    return image, overlay_view, new_state
