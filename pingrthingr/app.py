@@ -148,6 +148,7 @@ class PingrThingrApp(App):
         """
 
         def observeScreens(self):  # pragma: no cover
+            logger.debug(f"In observeScreens(): Registering KVO observers on connected screens")
             """Register KVO on the current set of connected screens.
 
             Removes any existing per-screen observers first, then registers
@@ -166,6 +167,7 @@ class PingrThingrApp(App):
                 )
 
         def screensChanged_(self, notification):  # pragma: no cover
+            logger.debug(f"In screensChanged_(): Received screen configuration change notification, refreshing observers and status")
             """Handle ``NSApplicationDidChangeScreenParametersNotification``.
 
             Re-registers KVO observers on the updated set of connected
@@ -184,6 +186,7 @@ class PingrThingrApp(App):
         def observeValueForKeyPath_ofObject_change_context_(
             self, keyPath, obj, change, context
         ):  # pragma: no cover
+            logger.debug(f"In observeValueForKeyPath_ofObject_change_context_(): Received KVO notification for keyPath: {keyPath}, object: {obj}, change: {change}, context: {context}")
             """Handle a KVO notification for a watched key path.
 
             Args:
