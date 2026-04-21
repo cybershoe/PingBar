@@ -16,7 +16,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from AppKit import NSImage, NSView, NSObject, NSAppearanceNameAqua, NSAppearanceNameDarkAqua  # type: ignore
+from AppKit import NSImage, NSView, NSPoint, NSObject, NSAppearanceNameAqua, NSAppearanceNameDarkAqua  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -419,7 +419,16 @@ class PingrThingrApp(App):
         self._nsapp.setStatusBarIcon()
         if view is not None:
             logger.debug(f"In _draw_icon(): Adding custom NSView to status bar button")
-            self._nsapp.nsstatusitem.button().addSubview(view)
+            button_size = self._nsapp.nsstatusitem.button().bounds().size
+            view_size = view.frame().size
+            logger.debug(f"Button size: {button_size}, view size: {view_size}")
+            x_offset = (button_size.width - view_size.width) / 2
+            y_offset = (button_size.height - view_size.height) / 2
+            view.setFrameOrigin_(NSPoint(x_offset, y_offset))
+            logger.debug(f"button frame: {self._nsapp.nsstatusitem.button().bounds().size.width}")
+            self._nsapp.nsstatusitem.button().addSubview_(view)
+            for v in list(self._nsapp.nsstatusitem.button().subviews()):
+                logger.debug(f"Subview: {v}, frame: {v.frame()}")
 
     def refresh_status_(
         self,
