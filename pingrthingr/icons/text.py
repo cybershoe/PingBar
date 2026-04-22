@@ -63,7 +63,9 @@ def status_text_icon(
     boldFont = NSFont.boldSystemFontOfSize_(9)
 
     base_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
-    overlay_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    overlay_view = NSView.alloc().initWithFrame_(
+        NSMakeRect(0, 0, size.width, size.height)
+    )
 
     def _value_view(text: str, criticality: int, frame: CGRect) -> NSView:
         """Create an NSTextField view for displaying status text with appropriate styling.
@@ -116,7 +118,7 @@ def status_text_icon(
         overlay_view.addSubview_(latency_view)
     else:
         base_view.addSubview_(latency_view)
-    
+
         base_view.addSubview_(latency_view)
 
     if loss_criticality > 1:

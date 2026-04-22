@@ -109,10 +109,7 @@ def generate_status_icon(
     match style:
         case "Dot":
             icon, state = status_dot_icon(
-                latency_criticality,
-                loss_criticality,
-                last_state,
-                force
+                latency_criticality, loss_criticality, last_state, force
             )
         case "Text":
             icon, view, state = status_text_icon(
@@ -122,7 +119,7 @@ def generate_status_icon(
                 loss_criticality,
                 last_state,
                 # appearance,
-                force
+                force,
             )
         case "Chart":
             icon, view, state = status_chart_icon(
@@ -134,7 +131,7 @@ def generate_status_icon(
                 loss_thresholds.alert,  # Use alert level as minimum scale for better visualization
                 last_state,
                 # appearance,
-                force
+                force,
             )
         case _:  # pragma: no cover
             raise NotImplemented(f"No implementation for icon style: {style}")

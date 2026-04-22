@@ -97,7 +97,7 @@ class PingrThingrApp(App):
             self._check_for_updates_on_startup_menu,
             separator,
             self._about_menu,
-            separator
+            separator,
         ]
         self._last_state = None
 
@@ -375,7 +375,6 @@ class PingrThingrApp(App):
         for oldview in list(self._nsapp.nsstatusitem.button().subviews()):
             oldview.removeFromSuperview()
 
-
         self._nsapp.setStatusBarIcon()
         if view is not None:
             logger.debug(f"In _draw_icon(): Adding custom NSView to status bar button")
@@ -385,7 +384,6 @@ class PingrThingrApp(App):
             y_offset = (button_size.height - view_size.height) / 2
             view.setFrameOrigin_(NSPoint(x_offset, y_offset))
             self._nsapp.nsstatusitem.button().addSubview_(view)
-
 
     def refresh_status_(
         self,
@@ -444,7 +442,7 @@ class PingrThingrApp(App):
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
                 self._last_state,
-                force=force
+                force=force,
             )
 
             logger.debug(

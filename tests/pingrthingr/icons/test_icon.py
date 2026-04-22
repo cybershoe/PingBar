@@ -47,11 +47,19 @@ black = CGColorCreate(colorspace, (0, 0, 0, 1))
 latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
 loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 
-def flaatten_icon_to_png(nsimage: NSImage, output_path: Path, dark: bool = False, nsview: NSView | None = None) -> None:
+
+def flaatten_icon_to_png(
+    nsimage: NSImage,
+    output_path: Path,
+    dark: bool = False,
+    nsview: NSView | None = None,
+) -> None:
     size = nsimage.size()
     frame = NSMakeRect(0, 0, size.width, size.height)
     flattened_view = NSView.alloc().initWithFrame_(frame)
-    appearance = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua if dark else NSAppearanceNameAqua)
+    appearance = NSAppearance.appearanceNamed_(
+        NSAppearanceNameDarkAqua if dark else NSAppearanceNameAqua
+    )
     flattened_view.setAppearance_(appearance)
 
     bg_color = NSColor.blackColor() if dark else NSColor.whiteColor()
@@ -70,6 +78,7 @@ def flaatten_icon_to_png(nsimage: NSImage, output_path: Path, dark: bool = False
 
     bounds = flattened_view.bounds()
     bitmap_rep = None
+
     def draw_in_appearance():
         nonlocal bitmap_rep
         bitmap_rep = flattened_view.bitmapImageRepForCachingDisplayInRect_(bounds)
@@ -82,7 +91,9 @@ def flaatten_icon_to_png(nsimage: NSImage, output_path: Path, dark: bool = False
 
 @pytest.fixture
 def compare_image(image_diff, tmp_path):
-    def _test_image_diff(image: NSImage, test_name: str, dark: bool = False, nsview: NSView | None = None) -> float:
+    def _test_image_diff(
+        image: NSImage, test_name: str, dark: bool = False, nsview: NSView | None = None
+    ) -> float:
         exemplar_image = base_path / f"resources/example-{test_name}.png"
         output_path = tmp_path / f"compare-{test_name}.png"
         if not Path(exemplar_image).is_file():  # pragma: no cover
@@ -105,14 +116,13 @@ class TestIconImages:
             loss=loss,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
-
         )
         assert (
             compare_image(
                 icon,
                 f"{display.lower()}-{case}-{'dark' if dark else 'light'}",
                 dark,
-                view
+                view,
             )
             < 0.01
         ), "Generated icon should match reference image"
@@ -121,12 +131,13 @@ class TestIconImages:
     def test_pause_icon(self, compare_image, dark):
         pause_icon = symbol_icon("pause.circle", "Paused")
         assert (
-            compare_image(pause_icon, f"pause-{'dark' if dark else 'light'}", dark) < 0.01
+            compare_image(pause_icon, f"pause-{'dark' if dark else 'light'}", dark)
+            < 0.01
         ), "Generated pause icon should match reference image"
 
     @pytest.mark.parametrize("dark", [True, False])
-    def test_chart_icon(self, compare_image, dark):        
-        test_result_indexes = [0,1,2,3,5,6,8,9,10,12,13,14]
+    def test_chart_icon(self, compare_image, dark):
+        test_result_indexes = [0, 1, 2, 3, 5, 6, 8, 9, 10, 12, 13, 14]
         test_values = [ping_thresholds[i][-2:] for i in test_result_indexes]
 
         state = ""
@@ -144,19 +155,23 @@ class TestIconImages:
                 last_state=state,
             )
         assert (
-            compare_image(chart_icon, f"chart-{'dark' if dark else 'light'}", dark, chart_view) < 0.01
+            compare_image(
+                chart_icon, f"chart-{'dark' if dark else 'light'}", dark, chart_view
+            )
+            < 0.01
         ), "Generated chart icon should match reference image"
 
         _, _, new_state = generate_status_icon(
-                style="Chart",
-                latency=0.0,
-                loss=0.0,
-                latency_thresholds=latency_thresholds,
-                loss_thresholds=loss_thresholds,
-                last_state=state,
-                force=True
-            )
-        assert state==new_state, "State should not be updated when force is True"
+            style="Chart",
+            latency=0.0,
+            loss=0.0,
+            latency_thresholds=latency_thresholds,
+            loss_thresholds=loss_thresholds,
+            last_state=state,
+            force=True,
+        )
+        assert state == new_state, "State should not be updated when force is True"
+
 
 class TestIconSameState:
     @pytest.mark.parametrize("style", ["Dot", "Text"])

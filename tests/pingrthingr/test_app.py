@@ -289,6 +289,7 @@ class TestCheckForUpdates:
             app._check_for_updates_on_startup_menu.state == True
         ), "Menu state should reflect toggled setting"
 
+
 class TestIconRendering:
     def test_nsview_clearance(self, mocked_app, mocker):
 

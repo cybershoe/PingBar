@@ -3,6 +3,7 @@
 Provides a two-line menu bar icon that displays bar charts representing
 latency and loss over time, with bar colours reflecting criticality levels.
 """
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def status_chart_icon(
     minimum_loss_scale: float,
     last_state: str | None = None,
     # appearance: NSAppearance | None = None,
-    force: bool = False
+    force: bool = False,
 ) -> Tuple[NSImage | None, NSView | None, str]:
     """Create a status chart icon showing latency and loss with colour-coded criticality.
 
@@ -57,33 +58,49 @@ def status_chart_icon(
 
     HISTORY_LENGTH = 12
 
-
     if last_state and re_match(r"chart-((\d+.\d+,\d+.\d+,\d+,\d+)(;|$))+", last_state):
-        states = [(float(v[0]), float(v[1]), int(v[2]), int(v[3])) for v in [pair.split(",") for pair in last_state[6:].split(";")]]
+        states = [
+            (float(v[0]), float(v[1]), int(v[2]), int(v[3]))
+            for v in [pair.split(",") for pair in last_state[6:].split(";")]
+        ]
     else:
         states = []
 
-    
     if not force:
-        states.insert(0, (latency if latency is not None else 0, loss if loss is not None else 0, latency_criticality, loss_criticality))
-    
+        states.insert(
+            0,
+            (
+                latency if latency is not None else 0,
+                loss if loss is not None else 0,
+                latency_criticality,
+                loss_criticality,
+            ),
+        )
+
     states = states[:HISTORY_LENGTH]
 
     # state format: "chart-" followed by tuples of latency/loss floats, and a criticality integers. Values are separated
     # by a comma, tuples are separated by a semicolon. Most recent tuple is first.
 
-
-    new_state = f"chart-{';'.join([f'{x[0]:.2f},{x[1]:.2f},{x[2]},{x[3]}' for x in states])}"
+    new_state = (
+        f"chart-{';'.join([f'{x[0]:.2f},{x[1]:.2f},{x[2]},{x[3]}' for x in states])}"
+    )
 
     size = NSSize((HISTORY_LENGTH * 4), 22)
 
     base_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
-    overlay_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    overlay_view = NSView.alloc().initWithFrame_(
+        NSMakeRect(0, 0, size.width, size.height)
+    )
 
-    def _chart_view(states: List[Tuple[float, int]], min_scale: float, frame: CGRect) -> Tuple[NSView, NSView]:
+    def _chart_view(
+        states: List[Tuple[float, int]], min_scale: float, frame: CGRect
+    ) -> Tuple[NSView, NSView]:
 
         max_value = max((s[0] for s in states), default=0)
-        max_scale = max(max_value, min(min_scale, max_value * 3))  # Ensure some headroom above the max value for better visualization
+        max_scale = max(
+            max_value, min(min_scale, max_value * 3)
+        )  # Ensure some headroom above the max value for better visualization
         logger.debug(f"Max value for chart scaling: {max_scale}")
         chart_base_view = NSView.alloc().initWithFrame_(frame)
         chart_overlay_view = NSView.alloc().initWithFrame_(frame)
@@ -114,11 +131,10 @@ def status_chart_icon(
                 case _:  # pragma: no cover
                     raise ValueError(f"Invalid criticality level: {criticality}")
 
-
         if len(states) < HISTORY_LENGTH:
             blank_bars = HISTORY_LENGTH - len(states)
             empty_bar = NSBox.alloc().initWithFrame_(
-                NSMakeRect(0, 0, blank_bars * 4 , 1)
+                NSMakeRect(0, 0, blank_bars * 4, 1)
             )
             empty_bar.setBoxType_(NSBoxCustom)
             empty_bar.setFillColor_(NSColor.grayColor())
