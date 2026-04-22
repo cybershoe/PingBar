@@ -79,24 +79,8 @@ def flaatten_icon_to_png(nsimage: NSImage, output_path: Path, dark: bool = False
         flattened_view.cacheDisplayInRect_toBitmapImageRep_(bounds, bitmap_rep)
 
     appearance.performAsCurrentDrawingAppearance_(draw_in_appearance)
-    if bitmap_rep is not None:
-        png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
-        png_data.writeToFile_atomically_(str(output_path), True)
-
-
-def nsimage_to_png(ns_image: NSImage, output_path):
-    # 1. Get the TIFF representation of the NSImage
-    tiff_data = ns_image.TIFFRepresentation()
-
-    # 2. Create a bitmap image representation from that TIFF data
-    bitmap_rep = NSBitmapImageRep.imageRepWithData_(tiff_data)
-
-    # 3. Create the PNG data from the bitmap representation
-    # NSPNGFileType is the constant for PNG (integer value 4)
-    png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
-
-    # 4. Write to disk
-    png_data.writeToFile_atomically_(output_path, True)
+    png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)  # type: ignore
+    png_data.writeToFile_atomically_(str(output_path), True)
 
 
 @pytest.fixture
