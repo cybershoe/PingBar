@@ -2,7 +2,13 @@ from AppKit import (
     NSAppearance,  # type: ignore[import]
     NSAppearanceNameDarkAqua,  # type: ignore[import]
     NSAppearanceNameAqua,  # type: ignore[import]
+    NSBox,  # type: ignore[import]
+    NSBoxCustom,  # type: ignore[import]
+    NSColor,  # type: ignore[import]
     NSImage,  # type: ignore[import]
+    NSImageView,  # type: ignore[import]
+    NSMakeRect,  # type: ignore[import]
+    NSView,  # type: ignore[import]
     NSBitmapImageRep,  # type: ignore[import]
     NSPNGFileType,  # type: ignore[import]
 )
@@ -44,6 +50,39 @@ black = CGColorCreate(colorspace, (0, 0, 0, 1))
 latency_thresholds = ThresholdModel(warn=80.0, alert=500.0, critical=1000.0)
 loss_thresholds = ThresholdModel(warn=0.01, alert=0.05, critical=0.25)
 
+def flaatten_icon_to_png(nsimage: NSImage, output_path: Path, dark: bool = False, nsview: NSView | None = None) -> None:
+    size = nsimage.size()
+    frame = NSMakeRect(0, 0, size.width, size.height)
+    flattened_view = NSView.alloc().initWithFrame_(frame)
+    appearance = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua if dark else NSAppearanceNameAqua)
+    flattened_view.setAppearance_(appearance)
+
+    bg_color = NSColor.blackColor() if dark else NSColor.whiteColor()
+    background = NSBox.alloc().initWithFrame_(frame)
+    background.setBoxType_(NSBoxCustom)
+    background.setFillColor_(bg_color)
+    background.setBorderWidth_(0)
+    flattened_view.addSubview_(background)
+
+    image_view = NSImageView.alloc().initWithFrame_(frame)
+    image_view.setImage_(nsimage)
+    flattened_view.addSubview_(image_view)
+
+    if nsview is not None:
+        flattened_view.addSubview_(nsview)
+
+    bounds = flattened_view.bounds()
+    bitmap_rep = None
+    def draw_in_appearance():
+        nonlocal bitmap_rep
+        bitmap_rep = flattened_view.bitmapImageRepForCachingDisplayInRect_(bounds)
+        flattened_view.cacheDisplayInRect_toBitmapImageRep_(bounds, bitmap_rep)
+
+    appearance.performAsCurrentDrawingAppearance_(draw_in_appearance)
+    if bitmap_rep is not None:
+        png_data = bitmap_rep.representationUsingType_properties_(NSPNGFileType, None)
+        png_data.writeToFile_atomically_(str(output_path), True)
+
 
 def nsimage_to_png(ns_image: NSImage, output_path):
     # 1. Get the TIFF representation of the NSImage
@@ -62,13 +101,13 @@ def nsimage_to_png(ns_image: NSImage, output_path):
 
 @pytest.fixture
 def compare_image(image_diff, tmp_path):
-    def _test_image_diff(image: NSImage, test_name: str) -> float:
+    def _test_image_diff(image: NSImage, test_name: str, dark: bool = False, nsview: NSView | None = None) -> float:
         exemplar_image = base_path / f"resources/example-{test_name}.png"
         output_path = tmp_path / f"compare-{test_name}.png"
         if not Path(exemplar_image).is_file():  # pragma: no cover
-            nsimage_to_png(image, str(exemplar_image))
+            flaatten_icon_to_png(image, exemplar_image, dark, nsview)
 
-        nsimage_to_png(image, str(output_path))
+        flaatten_icon_to_png(image, output_path, dark, nsview)
         return image_diff(str(output_path), str(exemplar_image))
 
     return _test_image_diff
@@ -80,29 +119,34 @@ class TestIconImages:
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_icon(self, compare_image, case, latency, loss, display, dark):
         # Skip visual testing for headless environments
-        icon, _ = generate_status_icon(
+        appearance = (
+            NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
+            if dark
+            else NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
+        )
+        icon, view, _ = generate_status_icon(
             display,
             latency=latency,
             loss=loss,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
-            appearance=(
-                NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
-                if dark
-                else NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
-            ),
+
         )
         assert (
             compare_image(
-                icon, f"{display.lower()}-{case}-{'dark' if dark else 'light'}"
+                icon,
+                f"{display.lower()}-{case}-{'dark' if dark else 'light'}",
+                dark,
+                view
             )
             < 0.01
         ), "Generated icon should match reference image"
 
-    def test_pause_icon(self, compare_image):
+    @pytest.mark.parametrize("dark", [True, False])
+    def test_pause_icon(self, compare_image, dark):
         pause_icon = symbol_icon("pause.circle", "Paused")
         assert (
-            compare_image(pause_icon, "pause") < 0.01
+            compare_image(pause_icon, f"pause-{'dark' if dark else 'light'}", dark) < 0.01
         ), "Generated pause icon should match reference image"
 
     @pytest.mark.parametrize("dark", [True, False])
@@ -114,30 +158,29 @@ class TestIconImages:
 
         state = ""
         chart_icon = None
+        chart_view = None
 
         for latency, loss in test_values:
 
-            chart_icon, state = generate_status_icon(
+            chart_icon, chart_view, state = generate_status_icon(
                 style="Chart",
                 latency=latency,
                 loss=loss,
                 latency_thresholds=latency_thresholds,
                 loss_thresholds=loss_thresholds,
                 last_state=state,
-                appearance=appearance,
             )
         assert (
-            compare_image(chart_icon, f"chart-{'dark' if dark else 'light'}") < 0.01
+            compare_image(chart_icon, f"chart-{'dark' if dark else 'light'}", dark, chart_view) < 0.01
         ), "Generated chart icon should match reference image"
 
-        _, new_state = generate_status_icon(
+        _, _, new_state = generate_status_icon(
                 style="Chart",
                 latency=0.0,
                 loss=0.0,
                 latency_thresholds=latency_thresholds,
                 loss_thresholds=loss_thresholds,
                 last_state=state,
-                appearance=appearance,
                 force=True
             )
         assert state==new_state, "State should not be updated when force is True"
@@ -146,23 +189,21 @@ class TestIconSameState:
     @pytest.mark.parametrize("style", ["Dot", "Text"])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_icon_same_state(self, style, case, latency, loss):
-        icon1, state1 = generate_status_icon(
+        icon1, _, state1 = generate_status_icon(
             style,
             latency=latency,
             loss=loss,
             last_state=None,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
-            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua),
         )
-        icon2, _ = generate_status_icon(
+        icon2, _, _ = generate_status_icon(
             style,
             latency=latency,
             loss=loss,
             last_state=state1,
             latency_thresholds=latency_thresholds,
             loss_thresholds=loss_thresholds,
-            appearance=NSAppearance.appearanceNamed_(NSAppearanceNameAqua),
         )
         assert icon1 is not None, "Icon should be generated on first call"
         assert icon2 is None, "Icon should not be regenerated if state is unchanged"
