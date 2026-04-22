@@ -313,6 +313,7 @@ class PingrThingrApp(App):
         if paused:  # pragma: no cover
             self.latency = None
             self.loss = None
+            self._last_state = None
         self.refresh_status_(use_saved=True, force=True)
 
     def ping_targets_settings_cb(self, targets: list[str]) -> None:
