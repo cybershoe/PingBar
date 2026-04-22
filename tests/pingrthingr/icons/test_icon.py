@@ -1,3 +1,11 @@
+"""Visual regression tests for icon generation.
+
+Compares generated NSImage icons against stored reference PNG files using
+perceptual image diff. Reference images are auto-created on first run.
+Tests cover all display styles (Dot, Text, Chart), threshold boundary cases,
+both light and dark appearances, and the same-state no-redraw optimisation.
+"""
+
 from AppKit import (
     NSAppearance,  # type: ignore[import]
     NSAppearanceNameDarkAqua,  # type: ignore[import]
@@ -91,6 +99,21 @@ def flaatten_icon_to_png(
 
 @pytest.fixture
 def compare_image(image_diff, tmp_path):
+    """Fixture that returns a helper for perceptual PNG comparison.
+
+    The helper renders the supplied NSImage (plus optional NSView overlay) to a
+    PNG file and diffs it against a stored reference image. The reference is
+    created automatically on the first run.
+
+    Args:
+        image_diff: pytest-image-diff fixture providing the diff function.
+        tmp_path: pytest temporary directory for generated comparison images.
+
+    Returns:
+        Callable[[NSImage, str, bool, NSView | None], float]: A function that
+        accepts an NSImage, a test name, a dark-mode flag, and an optional
+        overlay NSView and returns a float diff score (0.0 = identical).
+    """
     def _test_image_diff(
         image: NSImage, test_name: str, dark: bool = False, nsview: NSView | None = None
     ) -> float:

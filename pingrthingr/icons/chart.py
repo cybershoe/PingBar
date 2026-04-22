@@ -35,25 +35,38 @@ def status_chart_icon(
     # appearance: NSAppearance | None = None,
     force: bool = False,
 ) -> Tuple[NSImage | None, NSView | None, str]:
-    """Create a status chart icon showing latency and loss with colour-coded criticality.
+    """Create a status chart icon showing latency and loss history with colour-coded criticality.
 
-    Generates a 50x22 pixel two-line menu bar icon displaying bar charts for latency and
-    packet loss values. Each bar's colour reflects its criticality level:
-    normal (no background), warning (yellow), alert (orange), or critical (red).
+    Generates a menu bar icon up to (HISTORY_LENGTH * 4) x 22 pixels containing
+    side-by-side bar charts for latency (top row) and packet loss (bottom row).
+    Each bar's colour reflects its criticality level: unknown (grey), normal
+    (label colour / template), warning (yellow), alert (orange), or critical (red).
+
+    Normal-criticality bars are placed in a template NSImage (base_image) so they
+    inherit system tinting. Colour-coded bars are returned as a separate NSView
+    (overlay_view) that is composited on top in the menu bar.
 
     Args:
-        latency (float | None): Network latency in milliseconds, or None if unavailable.
-        loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
+        latency (float | None): Latest network latency in milliseconds, or None if
+            unavailable.
+        loss (float | None): Latest packet loss as a decimal (0.0-1.0), or None if
+            unavailable.
         latency_criticality (int): Pre-computed criticality level for latency (0-4).
         loss_criticality (int): Pre-computed criticality level for packet loss (0-4).
-        last_state (str | None): State string from the previous call; return value is
-            ``None`` when the state is unchanged. Defaults to None.
-        appearance (NSAppearance | None): The NSAppearance to apply to the rendered view,
-            or None to use the default appearance. Defaults to None.
+        minimum_latency_scale (float): Minimum value used as the full-height scale for
+            the latency chart, preventing bars from appearing too tall on low values.
+        minimum_loss_scale (float): Minimum value used as the full-height scale for
+            the loss chart.
+        last_state (str | None): Encoded state string from the previous call used to
+            carry forward history. Return images are None when state is unchanged.
+            Defaults to None.
+        force (bool): If True, forces regeneration regardless of state. Defaults to False.
 
     Returns:
-        Tuple[NSImage | None, str]: A 50x22 pixel NSImage, or None if the state is
-        unchanged, paired with a string describing the current state.
+        Tuple[NSImage | None, NSView | None, str]: A tuple of (base_image, overlay_view,
+        state_string). base_image is a template NSImage of the normal-criticality bars,
+        or None if unchanged. overlay_view contains the colour-coded bars, or None if
+        unchanged. state_string encodes the full bar history.
     """
 
     HISTORY_LENGTH = 12
@@ -96,6 +109,24 @@ def status_chart_icon(
     def _chart_view(
         states: List[Tuple[float, int]], min_scale: float, frame: CGRect
     ) -> Tuple[NSView, NSView]:
+        """Build base and overlay NSViews for one row of the chart.
+
+        Iterates over historical (value, criticality) pairs and creates a vertical
+        bar for each. Bars at normal criticality go into the base view (template);
+        all others go into the overlay view (fixed colour). A thin placeholder bar
+        is added at the left edge when fewer than HISTORY_LENGTH samples are available.
+
+        Args:
+            states (List[Tuple[float, int]]): Ordered list of (value, criticality)
+                tuples, most-recent first.
+            min_scale (float): Minimum full-height scale; prevents bars from being
+                disproportionately tall when actual values are small.
+            frame (CGRect): Bounding rectangle for this chart row.
+
+        Returns:
+            Tuple[NSView, NSView]: (chart_base_view, chart_overlay_view) — the
+            template-rendered base layer and the colour-coded overlay layer.
+        """
 
         max_value = max((s[0] for s in states), default=0)
         max_scale = max(

@@ -34,20 +34,24 @@ def status_text_icon(
     packet loss values. Each row's background colour reflects its criticality level:
     normal (no background), warning (yellow), alert (orange), or critical (red).
 
+    Normal-criticality rows are rendered into a template NSImage (base_image) so
+    they inherit the system tinting. High-criticality rows are returned as a
+    separate NSView (overlay_view) so their fixed colours are composited on top.
+
     Args:
         latency (float | None): Network latency in milliseconds, or None if unavailable.
         loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
         latency_criticality (int): Pre-computed criticality level for latency (0-4).
         loss_criticality (int): Pre-computed criticality level for packet loss (0-4).
-        last_state (str | None): State string from the previous call; return value is
-            ``None`` when the state is unchanged. Defaults to None.
-        appearance (NSAppearance | None): The NSAppearance to apply to the rendered view,
-            or None to use the default appearance. Defaults to None.
-        force (bool): If True, forces the icon to be regenerated regardless of state. Defaults to False.
+        last_state (str | None): State string from the previous call; return value
+            contains ``None`` images when the state is unchanged. Defaults to None.
+        force (bool): If True, forces regeneration regardless of state. Defaults to False.
 
     Returns:
-        Tuple[NSImage | None, str]: A 50x22 pixel NSImage, or None if the state is
-        unchanged, paired with a string describing the current state.
+        Tuple[NSImage | None, NSView | None, str]: A tuple of (base_image, overlay_view,
+        state_string). base_image is a 50x22 pixel template NSImage or None if unchanged.
+        overlay_view is an NSView containing colour-coded rows, or None if unchanged.
+        state_string describes the current state.
     """
 
     latency_text = f"{latency:.1f} ms" if latency is not None else "---"

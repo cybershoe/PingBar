@@ -1,3 +1,10 @@
+"""Integration tests for PingrThingrApp.
+
+Tests cover application initialisation, cross-thread scheduling via
+MainThreadDispatcher, ping result handling, settings persistence, update
+check logic, and icon rendering.
+"""
+
 import pytest
 from pathlib import Path
 from json import load as json_load, dump as json_dump
@@ -14,6 +21,22 @@ base_path = Path(__file__).parent
 
 @pytest.fixture(autouse=True)
 def mocked_app(mocker, tmp_path):
+    """Autouse fixture that provides a factory for a fully mocked PingrThingrApp.
+
+    Patches ``Pinger`` and ``application_support`` so no real network activity
+    or filesystem side-effects occur. Optionally writes a settings file before
+    constructing the app. Also wires up a synchronous ``MainThreadDispatcher``
+    so that ``_run_in_main_thread`` calls execute inline during tests.
+
+    Args:
+        mocker: pytest-mock mocker fixture.
+        tmp_path: pytest temporary directory used as the app support folder.
+
+    Yields:
+        Callable[[dict | None], Tuple[PingrThingrApp, MagicMock, MagicMock]]:
+        A factory that accepts an optional settings dict and returns
+        (app, mock_pinger, mock_nsapp).
+    """
     def _mocked_app(settings: dict | None = None):
         # Create an instance of the app for testing
         mock_pinger = mocker.MagicMock()

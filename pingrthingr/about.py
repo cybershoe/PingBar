@@ -1,3 +1,9 @@
+"""About window for PingrThingr.
+
+Displays application version, copyright, a clickable GitHub link, and a
+scrollable MIT licence text in a non-blocking NSAlert panel.
+"""
+
 from .version import __VERSION__
 
 from re import sub as re_sub
@@ -39,6 +45,16 @@ SOFTWARE.
 """
 
 def show_about_window(_):  # pragma: no cover
+    """Display the About window.
+
+    Builds an NSAlert containing a brief copyright and GitHub link at the top
+    and a scrollable MIT licence text view below, then runs it as a modal.
+    The application is activated before running the alert so it appears
+    correctly even when built as an LSUIElement bundle.
+
+    Args:
+        _: Unused sender argument required by the rumps menu callback protocol.
+    """
 
     VIEW_WIDTH = 300
     SCROLL_HEIGHT = 180

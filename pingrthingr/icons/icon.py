@@ -81,22 +81,23 @@ def generate_status_icon(
 ) -> Tuple[NSImage | None, NSView | None, str]:
     """Generate a status icon based on the specified style and network metrics.
 
-    Creates either a dot or text icon representing network status based on latency
-    and packet loss values. Returns None if the state hasn't changed to avoid
-    unnecessary updates.
+    Creates either a dot, text, or chart icon representing network status based on
+    latency and packet loss values. Returns None images if the state hasn't changed
+    to avoid unnecessary redraws.
 
     Args:
-        style (IconStyle): The icon style to generate ('Dot' or 'Text').
+        style (IconStyle): The icon style to generate ('Dot', 'Text', or 'Chart').
         latency (float | None): Network latency in milliseconds, or None if unavailable.
         loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
         latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
         loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
         last_state (str | None): The previous state to compare against. Defaults to None.
         force (bool): If True, forces the icon to be regenerated regardless of state. Defaults to False.
+
     Returns:
-        Tuple[NSImage | NSView | None, str]: A tuple containing the icon (NSImage for dot,
-                                            NSView for text, or None if unchanged) and
-                                            the current state string.
+        Tuple[NSImage | None, NSView | None, str]: A tuple of (base_image, overlay_view,
+        state_string). base_image is None when the state is unchanged. overlay_view is
+        None for Dot style or when the state is unchanged.
 
     Raises:
         NotImplementedError: If an unsupported icon style is requested.

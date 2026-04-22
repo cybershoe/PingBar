@@ -361,11 +361,13 @@ class PingrThingrApp(App):
     def _draw_icon(self, icon: NSImage, view: NSView | None = None) -> None:
         """Update the menu bar icon.
 
-        Stores the provided NSImage and instructs the rumps NSApp wrapper to
-        apply it to the status-bar item.
+        Sets the status bar image via the rumps NSApp wrapper, removes any existing subviews
+        and, when a custom NSView overlay is provided, adds the new view centred within it.
 
         Args:
-            icon (NSImage): The icon to display in the menu bar.
+            icon (NSImage): The base template NSImage to set on the status bar item.
+            view (NSView | None): Optional overlay NSView to composite on top of the
+                icon inside the status bar button. Defaults to None.
         """
 
         logger.debug(f"In _draw_icon(): Drawing icon from NSImage")

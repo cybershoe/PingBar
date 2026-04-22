@@ -39,8 +39,9 @@ class SelectableMenu(MenuItem):
                                          Defaults to None, which creates an empty list.
             selected (str, optional): Initially selected option. Must be in options list
                                     or None for no initial selection. Defaults to None.
-            cb (Callable, optional): Callback function called with selected option string
-                                   when selection changes. Defaults to None.
+            callback (Callable, optional): Callback function called with this
+                                          SelectableMenu instance when the selection
+                                          changes. Defaults to None.
             **kwargs: Additional keyword arguments passed to parent MenuItem.
         """
         if options is None:
