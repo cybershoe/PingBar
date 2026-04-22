@@ -13,10 +13,9 @@ from AppKit import (
     NSMakeRect,  # type: ignore[import]
     NSSize,  # type: ignore[import]
     NSView,  # type: ignore[import]
-    NSAppearance,  # type: ignore[import]
     NSTextField,  # type: ignore[import]
 )
-from .util import _nsview_to_nsimage
+from .util import _nsview_to_nsimage, warn_color, alert_color, critical_color
 
 
 def status_text_icon(
@@ -93,13 +92,13 @@ def status_text_icon(
 
             match criticality:
                 case 2:
-                    text_view.setBackgroundColor_(NSColor.yellowColor())
+                    text_view.setBackgroundColor_(warn_color)
                     text_view.setTextColor_(NSColor.blackColor())
                 case 3:
-                    text_view.setBackgroundColor_(NSColor.orangeColor())
+                    text_view.setBackgroundColor_(alert_color)
                     text_view.setTextColor_(NSColor.blackColor())
                 case 4:
-                    text_view.setBackgroundColor_(NSColor.redColor())
+                    text_view.setBackgroundColor_(critical_color)
                     text_view.setTextColor_(NSColor.whiteColor())
                 case _:  # pragma: no cover
                     raise ValueError(f"Invalid criticality level: {criticality}")
@@ -129,8 +128,6 @@ def status_text_icon(
         overlay_view.addSubview_(loss_view)
     else:
         base_view.addSubview_(loss_view)
-
-    # overlay_view.setAppearance_(appearance)
 
     base_image = _nsview_to_nsimage(base_view)
     base_image.setTemplate_(True)

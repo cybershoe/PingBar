@@ -6,6 +6,7 @@ worst-case criticality across latency and packet loss.
 
 from typing import Tuple
 from .symbol import symbol_icon
+from .util import warn_color, alert_color, critical_color
 from AppKit import (
     NSColor,  # type: ignore[import]
     NSImage,  # type: ignore[import]
@@ -47,13 +48,13 @@ def status_dot_icon(
             color = None
             state = "normal"
         case 2:
-            color = NSColor.yellowColor()
+            color = warn_color
             state = "warn"
         case 3:
-            color = NSColor.orangeColor()
+            color = alert_color
             state = "alert"
         case 4:
-            color = NSColor.redColor()
+            color = critical_color
             state = "critical"
         case _:  # pragma: no cover
             raise ValueError(f"Invalid criticality level: {criticality}")
