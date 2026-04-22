@@ -20,6 +20,10 @@ PingrThingr is macOS menu bar application for monitoring network connectivity th
   
     <img src="images/text-dark.png" style="width: 14rem"/><img src="images/text-light.png" style="width: 14rem"/>
 
+  - **Chart Mode**: Graph of the last 12 latency and loss statistics
+
+    <img src="images/charts.png" style="width: 14rem"/>
+
 
 - **Color-coded Status Indicators**: Visual feedback with different colors based on latency and packet loss thresholds
   - Normal (Uncolored): Ping <80ms, 0% packet loss
