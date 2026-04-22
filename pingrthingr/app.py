@@ -421,14 +421,11 @@ class PingrThingrApp(App):
             logger.debug(f"In _draw_icon(): Adding custom NSView to status bar button")
             button_size = self._nsapp.nsstatusitem.button().bounds().size
             view_size = view.frame().size
-            logger.debug(f"Button size: {button_size}, view size: {view_size}")
             x_offset = (button_size.width - view_size.width) / 2
             y_offset = (button_size.height - view_size.height) / 2
             view.setFrameOrigin_(NSPoint(x_offset, y_offset))
-            logger.debug(f"button frame: {self._nsapp.nsstatusitem.button().bounds().size.width}")
             self._nsapp.nsstatusitem.button().addSubview_(view)
-            for v in list(self._nsapp.nsstatusitem.button().subviews()):
-                logger.debug(f"Subview: {v}, frame: {v.frame()}")
+
 
     def refresh_status_(
         self,
