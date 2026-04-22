@@ -1,3 +1,9 @@
+"""Tests for the Pinger network monitoring class.
+
+Covers callback invocation with various ping response payloads, pause/resume
+behaviour, start/stop lifecycle, target validation, and error handling.
+"""
+
 import pytest
 import asyncio
 import logging
@@ -18,6 +24,15 @@ LOGGER = logging.getLogger(__name__)
 
 @pytest.fixture
 def ping_response():
+    """Fixture that loads a ping response test case from a JSON resource file.
+
+    Returns:
+        Callable[[str], Tuple[List[Host], Tuple[int, int]]]: A factory that
+        accepts a test-case name, reads the matching JSON file, and returns a
+        list of ``icmplib.Host`` objects paired with the expected callback
+        (latency, loss) response tuple.
+    """
+
     def _ping_response(testcase: str) -> Tuple[List[Host], Tuple[int, int]]:
         results = []
         try:
@@ -39,6 +54,20 @@ def ping_response():
 
 @pytest.fixture
 def mocked_pinger(mocker, ping_response):
+    """Fixture that provides a factory for a Pinger with a mocked async_multiping.
+
+    Patches ``async_multiping`` to return pre-loaded test data and collects all
+    created Pinger instances for cleanup after the test.
+
+    Args:
+        mocker: pytest-mock mocker fixture.
+        ping_response: The ``ping_response`` fixture.
+
+    Yields:
+        Callable[..., Tuple[Pinger, Tuple[int, int], Mock | Callable | None]]:
+        A factory that accepts keyword arguments mirroring ``Pinger.__init__``
+        and returns (pinger, expected_callback_response, callback_mock).
+    """
     pingers = []
 
     def _mocked_pinger(

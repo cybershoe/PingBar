@@ -1,3 +1,10 @@
+"""Tests for SelectableMenu.
+
+Covers initialisation with various option/selection combinations, option
+selection behaviour, callback invocation, and edge cases such as no options
+or invalid selections.
+"""
+
 import pytest
 from typing import Callable
 from unittest.mock import Mock
@@ -9,6 +16,13 @@ class TestSelectableMenu:
 
     @pytest.fixture
     def mock_selectable_menu(self, mocker):
+        """Fixture that returns a factory for a SelectableMenu with a mock callback.
+
+        Returns:
+            Callable[..., Tuple[SelectableMenu, Mock]]: A factory accepting optional
+            title, options, selected, and callback keyword arguments, returning
+            a (menu, callback_mock) tuple.
+        """
         mock_cb = Mock()
 
         def _mock_selectable_menu(

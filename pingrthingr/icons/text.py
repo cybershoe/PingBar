@@ -25,36 +25,40 @@ def status_text_icon(
     latency_criticality: int,
     loss_criticality: int,
     last_state: str | None = None,
-    appearance: NSAppearance | None = None,
+    # appearance: NSAppearance | None = None,
     force: bool = False,
-) -> Tuple[NSImage | None, str]:
+) -> Tuple[NSImage | None, NSView | None, str]:
     """Create a status text icon showing latency and loss with colour-coded criticality.
 
     Generates a 50x22 pixel two-line menu bar icon displaying numeric latency and
     packet loss values. Each row's background colour reflects its criticality level:
     normal (no background), warning (yellow), alert (orange), or critical (red).
 
+    Normal-criticality rows are rendered into a template NSImage (base_image) so
+    they inherit the system tinting. High-criticality rows are returned as a
+    separate NSView (overlay_view) so their fixed colours are composited on top.
+
     Args:
         latency (float | None): Network latency in milliseconds, or None if unavailable.
         loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
         latency_criticality (int): Pre-computed criticality level for latency (0-4).
         loss_criticality (int): Pre-computed criticality level for packet loss (0-4).
-        last_state (str | None): State string from the previous call; return value is
-            ``None`` when the state is unchanged. Defaults to None.
-        appearance (NSAppearance | None): The NSAppearance to apply to the rendered view,
-            or None to use the default appearance. Defaults to None.
-        force (bool): If True, forces the icon to be regenerated regardless of state. Defaults to False.
+        last_state (str | None): State string from the previous call; return value
+            contains ``None`` images when the state is unchanged. Defaults to None.
+        force (bool): If True, forces regeneration regardless of state. Defaults to False.
 
     Returns:
-        Tuple[NSImage | None, str]: A 50x22 pixel NSImage, or None if the state is
-        unchanged, paired with a string describing the current state.
+        Tuple[NSImage | None, NSView | None, str]: A tuple of (base_image, overlay_view,
+        state_string). base_image is a 50x22 pixel template NSImage or None if unchanged.
+        overlay_view is an NSView containing colour-coded rows, or None if unchanged.
+        state_string describes the current state.
     """
 
     latency_text = f"{latency:.1f} ms" if latency is not None else "---"
     loss_text = f"{loss * 100:.1f} %" if loss is not None else "---"
     new_state = f"{latency_text}-{loss_text}"
     if new_state == last_state and not force:
-        return None, new_state
+        return None, None, new_state
 
     size = NSSize(50, 22)
 
@@ -62,7 +66,10 @@ def status_text_icon(
     normalFont = NSFont.systemFontOfSize_(9)
     boldFont = NSFont.boldSystemFontOfSize_(9)
 
-    view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    base_view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, size.width, size.height))
+    overlay_view = NSView.alloc().initWithFrame_(
+        NSMakeRect(0, 0, size.width, size.height)
+    )
 
     def _value_view(text: str, criticality: int, frame: CGRect) -> NSView:
         """Create an NSTextField view for displaying status text with appropriate styling.
@@ -111,10 +118,21 @@ def status_text_icon(
         NSMakeRect(0, 0, size.width, size.height / 2),
     )
 
-    view.addSubview_(latency_view)
-    view.addSubview_(loss_view)
+    if latency_criticality > 1:
+        overlay_view.addSubview_(latency_view)
+    else:
+        base_view.addSubview_(latency_view)
 
-    view.setAppearance_(appearance)
+        base_view.addSubview_(latency_view)
 
-    image = _nsview_to_nsimage(view)
-    return image, new_state
+    if loss_criticality > 1:
+        overlay_view.addSubview_(loss_view)
+    else:
+        base_view.addSubview_(loss_view)
+
+    # overlay_view.setAppearance_(appearance)
+
+    base_image = _nsview_to_nsimage(base_view)
+    base_image.setTemplate_(True)
+
+    return base_image, overlay_view, new_state
