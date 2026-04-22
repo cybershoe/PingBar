@@ -19,32 +19,21 @@ def update_dialog(  # pragma: no cover
     error: str,
 ) -> None:
     """Display an update notification dialog to the user.
-    
-    Shows a dialog with information about available updates, current version status,
-    or error messages from the update check process. The dialog's appearance and
-    behavior changes based on the update status:
-    
-    - If update available: Shows versions and offers to open release page
-    - If up to date: Shows current version confirmation  
-    - If error occurred: Shows error message
-    
+
+    Shows a dialog with information about available updates, current version
+    status, or error messages from the update check process:
+
+    - Update available: shows both versions and offers to open the release page.
+    - Up to date: confirms the current version is the latest.
+    - Error: reports the error message.
+
     Args:
-        new_version (str): Version string of available update, empty if none available
-        current_version (str): Currently installed version string
-        release_url (str): URL to the GitHub release page for the new version
-        error (str): Error message if update check failed, empty string on success
-        
-    Returns:
-        None
-        
-    Side Effects:
-        - Displays a modal dialog window to the user
-        - May open the default web browser to the release page if user chooses to update
-        
-    Note:
-        This function is marked with pragma: no cover as it involves UI interaction
-        that is difficult to test automatically. The dialog will block main thread
-        execution  until the user responds or dismisses it.
+        new_version (str): Version string of the available update, or empty string
+            if none.
+        current_version (str): Currently installed version string.
+        release_url (str): URL to the GitHub release page for the new version.
+        error (str): Error message if the update check failed, or empty string on
+            success.
     """
 
     if not error and new_version:

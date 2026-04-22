@@ -10,8 +10,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 from AppKit import (
-    NSAppearance,  # type: ignore[import]
+    # NSAppearance,  # type: ignore[import]
     NSImage,  # type: ignore[import]
+    NSView,  # type: ignore[import]
 )
 from typing import Tuple
 from .dot import status_dot_icon
@@ -75,55 +76,54 @@ def generate_status_icon(
     latency_thresholds: ThresholdModel,
     loss_thresholds: ThresholdModel,
     last_state: str | None = None,
-    appearance: NSAppearance | None = None,
+    # appearance: NSAppearance | None = None,
     force: bool = False,
-) -> Tuple[NSImage | None, str]:
+) -> Tuple[NSImage | None, NSView | None, str]:
     """Generate a status icon based on the specified style and network metrics.
 
-    Creates either a dot or text icon representing network status based on latency
-    and packet loss values. Returns None if the state hasn't changed to avoid
-    unnecessary updates.
+    Creates either a dot, text, or chart icon representing network status based on
+    latency and packet loss values. Returns None images if the state hasn't changed
+    to avoid unnecessary redraws.
 
     Args:
-        style (IconStyle): The icon style to generate ('Dot' or 'Text').
+        style (IconStyle): The icon style to generate ('Dot', 'Text', or 'Chart').
         latency (float | None): Network latency in milliseconds, or None if unavailable.
         loss (float | None): Packet loss as a decimal (0.0-1.0), or None if unavailable.
         latency_thresholds (ThresholdModel): Threshold configuration for latency evaluation.
         loss_thresholds (ThresholdModel): Threshold configuration for loss evaluation.
         last_state (str | None): The previous state to compare against. Defaults to None.
         force (bool): If True, forces the icon to be regenerated regardless of state. Defaults to False.
+
     Returns:
-        Tuple[NSImage | NSView | None, str]: A tuple containing the icon (NSImage for dot,
-                                            NSView for text, or None if unchanged) and
-                                            the current state string.
+        Tuple[NSImage | None, NSView | None, str]: A tuple of (base_image, overlay_view,
+        state_string). base_image is None when the state is unchanged. overlay_view is
+        None for Dot style or when the state is unchanged.
 
     Raises:
         NotImplementedError: If an unsupported icon style is requested.
     """
 
+    view = None
     latency_criticality, loss_criticality = _criticality(
         latency, loss, latency_thresholds, loss_thresholds
     )
     match style:
         case "Dot":
             icon, state = status_dot_icon(
-                latency_criticality,
-                loss_criticality,
-                last_state,
-                force
+                latency_criticality, loss_criticality, last_state, force
             )
         case "Text":
-            icon, state = status_text_icon(
+            icon, view, state = status_text_icon(
                 latency,
                 loss,
                 latency_criticality,
                 loss_criticality,
                 last_state,
-                appearance,
-                force
+                # appearance,
+                force,
             )
         case "Chart":
-            icon, state = status_chart_icon(
+            icon, view, state = status_chart_icon(
                 latency,
                 loss,
                 latency_criticality,
@@ -131,9 +131,9 @@ def generate_status_icon(
                 latency_thresholds.warn,  # Use warn level as minimum scale for better visualization
                 loss_thresholds.alert,  # Use alert level as minimum scale for better visualization
                 last_state,
-                appearance,
-                force
+                # appearance,
+                force,
             )
         case _:  # pragma: no cover
             raise NotImplemented(f"No implementation for icon style: {style}")
-    return icon, state
+    return icon, view, state

@@ -16,7 +16,7 @@ from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from AppKit import NSImage, NSObject  # type: ignore
+from AppKit import NSImage, NSView, NSPoint, NSObject, NSAppearanceNameAqua, NSAppearanceNameDarkAqua  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -50,6 +50,7 @@ class PingrThingrApp(App):
         self.latency = None
         self.loss = None
         self.title = None
+        self._appearance = None
         self._icon_nsimage = symbol_icon(
             (
                 "pause.circle"
@@ -96,7 +97,7 @@ class PingrThingrApp(App):
             self._check_for_updates_on_startup_menu,
             separator,
             self._about_menu,
-            separator
+            separator,
         ]
         self._last_state = None
 
@@ -129,35 +130,7 @@ class PingrThingrApp(App):
 
         logger.info(f"In __init__(): Initialized PingrThingr")
 
-    # NSObject subclasses for KVO and main thread dispatching
-
-    class AppearanceObserver(NSObject):
-        """KVO observer that reacts to system appearance changes.
-
-        Registered on the status-bar button's effectiveAppearance key path
-        so that the status icon is redrawn whenever the user switches between
-        light and dark mode.
-        """
-
-        def observeValueForKeyPath_ofObject_change_context_(
-            self, keyPath, obj, change, context
-        ):  # pragma: no cover
-            """Handle a KVO notification for a watched key path.
-
-            Args:
-                keyPath (str): The key path that changed.
-                obj: The object whose property changed.
-                change (dict): Dictionary describing the change.
-                context: Arbitrary context pointer passed at registration time.
-            """
-
-            if keyPath == "effectiveAppearance":
-                self._app._run_in_main_thread(
-                    "refresh_status_", use_saved=True, force=True
-                )  # re-draw your icon or update colors here
-                logger.debug(
-                    f"In observeValueForKeyPath_ofObject_change_context_(): Appearance change detected, refreshing status icon"
-                )
+    # NSObject subclasses for  main thread dispatching
 
     class MainThreadDispatcher(NSObject):
         """NSObject shim used to dispatch calls onto the main run-loop thread.
@@ -223,11 +196,6 @@ class PingrThingrApp(App):
         sender.stop()
         self._dispatcher = self.MainThreadDispatcher.alloc().init()
         self._dispatcher._app = self
-        self.appearance_observer = self.AppearanceObserver.alloc().init()
-        self.appearance_observer._app = self
-        self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
-            self.appearance_observer, "effectiveAppearance", 0, None
-        )
 
     def _startup_update_check_timer_cb(self, sender) -> None:
         """Handle startup update check timer expiration.
@@ -345,6 +313,7 @@ class PingrThingrApp(App):
         if paused:  # pragma: no cover
             self.latency = None
             self.loss = None
+            self._last_state = None
         self.refresh_status_(use_saved=True, force=True)
 
     def ping_targets_settings_cb(self, targets: list[str]) -> None:
@@ -390,20 +359,34 @@ class PingrThingrApp(App):
 
     # Icon and menu update methods
 
-    def _draw_icon(self, icon: NSImage) -> None:
+    def _draw_icon(self, icon: NSImage, view: NSView | None = None) -> None:
         """Update the menu bar icon.
 
-        Stores the provided NSImage and instructs the rumps NSApp wrapper to
-        apply it to the status-bar item.
+        Sets the status bar image via the rumps NSApp wrapper, removes any existing subviews
+        and, when a custom NSView overlay is provided, adds the new view centred within it.
 
         Args:
-            icon (NSImage): The icon to display in the menu bar.
+            icon (NSImage): The base template NSImage to set on the status bar item.
+            view (NSView | None): Optional overlay NSView to composite on top of the
+                icon inside the status bar button. Defaults to None.
         """
 
         logger.debug(f"In _draw_icon(): Drawing icon from NSImage")
         self._icon_nsimage = icon
+        self._icon_nsview = view
+
+        for oldview in list(self._nsapp.nsstatusitem.button().subviews()):
+            oldview.removeFromSuperview()
 
         self._nsapp.setStatusBarIcon()
+        if view is not None:
+            logger.debug(f"In _draw_icon(): Adding custom NSView to status bar button")
+            button_size = self._nsapp.nsstatusitem.button().bounds().size
+            view_size = view.frame().size
+            x_offset = (button_size.width - view_size.width) / 2
+            y_offset = (button_size.height - view_size.height) / 2
+            view.setFrameOrigin_(NSPoint(x_offset, y_offset))
+            self._nsapp.nsstatusitem.button().addSubview_(view)
 
     def refresh_status_(
         self,
@@ -455,15 +438,14 @@ class PingrThingrApp(App):
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status_(): Current display_mode: {display}")
 
-            icon, new_state = generate_status_icon(  # type: ignore
+            icon, view, new_state = generate_status_icon(  # type: ignore
                 display,  # type: ignore
                 latency,
                 loss,
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
                 self._last_state,
-                self._nsapp.nsstatusitem.button().effectiveAppearance(),
-                force=force
+                force=force,
             )
 
             logger.debug(
@@ -475,7 +457,7 @@ class PingrThingrApp(App):
                 logger.debug(
                     f"In refresh_status_(): Updating icon for new state: {new_state}"
                 )
-                self._draw_icon(icon)
+                self._draw_icon(icon, view)
 
     # Update check return handling methods
 

@@ -1,3 +1,9 @@
+"""Tests for SettingsManager.
+
+Covers loading from file, default fallback on missing/invalid/malformed files,
+saving to disk, callback registration/deregistration, and get/set operations.
+"""
+
 import pytest
 import logging
 from pathlib import Path
@@ -12,6 +18,7 @@ LOGGER = logging.getLogger(__name__)
 
 @pytest.fixture
 def default_settings():
+    """Fixture that returns the expected default settings dict loaded from the resource file."""
     settings_file = base_path / "resources/default_settings.json"
     return json_load(open(settings_file))
 
