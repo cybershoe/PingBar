@@ -24,6 +24,7 @@ def mock_request(mocker):
         status code and JSON data, or to raise an exception via
         ``raise_for_status``.
     """
+
     def _mock_request(status_code=200, json_data=None, raise_for_status=None):
         mock_response = mocker.Mock()
         mock_response.status_code = status_code

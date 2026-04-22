@@ -114,6 +114,7 @@ def compare_image(image_diff, tmp_path):
         accepts an NSImage, a test name, a dark-mode flag, and an optional
         overlay NSView and returns a float diff score (0.0 = identical).
     """
+
     def _test_image_diff(
         image: NSImage, test_name: str, dark: bool = False, nsview: NSView | None = None
     ) -> float:

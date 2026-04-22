@@ -37,6 +37,7 @@ def mocked_app(mocker, tmp_path):
         A factory that accepts an optional settings dict and returns
         (app, mock_pinger, mock_nsapp).
     """
+
     def _mocked_app(settings: dict | None = None):
         # Create an instance of the app for testing
         mock_pinger = mocker.MagicMock()

@@ -32,6 +32,7 @@ def ping_response():
         list of ``icmplib.Host`` objects paired with the expected callback
         (latency, loss) response tuple.
     """
+
     def _ping_response(testcase: str) -> Tuple[List[Host], Tuple[int, int]]:
         results = []
         try:
