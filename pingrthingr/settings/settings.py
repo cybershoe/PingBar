@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from json import load as json_load, dump as json_dump
+from json import load as json_load
 from typing import Callable, Any
 from .models import SettingsModel
 
@@ -83,12 +83,14 @@ class SettingsManager:
         Raises:
             No exceptions are raised - all errors are logged.
         """
+        settings_json = self._settings.model_dump_json(indent=2)
+        
         if self._settings_file is None:
             logger.warning("No settings file specified, cannot save settings")
             return
         try:
             with open(self._settings_file, "w") as f:
-                json_dump(self._settings.model_dump(), f, indent=2)
+                f.write(settings_json)
                 logger.info(f"Settings saved to {self._settings_file}")
         except (OSError, PermissionError) as e:
             logger.error(

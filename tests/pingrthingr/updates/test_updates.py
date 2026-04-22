@@ -1,3 +1,9 @@
+"""Tests for the update checking module.
+
+Covers successful update detection, up-to-date detection, HTTP errors,
+semver parse errors, and non-200 responses from the GitHub releases API.
+"""
+
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -10,6 +16,15 @@ from httpx import HTTPError
 
 @pytest.fixture
 def mock_request(mocker):
+    """Fixture that returns a factory for mocking the GitHub HTTP API call.
+
+    Returns:
+        Callable[[int, dict | None, Exception | None], Mock]: A factory that
+        configures ``AsyncClient.get`` to return a mock response with the given
+        status code and JSON data, or to raise an exception via
+        ``raise_for_status``.
+    """
+
     def _mock_request(status_code=200, json_data=None, raise_for_status=None):
         mock_response = mocker.Mock()
         mock_response.status_code = status_code
@@ -25,16 +40,6 @@ def mock_request(mocker):
         return mock_response
 
     return _mock_request
-
-
-# @pytest.fixture
-# def callback_await():
-#     future = asyncio.Future()
-
-#     def callback(*args, **kwargs):
-#         future.set_result((args, kwargs))
-
-#     return callback, future
 
 
 class TestUpdateCheck:
@@ -87,8 +92,11 @@ class TestUpdateCheck:
         callback = mocker.MagicMock()
 
         run_update_check(current_version_name, callback, quiet=True)
-        await asyncio.sleep(0.1)  # Wait for the thread to complete
-        assert callback.called
+        loop_count = 0
+        while not callback.called and loop_count < 10:
+            await asyncio.sleep(0.1)
+            loop_count += 1
+        assert callback.called, f"Callback not called after {loop_count}00 ms"
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == expected_new_version
         assert repo_url == expected_url
@@ -100,8 +108,11 @@ class TestUpdateCheck:
         mock_request(raise_for_status=HTTPError("HTTP error occurred"))
         callback = mocker.MagicMock()
         run_update_check("v1.0.0", callback, quiet=True)
-        await asyncio.sleep(0.1)  # Wait for the thread to complete
-        assert callback.called
+        loop_count = 0
+        while not callback.called and loop_count < 10:
+            await asyncio.sleep(0.1)
+            loop_count += 1
+        assert callback.called, f"Callback not called after {loop_count}00 ms"
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
         assert repo_url == ""
@@ -129,8 +140,11 @@ class TestUpdateCheck:
         callback = mocker.MagicMock()
 
         run_update_check(current_version_name, callback, quiet=True)
-        await asyncio.sleep(0.1)  # Wait for the thread to complete
-        assert callback.called
+        loop_count = 0
+        while not callback.called and loop_count < 10:
+            await asyncio.sleep(0.1)
+            loop_count += 1
+        assert callback.called, f"Callback not called after {loop_count}00 ms"
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
         assert repo_url == ""
@@ -149,8 +163,11 @@ class TestUpdateCheck:
         mock_request(status_code=201)
         callback = mocker.MagicMock()
         run_update_check("v1.0.0", callback, quiet=True)
-        await asyncio.sleep(0.1)  # Wait for the thread to complete
-        assert callback.called
+        loop_count = 0
+        while not callback.called and loop_count < 10:
+            await asyncio.sleep(0.1)
+            loop_count += 1
+        assert callback.called, f"Callback not called after {loop_count}00 ms"
         new_tag, repo_url, error, quiet = callback.call_args[0]
         assert new_tag == ""
         assert repo_url == ""

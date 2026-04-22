@@ -9,13 +9,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 from .version import __VERSION__
+from .about import show_about_window
 from rumps import App, MenuItem, Timer, separator, application_support
 from os.path import join as path_join
 from .pinger import Pinger
 from .icons import symbol_icon, generate_status_icon
 from .settings import SelectableMenu, ping_target_window, SettingsManager
 from .updates import update_dialog, run_update_check
-from AppKit import NSImage, NSObject  # type: ignore
+from AppKit import NSImage, NSView, NSPoint, NSObject, NSAppearanceNameAqua, NSAppearanceNameDarkAqua  # type: ignore
 from pickle import dumps as pickle_dumps, loads as pickle_loads  # type: ignore
 
 
@@ -49,6 +50,7 @@ class PingrThingrApp(App):
         self.latency = None
         self.loss = None
         self.title = None
+        self._appearance = None
         self._icon_nsimage = symbol_icon(
             (
                 "pause.circle"
@@ -57,64 +59,70 @@ class PingrThingrApp(App):
             ),
             "PingrThingr",
         )
-        self.statistics_menu = MenuItem("---")
-        self.pause_menu = MenuItem("Pause", callback=self.pause_toggle)
-        self.display_menu = SelectableMenu(
+
+        # Initialize menu items
+        self._statistics_menu = MenuItem("---")
+        self._pause_menu = MenuItem("Pause", callback=self._pause_menu_cb)
+        self._display_menu = SelectableMenu(
             "Display Mode",
-            options=["Dot", "Text"],
+            options=["Dot", "Text", "Chart"],
             selected=self._settings.get("display_mode", "Dot"),
-            cb=lambda x: self._settings.set("display_mode", x),
+            callback=self._display_menu_cb,
         )
-        self.ping_targets_menu = MenuItem(
-            "Set ping targets...", callback=self.ping_targets
+        self._ping_targets_menu = MenuItem(
+            "Set ping targets...", callback=self._ping_targets_menu_cb
         )
-        self.check_for_updates_menu = MenuItem(
-            "Check for updates...", callback=self.check_for_updates
+        self._check_for_updates_menu = MenuItem(
+            "Check for updates...", callback=self._check_for_updates_menu_cb
         )
-        self.check_for_updates_on_startup_menu = MenuItem(
-            "Check on startup", callback=self.check_for_updates_on_startup
+        self._check_for_updates_on_startup_menu = MenuItem(
+            "Check on startup", callback=self._check_for_updates_on_startup_menu_cb
         )
-        self.pause_menu.state = self._settings.get("paused", False)
-        self.check_for_updates_on_startup_menu.state = self._settings.get(
+        self._about_menu = MenuItem("About PingrThingr", callback=show_about_window)
+
+        self._pause_menu.state = self._settings.get("paused", False)
+        self._check_for_updates_on_startup_menu.state = self._settings.get(
             "check_for_updates", False
         )
 
         self.menu = [
-            self.statistics_menu,
+            self._statistics_menu,
             separator,
-            self.pause_menu,
+            self._pause_menu,
             separator,
-            self.display_menu,
-            self.ping_targets_menu,
+            self._display_menu,
+            self._ping_targets_menu,
             separator,
-            self.check_for_updates_menu,
-            self.check_for_updates_on_startup_menu,
+            self._check_for_updates_menu,
+            self._check_for_updates_on_startup_menu,
+            separator,
+            self._about_menu,
             separator,
         ]
         self._last_state = None
 
-        self.pinger = Pinger(
+        self._pinger = Pinger(
             targets=self._settings.get("targets", []),  # type: ignore
             start_running=not self._settings.get("paused", False),
-            cb=self.update_statistics,
+            cb=self.update_statistics_cb,
         )
 
-        self._settings.register_callback("paused", self.pause_cb)
-        self._settings.register_callback("targets", self.ping_targets_cb)
-        self._settings.register_callback(
-            "display_mode", lambda _: self.refresh_status_(use_saved=True)
-        )
+        self._settings.register_callback("paused", self.pause_settings_cb)
+        self._settings.register_callback("targets", self.ping_targets_settings_cb)
+        self._settings.register_callback("display_mode", self.display_mode_settings_cb)
 
-        self._update_timer = Timer(self.update_timer, 2)  # Update every 2 seconds
+        self._startup_update_check_timer = Timer(
+            self._startup_update_check_timer_cb, 2
+        )  # Update every 2 seconds
         self._ns_init_timer = Timer(
-            self.ns_init_timer, 0.1
+            self._ns_init_timer_cb, 0.1
         )  # Short delay to ensure NSApp is initialized
         self._ns_init_timer.start()
         if self._settings.get("check_for_updates", False):
             logger.debug(
                 f"In __init__(): Check for updates on startup is enabled, starting update timer"
             )
-            self._update_timer.start()
+            self._startup_update_check_timer.start()
         else:
             logger.debug(
                 f"In __init__(): Check for updates on startup is disabled, not starting update timer"
@@ -122,52 +130,7 @@ class PingrThingrApp(App):
 
         logger.info(f"In __init__(): Initialized PingrThingr")
 
-    def ns_init_timer(self, sender):  # pragma: no cover
-        """Perform deferred NSApp-dependent initialisation.
-
-        Called once by a short-delay rumps Timer after the application has
-        started, ensuring NSApp and the status-bar item are fully available
-        before KVO observers and the main-thread dispatcher are set up.
-
-        Args:
-            sender (Timer): The one-shot Timer that fired this callback.
-        """
-        sender.stop()
-        self._dispatcher = self.MainThreadDispatcher.alloc().init()
-        self._dispatcher._app = self
-        self.appearance_observer = self.AppearanceObserver.alloc().init()
-        self.appearance_observer._app = self
-        self._nsapp.nsstatusitem.button().addObserver_forKeyPath_options_context_(
-            self.appearance_observer, "effectiveAppearance", 0, None
-        )
-
-    class AppearanceObserver(NSObject):
-        """KVO observer that reacts to system appearance changes.
-
-        Registered on the status-bar button's effectiveAppearance key path
-        so that the status icon is redrawn whenever the user switches between
-        light and dark mode.
-        """
-
-        def observeValueForKeyPath_ofObject_change_context_(
-            self, keyPath, obj, change, context
-        ):  # pragma: no cover
-            """Handle a KVO notification for a watched key path.
-
-            Args:
-                keyPath (str): The key path that changed.
-                obj: The object whose property changed.
-                change (dict): Dictionary describing the change.
-                context: Arbitrary context pointer passed at registration time.
-            """
-
-            if keyPath == "effectiveAppearance":
-                self._app.run_in_main_thread(
-                    "refresh_status_", use_saved=True, force=True
-                )  # re-draw your icon or update colors here
-                logger.debug(
-                    f"In observeValueForKeyPath_ofObject_change_context_(): Appearance change detected, refreshing status icon"
-                )
+    # NSObject subclasses for  main thread dispatching
 
     class MainThreadDispatcher(NSObject):
         """NSObject shim used to dispatch calls onto the main run-loop thread.
@@ -218,34 +181,122 @@ class PingrThingrApp(App):
             )
             func(*args, **kwargs)
 
-    def run_in_main_thread(self, func: str, *args, **kwargs):
-        """Schedule a method to execute on the main application thread.
+    # Timer callbacks
 
-        Serialises the method name and arguments via pickle and dispatches
-        the call through ``MainThreadDispatcher`` using
-        ``performSelectorOnMainThread_withObject_waitUntilDone_``. This
-        avoids cross-thread PyObjC retain cycles that arise when Python
-        objects are passed directly as NSTimer userInfo.
+    def _ns_init_timer_cb(self, sender):  # pragma: no cover
+        """Perform deferred NSApp-dependent initialisation.
 
-        Safe to call from any thread, including the pinger background thread.
+        Called once by a short-delay rumps Timer after the application has
+        started, ensuring NSApp and the status-bar item are fully available
+        before KVO observers and the main-thread dispatcher are set up.
 
         Args:
-            func (str): Name of a method on this application instance to call.
-            *args: Positional arguments forwarded to the method.
-            **kwargs: Keyword arguments forwarded to the method.
+            sender (Timer): The one-shot Timer that fired this callback.
+        """
+        sender.stop()
+        self._dispatcher = self.MainThreadDispatcher.alloc().init()
+        self._dispatcher._app = self
+
+    def _startup_update_check_timer_cb(self, sender) -> None:
+        """Handle startup update check timer expiration.
+
+        Called by the Timer when the application starts up to perform an automatic
+        update check if enabled in settings. This provides a delayed, non-blocking
+        way to check for updates after the application is fully initialized.
+
+        Args:
+            sender (Timer): The Timer object that triggered this callback
+        """
+        self._check_for_updates_menu.set_callback(None)
+        self._check_for_updates_menu.title = "Checking for updates..."
+        sender.stop()
+        run_update_check(__VERSION__, self.check_for_updates_return, True)
+
+    # Menu callbacks
+
+    def _ping_targets_menu_cb(self, _) -> None:
+        """Handle ping targets menu item click.
+
+        Displays the preferences dialog for configuring ping target IP addresses.
+        If the user saves changes, updates the application settings with the new
+        target list.
+
+        Args:
+            _ (MenuItem): Unused menu item parameter (required by rumps framework).
+        """
+        new_targets = ping_target_window(self._settings.get("targets", []))  # type: ignore
+        if new_targets is not None:
+            logger.debug(
+                f"In _ping_targets_menu_cb(): Updating targets from ping_target_window(): {new_targets}"
+            )
+            self._settings.set("targets", new_targets)
+        else:
+            logger.debug(
+                f"In _ping_targets_menu_cb(): ping_target_window() returned None, no changes to targets"
+            )
+
+    def _pause_menu_cb(self, sender) -> None:
+        """Toggle the pinger pause state.
+
+        Toggles between paused and running states for the network pinger.
+        Updates the menu item state and persists the change to settings.
+
+        Args:
+            sender (MenuItem): The pause menu item that was clicked.
         """
         logger.debug(
-            f"In run_in_main_thread(): Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}"
+            f"In _pause_menu_cb(): Toggling pause state from {sender.state} to {not sender.state}"
         )
 
-        # non-scalar values in userdata seem to cause memory leaks between python and objc
-        userdata = pickle_dumps({"func": func, "args": args, "kwargs": kwargs})
+        self._settings.set("paused", not sender.state)
 
-        self._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_(
-            "dispatchSelector:", userdata, False
+    def _display_menu_cb(self, sender) -> None:
+        """Handle display mode menu selection.
+
+        Updates the display mode setting based on the user's selection in the
+        "Display Mode" submenu. The SelectableMenu component handles the menu
+        state and title updates, so this callback only needs to persist the
+        selected value to settings.
+
+        Args:
+            sender (SelectableMenu): The SelectableMenu instance that triggered this callback.
+        """
+        new_selection = sender.get_selected()
+        logger.debug(
+            f"In _display_menu_cb(): Updating display_mode setting to {new_selection}"
         )
+        self._settings.set("display_mode", new_selection)
 
-    def pause_cb(self, paused: bool) -> None:
+    def _check_for_updates_menu_cb(self, sender) -> None:
+        """Initiate a manual check for application updates.
+
+        Temporarily disables the menu item and starts an asynchronous update check
+        process. The menu item is re-enabled when the check completes via the
+        check_for_updates_return callback method.
+
+        Args:
+            sender (MenuItem): The "Check for updates..." menu item that was clicked
+        """
+
+        sender.set_callback(None)  # Disable the menu item while checking for updates
+        sender.title = "Checking for updates..."
+        run_update_check(__VERSION__, self.check_for_updates_return, False)
+
+    def _check_for_updates_on_startup_menu_cb(self, sender) -> None:
+        """Toggle the "Check on startup" setting.
+
+        Updates the application settings to enable or disable automatic update checks
+        on application startup based on the menu item state.
+
+        Args:
+            sender (MenuItem): The "Check on startup" menu item that was clicked
+        """
+        sender.state = not sender.state
+        self._settings.set("check_for_updates", sender.state)
+
+    # Settings callbacks
+
+    def pause_settings_cb(self, paused: bool) -> None:
         """Callback for pause setting changes.
 
         Updates the pinger's running state and menu display when the pause
@@ -254,15 +305,18 @@ class PingrThingrApp(App):
         Args:
             paused (bool): True to pause the pinger, False to resume.
         """
-        logger.debug(f"In pause_cb(): Setting pinger running state to {not paused}")
-        self.pinger.run(not paused)
-        self.pause_menu.state = paused
+        logger.debug(
+            f"In pause_settings_cb(): Setting pinger running state to {not paused}"
+        )
+        self._pinger.run(not paused)
+        self._pause_menu.state = paused
         if paused:  # pragma: no cover
             self.latency = None
             self.loss = None
-        self.refresh_status_(use_saved=True)
+            self._last_state = None
+        self.refresh_status_(use_saved=True, force=True)
 
-    def ping_targets_cb(self, targets: list[str]) -> None:
+    def ping_targets_settings_cb(self, targets: list[str]) -> None:
         """Callback for ping targets setting changes.
 
         Updates the pinger's target list when the targets setting is changed
@@ -271,9 +325,20 @@ class PingrThingrApp(App):
         Args:
             targets (list[str]): List of IP addresses to ping.
         """
-        self.pinger.targets = targets
+        self._pinger.targets = targets
 
-    def update_statistics(
+    def display_mode_settings_cb(self, display_mode: str) -> None:
+        """Callback for display mode setting changes.
+
+        Updates the status icon display mode when the display_mode setting is
+        changed through the settings manager.
+
+        Args:
+            display_mode (str): The new display mode ("Dot" or "Text").
+        """
+        self.refresh_status_(use_saved=True, force=True)
+
+    def update_statistics_cb(
         self, latency: float | None = None, loss: float | None = None
     ) -> None:
         """Update the statistics display with new network measurements.
@@ -287,25 +352,41 @@ class PingrThingrApp(App):
         """
 
         logger.debug(
-            f"In update_statistics(): Updating statistics: loss={loss}, latency={latency}"
+            f"In update_statistics_cb(): Updating statistics: loss={loss}, latency={latency}"
         )
 
-        self.run_in_main_thread("refresh_status_", latency, loss)
+        self._run_in_main_thread("refresh_status_", latency, loss)
 
-    def _draw_icon(self, icon: NSImage) -> None:
+    # Icon and menu update methods
+
+    def _draw_icon(self, icon: NSImage, view: NSView | None = None) -> None:
         """Update the menu bar icon.
 
-        Stores the provided NSImage and instructs the rumps NSApp wrapper to
-        apply it to the status-bar item.
+        Sets the status bar image via the rumps NSApp wrapper, removes any existing subviews
+        and, when a custom NSView overlay is provided, adds the new view centred within it.
 
         Args:
-            icon (NSImage): The icon to display in the menu bar.
+            icon (NSImage): The base template NSImage to set on the status bar item.
+            view (NSView | None): Optional overlay NSView to composite on top of the
+                icon inside the status bar button. Defaults to None.
         """
 
         logger.debug(f"In _draw_icon(): Drawing icon from NSImage")
         self._icon_nsimage = icon
+        self._icon_nsview = view
+
+        for oldview in list(self._nsapp.nsstatusitem.button().subviews()):
+            oldview.removeFromSuperview()
 
         self._nsapp.setStatusBarIcon()
+        if view is not None:
+            logger.debug(f"In _draw_icon(): Adding custom NSView to status bar button")
+            button_size = self._nsapp.nsstatusitem.button().bounds().size
+            view_size = view.frame().size
+            x_offset = (button_size.width - view_size.width) / 2
+            y_offset = (button_size.height - view_size.height) / 2
+            view.setFrameOrigin_(NSPoint(x_offset, y_offset))
+            self._nsapp.nsstatusitem.button().addSubview_(view)
 
     def refresh_status_(
         self,
@@ -319,7 +400,7 @@ class PingrThingrApp(App):
         Updates the menu item text with current network statistics and
         refreshes the menu bar icon based on the current display mode
         and network connectivity status. Must be called on the main thread;
-        use ``run_in_main_thread`` to dispatch from background threads.
+        use ``_run_in_main_thread`` to dispatch from background threads.
 
         Args:
             latency (float | None, optional): Current latency in milliseconds.
@@ -344,7 +425,7 @@ class PingrThingrApp(App):
             logger.debug(
                 f"In refresh_status_(): Application is paused, showing paused status"
             )
-            self.statistics_menu.title = "Paused"
+            self._statistics_menu.title = "Paused"
             self._draw_icon(symbol_icon("pause.circle", "Paused"))
 
         else:
@@ -353,18 +434,18 @@ class PingrThingrApp(App):
             )
             loss_str = f"{(loss*100):.2f}%" if loss is not None else "---"
             latency_str = f"{(latency):.2f} ms" if latency is not None else "---"
-            self.statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
+            self._statistics_menu.title = f"Loss: {loss_str}, Latency: {latency_str}"
             display = self._settings.get("display_mode", "Dot")
             logger.debug(f"In refresh_status_(): Current display_mode: {display}")
 
-            icon, new_state = generate_status_icon(  # type: ignore
+            icon, view, new_state = generate_status_icon(  # type: ignore
                 display,  # type: ignore
                 latency,
                 loss,
                 self._settings.get("latency_thresholds"),  # type: ignore
                 self._settings.get("loss_thresholds"),  # type: ignore
-                self._last_state if not force else None,
-                self._nsapp.nsstatusitem.button().effectiveAppearance(),
+                self._last_state,
+                force=force,
             )
 
             logger.debug(
@@ -376,58 +457,9 @@ class PingrThingrApp(App):
                 logger.debug(
                     f"In refresh_status_(): Updating icon for new state: {new_state}"
                 )
-                self._draw_icon(icon)
+                self._draw_icon(icon, view)
 
-    def ping_targets(self, _) -> None:
-        """Handle ping targets menu item click.
-
-        Displays the preferences dialog for configuring ping target IP addresses.
-        If the user saves changes, updates the application settings with the new
-        target list.
-
-        Args:
-            _ (MenuItem): Unused menu item parameter (required by rumps framework).
-        """
-        new_targets = ping_target_window(self._settings.get("targets", []))  # type: ignore
-        if new_targets is not None:
-            logger.debug(
-                f"In ping_targets(): Updating targets from ping_target_window(): {new_targets}"
-            )
-            self._settings.set("targets", new_targets)
-        else:
-            logger.debug(
-                f"In ping_targets(): ping_target_window() returned None, no changes to targets"
-            )
-
-    def pause_toggle(self, sender) -> None:
-        """Toggle the pinger pause state.
-
-        Toggles between paused and running states for the network pinger.
-        Updates the menu item state and persists the change to settings.
-
-        Args:
-            sender (MenuItem): The pause menu item that was clicked.
-        """
-        logger.debug(
-            f"In pause_toggle(): Toggling pause state from {sender.state} to {not sender.state}"
-        )
-
-        self._settings.set("paused", not sender.state)
-
-    def check_for_updates(self, sender) -> None:
-        """Initiate a manual check for application updates.
-
-        Temporarily disables the menu item and starts an asynchronous update check
-        process. The menu item is re-enabled when the check completes via the
-        check_for_updates_return callback method.
-
-        Args:
-            sender (MenuItem): The "Check for updates..." menu item that was clicked
-        """
-
-        sender.set_callback(None)  # Disable the menu item while checking for updates
-        sender.title = "Checking for updates..."
-        run_update_check(__VERSION__, self.check_for_updates_return, False)
+    # Update check return handling methods
 
     def check_for_updates_return(
         self, new_version: str, release_url: str, error: str, quiet: bool = False
@@ -445,14 +477,14 @@ class PingrThingrApp(App):
             quiet (bool, optional): If True, suppresses update dialog if no update is available.
                                     Defaults to False.
         """
-        self.check_for_updates_menu.set_callback(self.check_for_updates)
-        self.check_for_updates_menu.title = "Check for updates..."
+        self._check_for_updates_menu.set_callback(self._check_for_updates_menu_cb)
+        self._check_for_updates_menu.title = "Check for updates..."
         logger.debug(
             f"Update check returned: new_version={new_version}, release_url={release_url}, error={error}"
         )
 
         if new_version or not quiet:
-            self.run_in_main_thread(
+            self._run_in_main_thread(
                 "_update_dialog_return", new_version, __VERSION__, release_url, error
             )
 
@@ -462,7 +494,7 @@ class PingrThingrApp(App):
         """Display the update dialog on the main thread.
 
         This thin wrapper exists so that ``check_for_updates_return`` can
-        dispatch the dialog to the main thread via ``run_in_main_thread``.
+        dispatch the dialog to the main thread via ``_run_in_main_thread``.
 
         Args:
             new_version (str): Latest version string, or empty if none available.
@@ -472,29 +504,31 @@ class PingrThingrApp(App):
         """
         update_dialog(new_version, current_version, release_url, error)
 
-    def update_timer(self, sender) -> None:
-        """Handle startup update check timer expiration.
+    # Main thread dispatching method
 
-        Called by the Timer when the application starts up to perform an automatic
-        update check if enabled in settings. This provides a delayed, non-blocking
-        way to check for updates after the application is fully initialized.
+    def _run_in_main_thread(self, func: str, *args, **kwargs):
+        """Schedule a method to execute on the main application thread.
 
-        Args:
-            sender (Timer): The Timer object that triggered this callback
-        """
-        self.check_for_updates_menu.set_callback(None)
-        self.check_for_updates_menu.title = "Checking for updates..."
-        sender.stop()
-        run_update_check(__VERSION__, self.check_for_updates_return, True)
+        Serialises the method name and arguments via pickle and dispatches
+        the call through ``MainThreadDispatcher`` using
+        ``performSelectorOnMainThread_withObject_waitUntilDone_``. This
+        avoids cross-thread PyObjC retain cycles that arise when Python
+        objects are passed directly as NSTimer userInfo.
 
-    def check_for_updates_on_startup(self, sender) -> None:
-        """Toggle the "Check on startup" setting.
-
-        Updates the application settings to enable or disable automatic update checks
-        on application startup based on the menu item state.
+        Safe to call from any thread, including the pinger background thread.
 
         Args:
-            sender (MenuItem): The "Check on startup" menu item that was clicked
+            func (str): Name of a method on this application instance to call.
+            *args: Positional arguments forwarded to the method.
+            **kwargs: Keyword arguments forwarded to the method.
         """
-        sender.state = not sender.state
-        self._settings.set("check_for_updates", sender.state)
+        logger.debug(
+            f"In _run_in_main_thread(): Scheduling refresh to run {func} in app thread with args: {args} and kwargs: {kwargs}"
+        )
+
+        # non-scalar values in userdata seem to cause memory leaks between python and objc
+        userdata = pickle_dumps({"func": func, "args": args, "kwargs": kwargs})
+
+        self._dispatcher.performSelectorOnMainThread_withObject_waitUntilDone_(
+            "dispatchSelector:", userdata, False
+        )

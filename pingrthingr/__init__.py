@@ -6,3 +6,4 @@ connectivity by pinging specified targets and displays status icons.
 
 from .app import PingrThingrApp
 from .version import __VERSION__
+from .about import show_about_window
