@@ -7,7 +7,12 @@ NSImage objects.
 from AppKit import (
     NSView,  # type: ignore[import]
     NSImage,  # type: ignore[import]
+    NSColor,  # type: ignore[import]
 )
+
+warn_color = NSColor.colorWithDeviceRed_green_blue_alpha_(0.9, 0.75, 0.0, 1.0)  
+alert_color = NSColor.orangeColor() 
+critical_color = NSColor.redColor() 
 
 
 def _nsview_to_nsimage(nsview: NSView) -> NSImage:

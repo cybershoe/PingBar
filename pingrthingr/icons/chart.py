@@ -18,11 +18,9 @@ from AppKit import (
     NSMakeRect,  # type: ignore[import]
     NSSize,  # type: ignore[import]
     NSView,  # type: ignore[import]
-    NSAppearance,  # type: ignore[import]
 )
 from re import match as re_match
-from .util import _nsview_to_nsimage
-
+from .util import _nsview_to_nsimage, warn_color, alert_color, critical_color
 
 def status_chart_icon(
     latency: float | None,
@@ -151,13 +149,13 @@ def status_chart_icon(
                     value_bar.setFillColor_(NSColor.labelColor())
                     chart_base_view.addSubview_(value_bar)
                 case 2:
-                    value_bar.setFillColor_(NSColor.yellowColor())
+                    value_bar.setFillColor_(warn_color)
                     chart_overlay_view.addSubview_(value_bar)
                 case 3:
-                    value_bar.setFillColor_(NSColor.orangeColor())
+                    value_bar.setFillColor_(alert_color)
                     chart_overlay_view.addSubview_(value_bar)
                 case 4:
-                    value_bar.setFillColor_(NSColor.redColor())
+                    value_bar.setFillColor_(critical_color)
                     chart_overlay_view.addSubview_(value_bar)
                 case _:  # pragma: no cover
                     raise ValueError(f"Invalid criticality level: {criticality}")
