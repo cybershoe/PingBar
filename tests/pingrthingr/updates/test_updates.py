@@ -42,16 +42,6 @@ def mock_request(mocker):
     return _mock_request
 
 
-# @pytest.fixture
-# def callback_await():
-#     future = asyncio.Future()
-
-#     def callback(*args, **kwargs):
-#         future.set_result((args, kwargs))
-
-#     return callback, future
-
-
 class TestUpdateCheck:
 
     @pytest.mark.asyncio
