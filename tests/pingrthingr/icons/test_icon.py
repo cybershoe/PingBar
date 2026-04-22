@@ -9,7 +9,6 @@ from AppKit import (
     NSImageView,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
     NSView,  # type: ignore[import]
-    NSBitmapImageRep,  # type: ignore[import]
     NSPNGFileType,  # type: ignore[import]
 )
 from Quartz import CGColorCreate, CGColorSpaceCreateDeviceRGB  # type: ignore[import]
@@ -18,8 +17,6 @@ import pytest
 from pingrthingr.settings import ThresholdModel
 from pingrthingr.icons import (
     symbol_icon,
-    # status_dot_icon,
-    status_text_icon,
     generate_status_icon,
 )
 
@@ -102,12 +99,6 @@ class TestIconImages:
     @pytest.mark.parametrize("display", ["Text", "Dot"])
     @pytest.mark.parametrize("case, latency, loss", ping_thresholds)
     def test_status_icon(self, compare_image, case, latency, loss, display, dark):
-        # Skip visual testing for headless environments
-        appearance = (
-            NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua)
-            if dark
-            else NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
-        )
         icon, view, _ = generate_status_icon(
             display,
             latency=latency,
@@ -135,8 +126,6 @@ class TestIconImages:
 
     @pytest.mark.parametrize("dark", [True, False])
     def test_chart_icon(self, compare_image, dark):        
-
-        appearance = NSAppearance.appearanceNamed_(NSAppearanceNameDarkAqua) if dark else NSAppearance.appearanceNamed_(NSAppearanceNameAqua)
         test_result_indexes = [0,1,2,3,5,6,8,9,10,12,13,14]
         test_values = [ping_thresholds[i][-2:] for i in test_result_indexes]
 
