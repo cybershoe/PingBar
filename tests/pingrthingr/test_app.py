@@ -8,14 +8,10 @@ check logic, and icon rendering.
 import pytest
 from pathlib import Path
 from json import load as json_load, dump as json_dump
-
-from pytest_mock import mocker
-
+from AppKit import NSAppearance, NSAppearanceNameAqua  # type: ignore
 from pingrthingr import PingrThingrApp
 from pingrthingr.icons import generate_status_icon
 from pingrthingr.settings import ThresholdModel
-from AppKit import NSAppearance, NSAppearanceNameAqua  # type: ignore
-
 base_path = Path(__file__).parent
 
 
