@@ -78,7 +78,7 @@ class PingrThingrApp(App):
         self._check_for_updates_on_startup_menu = MenuItem(
             "Check on startup", callback=self._check_for_updates_on_startup_menu_cb
         )
-        self._about_menu = MenuItem("About PingrThingr", callback=show_about_window)
+        self._about_menu = MenuItem("About PingrThingr", callback=self._about_cb)
 
         self._pause_menu.state = self._settings.get("paused", False)
         self._check_for_updates_on_startup_menu.state = self._settings.get(
@@ -296,6 +296,17 @@ class PingrThingrApp(App):
         sender.state = not sender.state
         self._settings.set("check_for_updates", sender.state)
 
+    def _about_cb(self, sender) -> None:
+        """Display the About dialog.
+
+        Invokes the show_about_window function to display the About dialog with
+        application information and license text.
+
+        Args:
+            sender (MenuItem): The "About PingrThingr" menu item that was clicked
+        """
+        show_about_window(sender, self._settings_path)
+        
     # Settings callbacks
 
     def pause_settings_cb(self, paused: bool) -> None:
