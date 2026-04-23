@@ -19,6 +19,6 @@ class NetworkStatus:
     def __init__(self):
         self._store = SCDynamicStoreCreate(None, "PingrThingr", None, None)
 
-    def online(self) -> bool:
+    def online(self) -> bool:  # pragma: no cover
         route = SCDynamicStoreCopyValue(self._store, "State:/Network/Global/IPv4")
         return route is not None
