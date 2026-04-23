@@ -197,7 +197,7 @@ class Pinger:
                 start_time = monotonic()
                 if not self._network.online():
                     logger.debug("Network is not connected, skipping ping cycle")
-                    if self.cb:
+                    if self.cb:  # pragma: no branch
                         self.cb(None, None)  # Indicate no connectivity with None values
                 
                 elif len(self.targets) > 0:
