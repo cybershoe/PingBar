@@ -156,6 +156,19 @@ class TestPingUpdates:
             mocked_nsapp.setStatusBarIcon.call_count == 1
         ), "NSApp.setMenuBarIcon should not have been called again"
 
+    @pytest.mark.parametrize(
+        "latency, loss, expected_tooltip",
+        [
+            (None, None, "Waiting..."),
+            (150.5, None, "Latency: 150.50 ms"),
+            (None, 0.02, "2.00% packet loss"),
+            (150.5, 0.02, "Latency: 150.50 ms, 2.00% packet loss")
+        ]
+    )
+    def test_ping_response_tooltip_updates(self, mocked_app, latency, loss, expected_tooltip):
+        app, _, mocked_nsapp = mocked_app()
+        app.update_statistics_cb(latency=latency, loss=loss)
+        mocked_nsapp.nsstatusitem.button().setToolTip_.assert_called_once_with(expected_tooltip)
 
 class TestSettingsChanges:
     def test_pause(self, mocked_app, tmp_path, mocker):
@@ -172,6 +185,8 @@ class TestSettingsChanges:
         assert (
             mock_nsapp.setStatusBarIcon.called
         ), "NSApp.setMenuBarIcon should be called to update the icon when paused"
+        mock_nsapp.nsstatusitem.button().setToolTip_.assert_called_once_with("Paused")
+    
         settings_file = tmp_path / "settings.json"
         assert settings_file.is_file(), "Settings file should be created"
         settings_data = json_load(open(settings_file))
