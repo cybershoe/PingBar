@@ -50,7 +50,7 @@ class PingrThingrApp(App):
         self.latency = None
         self.loss = None
         self.title = None
-        self._appearance = None
+
         self._icon_nsimage = symbol_icon(
             (
                 "pause.circle"
@@ -196,6 +196,7 @@ class PingrThingrApp(App):
         sender.stop()
         self._dispatcher = self.MainThreadDispatcher.alloc().init()
         self._dispatcher._app = self
+        self._nsapp.nsstatusitem.button().setToolTip_("PingrThingr is starting...")
 
     def _startup_update_check_timer_cb(self, sender) -> None:
         """Handle startup update check timer expiration.
@@ -427,6 +428,7 @@ class PingrThingrApp(App):
             )
             self._statistics_menu.title = "Paused"
             self._draw_icon(symbol_icon("pause.circle", "Paused"))
+            self._nsapp.nsstatusitem.button().setToolTip_("Paused")
 
         else:
             logger.debug(
@@ -458,6 +460,19 @@ class PingrThingrApp(App):
                     f"In refresh_status_(): Updating icon for new state: {new_state}"
                 )
                 self._draw_icon(icon, view)
+
+            # Update tooltip
+
+            match (latency, loss):
+                case (None, None):
+                    tooltip = "Waiting..."
+                case (latency, None):
+                    tooltip = f"Latency: {latency:.2f} ms"
+                case (None, loss):
+                    tooltip = f"{loss*100:.2f}% packet loss"
+                case _:
+                    tooltip = f"Latency: {latency:.2f} ms, {loss*100:.2f}% packet loss"
+            self._nsapp.nsstatusitem.button().setToolTip_(tooltip)
 
     # Update check return handling methods
 
