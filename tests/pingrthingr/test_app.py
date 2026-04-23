@@ -141,10 +141,8 @@ class TestPingUpdates:
         assert (
             mocked_nsapp.setStatusBarIcon.called
         ), "NSApp.setMenuBarIcon should be called to update the icon"
-        assert (
-            mocked_nsapp.nsstatusitem.button().setToolTip_.called_once()
-        ), "NSApp.setMenuBarIcon should be called to update the tooltip"
-
+        mocked_nsapp.nsstatusitem.button().setToolTip_.assert_called_once()
+        
     def test_ping_response_no_update_when_same(self, mocked_app):
         app, _, mocked_nsapp = mocked_app()
         mocked_nsapp.setStatusBarIcon.reset_mock()  # Reset mock call count
