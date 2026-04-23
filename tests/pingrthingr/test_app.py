@@ -12,6 +12,7 @@ from AppKit import NSAppearance, NSAppearanceNameAqua  # type: ignore
 from pingrthingr import PingrThingrApp
 from pingrthingr.icons import generate_status_icon
 from pingrthingr.settings import ThresholdModel
+
 base_path = Path(__file__).parent
 
 
@@ -55,7 +56,7 @@ def mocked_app(mocker, tmp_path):
             NSAppearanceNameAqua
         )
         mock_nsapp.nsstatusitem.button.return_value = mock_button
-
+        mock_nsapp.nsstatusitem.button().setToolTip_ = mocker.MagicMock()
         app._dispatcher = app.MainThreadDispatcher.alloc().init()
         app._dispatcher._app = app
 
@@ -140,6 +141,9 @@ class TestPingUpdates:
         assert (
             mocked_nsapp.setStatusBarIcon.called
         ), "NSApp.setMenuBarIcon should be called to update the icon"
+        assert (
+            mocked_nsapp.nsstatusitem.button().setToolTip_.called_once()
+        ), "NSApp.setMenuBarIcon should be called to update the tooltip"
 
     def test_ping_response_no_update_when_same(self, mocked_app):
         app, _, mocked_nsapp = mocked_app()
