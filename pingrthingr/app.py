@@ -461,7 +461,7 @@ class PingrThingrApp(App):
                 )
                 self._draw_icon(icon, view)
 
-        # Update tooltip
+            # Update tooltip
 
             match (latency, loss):
                 case (None, None):
