@@ -24,6 +24,7 @@ LOGGER = logging.getLogger(__name__)
 
 ping_parameters = PingParametersModel(count=1, timeout=1, interval=0.5, frequency=0)
 
+
 @pytest.fixture
 def ping_response():
     """Fixture that loads a ping response test case from a JSON resource file.
@@ -78,6 +79,7 @@ def mocked_pinger(mocker, ping_response):
         targets: List[str] = ["127.0.0.1"],
         cb: Callable | None = Mock(),
         start_running: bool = True,
+        online: bool = True,
     ) -> Tuple[Pinger, Tuple[int, int], Mock | Callable | None]:
         ping_reponse_value, callback_response = ping_response(testcase)
         mocker.patch(
@@ -85,12 +87,14 @@ def mocked_pinger(mocker, ping_response):
             return_value=ping_reponse_value,
             side_effect=side_effect,
         )
+
         pinger = Pinger(
             targets=targets,
             ping_parameters=ping_parameters,
             cb=cb,
             start_running=start_running,
         )
+        mocker.patch.object(pinger, "_network", Mock(online=Mock(return_value=online)))
         pingers.append(pinger)  # Keep a reference to allow cleanup
         return pinger, callback_response, cb
 
@@ -185,6 +189,13 @@ class TestPingerResponses:
                 0.1
             )  # Allow the Pinger to initialize and handle the exception
             assert "Ping failed" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_pinger_no_network(self, mocked_pinger):
+        _, _, callback_mock = mocked_pinger(online=False)
+        await asyncio.sleep(0.1)  # Allow the Pinger to initialize
+        args, _ = callback_mock.call_args
+        assert args == (None, None), "Callback should not be called with no network"
 
 
 class TestPingerStartPauseResumeDestroy:
