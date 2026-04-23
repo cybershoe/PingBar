@@ -470,7 +470,7 @@ class PingrThingrApp(App):
                     tooltip = f"Latency: {latency:.2f} ms"
                 case (None, loss):
                     tooltip = f"{loss*100:.2f}% packet loss"
-                case (latency, loss):
+                case _:
                     tooltip = f"Latency: {latency:.2f} ms, {loss*100:.2f}% packet loss"
             self._nsapp.nsstatusitem.button().setToolTip_(tooltip)
 
