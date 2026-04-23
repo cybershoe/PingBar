@@ -16,11 +16,13 @@ from typing import List, Tuple, Callable
 from unittest.mock import Mock
 
 from pingrthingr.pinger import Pinger
+from pingrthingr.settings.models import PingParametersModel
 
 base_path = Path(__file__).parent
 
 LOGGER = logging.getLogger(__name__)
 
+ping_parameters = PingParametersModel(count=1, timeout=1, interval=0.5, frequency=0)
 
 @pytest.fixture
 def ping_response():
@@ -85,11 +87,9 @@ def mocked_pinger(mocker, ping_response):
         )
         pinger = Pinger(
             targets=targets,
-            count=1,
-            timeout=1,
+            ping_parameters=ping_parameters,
             cb=cb,
             start_running=start_running,
-            frequency=0,  # Use a shorter frequency for faster tests
         )
         pingers.append(pinger)  # Keep a reference to allow cleanup
         return pinger, callback_response, cb

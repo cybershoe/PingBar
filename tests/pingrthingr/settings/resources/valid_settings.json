@@ -5,6 +5,12 @@
         "8.8.8.8",
         "1.1.1.1"
     ],
+    "ping_parameters": {
+        "count": 10,
+        "timeout": 2,
+        "interval": 0.5,
+        "frequency": 10
+    },
     "latency_thresholds": {
         "critical": 1000.0,
         "alert": 500.0,
