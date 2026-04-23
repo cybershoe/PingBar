@@ -305,8 +305,8 @@ class PingrThingrApp(App):
         Args:
             sender (MenuItem): The "About PingrThingr" menu item that was clicked
         """
-        show_about_window(sender, self._settings_path)
-        
+        show_about_window(sender, self._settings_path)  # pragma: no cover
+
     # Settings callbacks
 
     def pause_settings_cb(self, paused: bool) -> None:
