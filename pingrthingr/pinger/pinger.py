@@ -24,6 +24,7 @@ from socket import inet_aton
 from time import monotonic
 from icmplib import async_multiping
 from pingrthingr.settings.models import PingParametersModel
+from pingrthingr.network import NetworkStatus
 
 
 class Pinger:
@@ -72,6 +73,7 @@ class Pinger:
         self._count = ping_parameters.count if ping_parameters else 10
         self._interval = ping_parameters.interval if ping_parameters else 0.5
         self.cb = cb
+        self._network = NetworkStatus()
 
         self._loop = None
         self._thread = None
@@ -193,7 +195,12 @@ class Pinger:
                 await self._pinger_event.wait()  # Wait until the event is set to start pinging
                 logger.debug(f"after Event.wait(), Pinger event is {'set' if self._pinger_event.is_set() else 'not set'}, starting ping cycle")
                 start_time = monotonic()
-                if len(self.targets) > 0:
+                if not self._network.online():
+                    logger.debug("Network is not connected, skipping ping cycle")
+                    if self.cb:
+                        self.cb(None, None)  # Indicate no connectivity with None values
+                
+                elif len(self.targets) > 0:
                     logger.debug(f"In _run_pings(): Pinging targets: {self._targets}")
                     try:
                         results = await wait_for(
