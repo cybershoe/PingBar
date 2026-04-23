@@ -3,12 +3,17 @@
 Displays application version, copyright, a clickable GitHub link, and a
 scrollable MIT licence text in a non-blocking NSAlert panel.
 """
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .version import __VERSION__
 
 from re import sub as re_sub
+from subprocess import run as subprocess_run
 from AppKit import (
     NSAlert,  # type: ignore[import]
+    NSAlertSecondButtonReturn,  # type: ignore[import]
     NSColor,  # type: ignore[import]
     NSForegroundColorAttributeName,  # type: ignore[import]
     NSMakeRect,  # type: ignore[import]
@@ -44,7 +49,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-def show_about_window(_):  # pragma: no cover
+def show_about_window(sender, settings_path: str | None = None):  # pragma: no cover
     """Display the About window.
 
     Builds an NSAlert containing a brief copyright and GitHub link at the top
@@ -121,4 +126,9 @@ def show_about_window(_):  # pragma: no cover
     alert.setMessageText_(f"PingrThingr {__VERSION__}")
     alert.setAccessoryView_(container)
     alert.addButtonWithTitle_("OK")
-    alert.runModal()
+    if settings_path is not None:
+        alert.addButtonWithTitle_("Open settings.json...")
+    response = alert.runModal()
+    if response == NSAlertSecondButtonReturn and settings_path is not None:
+        logger.debug(settings_path)
+        subprocess_run(["open", "-a", "TextEdit", settings_path])
