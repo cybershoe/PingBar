@@ -23,6 +23,7 @@ from threading import Thread
 from socket import inet_aton
 from time import monotonic
 from icmplib import async_multiping
+from pingrthingr.settings.models import PingParametersModel
 
 
 class Pinger:
@@ -41,12 +42,9 @@ class Pinger:
     def __init__(
         self,
         targets: List[str] = [],
-        timeout: int = 2,
-        count: int = 10,
-        interval: float = 0.5,
-        frequency: int = 10,
         start_running: bool = False,
         cb: Callable | None = None,
+        ping_parameters: PingParametersModel | None = None,
     ):
         """Initialize the Pinger instance.
 
@@ -69,10 +67,10 @@ class Pinger:
 
         self._targets = []
         self.targets = targets
-        self._frequency = frequency
-        self._timeout = timeout
-        self._count = count
-        self._interval = interval
+        self._frequency = ping_parameters.frequency if ping_parameters else 10
+        self._timeout = ping_parameters.timeout if ping_parameters else 2
+        self._count = ping_parameters.count if ping_parameters else 10
+        self._interval = ping_parameters.interval if ping_parameters else 0.5
         self.cb = cb
 
         self._loop = None
@@ -82,7 +80,7 @@ class Pinger:
 
         logger.info(f"Pinger initialized")
         logger.debug(
-            f"In __init__(): Configuration - timeout: {timeout}, count: {count}, interval: {interval}, frequency: {frequency}"
+            f"In __init__(): Configuration - {ping_parameters}"
         )
         self.start()
         if start_running:

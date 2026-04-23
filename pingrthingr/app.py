@@ -103,6 +103,7 @@ class PingrThingrApp(App):
 
         self._pinger = Pinger(
             targets=self._settings.get("targets", []),  # type: ignore
+            ping_parameters=self._settings.get("ping_parameters", None),  # type: ignore
             start_running=not self._settings.get("paused", False),
             cb=self.update_statistics_cb,
         )
