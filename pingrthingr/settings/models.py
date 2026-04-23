@@ -55,6 +55,23 @@ class ThresholdModel(BaseModel):
     alert: float = Field(description="Threshold for error state ")
     critical: float = Field(description="Threshold for critical state")
 
+class PingParametersModel(BaseModel):
+    """Pydantic model for ping parameters configuration.
+
+    Defines parameters for ping operations, including packet size and timeout.
+
+    Attributes:
+        count (int): Number of ping packets per target per cycle.
+        timeout (float | int): Timeout for ping response in seconds.
+        interval (float | int): Interval between ping packets in seconds.
+        frequency (int): Minimum number of seconds between ping cycles.
+
+    """
+
+    count: int = Field(default=10, description="Number of ping packets per target per cycle")
+    timeout: int = Field(default=2, description="Timeout for ping response in seconds")
+    interval: float | int = Field(default=0.5, description="Interval between ping packets in seconds")
+    frequency: int = Field(default=10, description="Minimum number of seconds between ping cycles")
 
 class SettingsModel(BaseModel):
     """Pydantic model for PingrThingr application settings.
@@ -66,6 +83,7 @@ class SettingsModel(BaseModel):
         display_mode (Literal["Dot", "Text", "Chart"]): Status icon display mode.
         paused (bool): Whether the application is currently paused.
         targets (list[IPAddress]): List of target IP addresses to ping.
+        ping_parameters (PingParametersModel): Configuration for ping operation parameters.
         latency_thresholds (ThresholdModel): Thresholds for latency evaluation.
         loss_thresholds (ThresholdModel): Thresholds for packet loss evaluation.
         check_for_updates (bool): Whether to check for application updates on startup.
@@ -81,6 +99,10 @@ class SettingsModel(BaseModel):
     targets: list[IPAddress] = Field(
         default=["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"],
         description="List of target IP addresses to ping",
+    )
+    ping_parameters: PingParametersModel = Field(
+        default=PingParametersModel(),
+        description="Configuration for ping operation parameters",
     )
     latency_thresholds: ThresholdModel = Field(
         default=ThresholdModel(warn=80.0, alert=500.0, critical=1000.0),

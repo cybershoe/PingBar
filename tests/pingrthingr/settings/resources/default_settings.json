@@ -7,6 +7,12 @@
         "1.1.1.1",
         "1.0.0.1"
     ],
+    "ping_parameters": {
+        "count": 10,
+        "timeout": 2,
+        "interval": 0.5,
+        "frequency": 10
+    },
     "display_mode": "Dot",
     "latency_thresholds": {
         "critical": 1000.0,
