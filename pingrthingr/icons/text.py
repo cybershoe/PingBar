@@ -84,13 +84,16 @@ def status_text_icon(
 
         text_view = NSTextField.labelWithString_(text)
         text_view.setAlignment_(2)  # right align
-        if criticality <= 1:
+        if criticality == 1:
             text_view.setFont_(normalFont)
         else:
             text_view.setFont_(boldFont)
             text_view.setDrawsBackground_(True)
 
             match criticality:
+                case 0:
+                    text_view.setBackgroundColor_(NSColor.clearColor())
+                    text_view.setTextColor_(NSColor.grayColor())
                 case 2:
                     text_view.setBackgroundColor_(warn_color)
                     text_view.setTextColor_(NSColor.blackColor())
@@ -117,17 +120,16 @@ def status_text_icon(
         NSMakeRect(0, 0, size.width, size.height / 2),
     )
 
-    if latency_criticality > 1:
+    if latency_criticality == 1:
+        base_view.addSubview_(latency_view)
+    else:
         overlay_view.addSubview_(latency_view)
-    else:
-        base_view.addSubview_(latency_view)
 
-        base_view.addSubview_(latency_view)
-
-    if loss_criticality > 1:
-        overlay_view.addSubview_(loss_view)
-    else:
+    if loss_criticality == 1:
         base_view.addSubview_(loss_view)
+    else:
+        overlay_view.addSubview_(loss_view)
+
 
     base_image = _nsview_to_nsimage(base_view)
     base_image.setTemplate_(True)
