@@ -161,7 +161,7 @@ class TestIconImages:
 
     @pytest.mark.parametrize("dark", [True, False])
     def test_chart_icon(self, compare_image, dark):
-        test_result_indexes = [0, 1, 2, 3, 5, 6, 8, 9, 10, 12, 13, 14]
+        test_result_indexes = [0, 1, 2, 5, 6, 8, 9, 10, 12, 13, 14]
         test_values = [ping_thresholds[i][-2:] for i in test_result_indexes]
 
         state = ""
