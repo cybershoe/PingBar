@@ -162,13 +162,14 @@ def status_chart_icon(
 
         if len(states) < HISTORY_LENGTH:
             blank_bars = HISTORY_LENGTH - len(states)
-            empty_bar = NSBox.alloc().initWithFrame_(
-                NSMakeRect(0, 0, blank_bars * 4, 1)
-            )
-            empty_bar.setBoxType_(NSBoxCustom)
-            empty_bar.setFillColor_(NSColor.grayColor())
-            empty_bar.setBorderWidth_(0)
-            chart_overlay_view.addSubview_(empty_bar)
+            for i in range(blank_bars):
+                empty_bar = NSBox.alloc().initWithFrame_(
+                    NSMakeRect(i * 4, 0, 2, 1)
+                )
+                empty_bar.setBoxType_(NSBoxCustom)
+                empty_bar.setFillColor_(NSColor.grayColor())
+                empty_bar.setBorderWidth_(0)
+                chart_overlay_view.addSubview_(empty_bar)
         return chart_base_view, chart_overlay_view
 
     latency_base_view, latency_overlay_view = _chart_view(
